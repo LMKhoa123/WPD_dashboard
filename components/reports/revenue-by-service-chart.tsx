@@ -26,21 +26,21 @@ export function RevenueByServiceChart() {
             <XAxis
               dataKey="service"
               className="text-xs"
-              stroke="hsl(var(--muted-foreground))"
+              stroke="var(--muted-foreground)"
               angle={-45}
               textAnchor="end"
               height={100}
             />
-            <YAxis className="text-xs" stroke="hsl(var(--muted-foreground))" />
+            <YAxis className="text-xs" stroke="var(--muted-foreground)" />
             <Tooltip
               contentStyle={{
-                backgroundColor: "hsl(var(--card))",
-                border: "1px solid hsl(var(--border))",
+                backgroundColor: "var(--card)",
+                border: "1px solid var(--border)",
                 borderRadius: "var(--radius)",
               }}
-              labelStyle={{ color: "hsl(var(--foreground))" }}
+              labelStyle={{ color: "var(--foreground)" }}
             />
-            <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="revenue" fill="var(--chart-ramp-4)" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>
