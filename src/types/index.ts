@@ -1,0 +1,52 @@
+export type AppointmentStatus = "scheduled" | "in-progress" | "completed" | "cancelled"
+
+export interface Customer {
+  id: string
+  customerName: string
+  email: string
+  phone: string
+  address: string
+  vehicleCount: number
+  registeredDate: string
+}
+
+export interface Vehicle {
+  id: string
+  customerId: string
+  customerName: string
+  vehicleName: string
+  model: string
+  vin: string
+}
+
+export interface Appointment {
+  id: string
+  customerId: string
+  customerName: string
+  vehicleId: string
+  vehicleName: string
+  service: string
+  technician: string
+  startTime: Date
+  endTime: Date
+  status: AppointmentStatus
+}
+
+export interface AutoPart {
+  id: string
+  name: string
+  sku: string
+  quantity: number
+  price: number
+  minStock: number
+  status: "In Stock" | "Low Stock" | "Out of Stock"
+}
+
+export interface StaffMember {
+  id: string
+  name: string
+  email: string
+  role: "Admin" | "Staff" | "Technician"
+  phone: string
+  status: "Active" | "Inactive"
+}
