@@ -24,22 +24,22 @@ export function RevenueChart() {
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis dataKey="day" className="text-xs" stroke="hsl(var(--muted-foreground))" />
-            <YAxis className="text-xs" stroke="hsl(var(--muted-foreground))" />
+            <XAxis dataKey="day" className="text-xs" stroke="var(--muted-foreground)" />
+            <YAxis className="text-xs" stroke="var(--muted-foreground)" />
             <Tooltip
               contentStyle={{
-                backgroundColor: "hsl(var(--card))",
-                border: "1px solid hsl(var(--border))",
+                backgroundColor: "var(--card)",
+                border: "1px solid var(--border)",
                 borderRadius: "var(--radius)",
               }}
-              labelStyle={{ color: "hsl(var(--foreground))" }}
+              labelStyle={{ color: "var(--foreground)" }}
             />
             <Line
               type="monotone"
               dataKey="revenue"
-              stroke="hsl(var(--primary))"
+              stroke="var(--chart-ramp-4)"
               strokeWidth={2}
-              dot={{ fill: "hsl(var(--primary))", r: 4 }}
+              dot={{ fill: "var(--chart-ramp-5)", r: 4 }}
             />
           </LineChart>
         </ResponsiveContainer>

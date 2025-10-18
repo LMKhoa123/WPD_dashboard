@@ -4,10 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Cell, Pie, PieChart, ResponsiveContainer, Legend, Tooltip } from "recharts"
 
 const data = [
-  { name: "Scheduled", value: 8, color: "hsl(var(--chart-1))" },
-  { name: "In Progress", value: 2, color: "hsl(var(--chart-2))" },
-  { name: "Completed", value: 3, color: "hsl(var(--chart-4))" },
-  { name: "Cancelled", value: 2, color: "hsl(var(--muted-foreground))" },
+  { name: "Scheduled", value: 8, color: "var(--chart-ramp-1)" },
+  { name: "In Progress", value: 2, color: "var(--chart-ramp-2)" },
+  { name: "Completed", value: 3, color: "var(--chart-ramp-4)" },
+  { name: "Cancelled", value: 2, color: "var(--muted-foreground)" },
 ]
 
 export function WorkStatusChart() {
@@ -27,8 +27,8 @@ export function WorkStatusChart() {
             </Pie>
             <Tooltip
               contentStyle={{
-                backgroundColor: "hsl(var(--card))",
-                border: "1px solid hsl(var(--border))",
+                backgroundColor: "var(--card)",
+                border: "1px solid var(--border)",
                 borderRadius: "var(--radius)",
               }}
             />

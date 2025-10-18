@@ -28,6 +28,12 @@
   --chart-3: oklch(0.7 0.15 280);
   --chart-4: oklch(0.6 0.16 160);
   --chart-5: oklch(0.75 0.12 60);
+    /* Light-to-dark ramp aliases for charts (light theme) */
+    --chart-ramp-1: var(--chart-5);
+    --chart-ramp-2: var(--chart-3);
+    --chart-ramp-3: var(--chart-2);
+    --chart-ramp-4: var(--chart-4);
+    --chart-ramp-5: var(--chart-1);
   --radius: 0.5rem;
   --sidebar: oklch(0.15 0.01 240);
   --sidebar-foreground: oklch(0.92 0.01 240);
@@ -64,6 +70,12 @@
   --chart-3: oklch(0.75 0.18 280);
   --chart-4: oklch(0.65 0.18 160);
   --chart-5: oklch(0.8 0.14 60);
+    /* Light-to-dark ramp aliases for charts (dark theme) */
+    --chart-ramp-1: var(--chart-5);
+    --chart-ramp-2: var(--chart-3);
+    --chart-ramp-3: var(--chart-2);
+    --chart-ramp-4: var(--chart-4);
+    --chart-ramp-5: var(--chart-1);
   --sidebar: oklch(0.15 0.01 240);
   --sidebar-foreground: oklch(0.92 0.01 240);
   --sidebar-primary: oklch(0.6 0.2 195);

@@ -24,29 +24,29 @@ export function MonthlyRevenueChart() {
           <AreaChart data={data}>
             <defs>
               <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                <stop offset="5%" stopColor="var(--chart-ramp-4)" stopOpacity={0.35} />
+                <stop offset="95%" stopColor="var(--chart-ramp-4)" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="colorExpenses" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="hsl(var(--accent))" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="hsl(var(--accent))" stopOpacity={0} />
+                <stop offset="5%" stopColor="var(--chart-ramp-2)" stopOpacity={0.35} />
+                <stop offset="95%" stopColor="var(--chart-ramp-2)" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis dataKey="month" className="text-xs" stroke="hsl(var(--muted-foreground))" />
-            <YAxis className="text-xs" stroke="hsl(var(--muted-foreground))" />
+            <XAxis dataKey="month" className="text-xs" stroke="var(--muted-foreground)" />
+            <YAxis className="text-xs" stroke="var(--muted-foreground)" />
             <Tooltip
               contentStyle={{
-                backgroundColor: "hsl(var(--card))",
-                border: "1px solid hsl(var(--border))",
+                backgroundColor: "var(--card)",
+                border: "1px solid var(--border)",
                 borderRadius: "var(--radius)",
               }}
-              labelStyle={{ color: "hsl(var(--foreground))" }}
+              labelStyle={{ color: "var(--foreground)" }}
             />
             <Area
               type="monotone"
               dataKey="revenue"
-              stroke="hsl(var(--primary))"
+              stroke="var(--chart-ramp-4)"
               fillOpacity={1}
               fill="url(#colorRevenue)"
               strokeWidth={2}
@@ -54,7 +54,7 @@ export function MonthlyRevenueChart() {
             <Area
               type="monotone"
               dataKey="expenses"
-              stroke="hsl(var(--accent))"
+              stroke="var(--chart-ramp-2)"
               fillOpacity={1}
               fill="url(#colorExpenses)"
               strokeWidth={2}
