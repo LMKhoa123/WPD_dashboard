@@ -1,7 +1,7 @@
 "use client"
 
 import type * as React from "react"
-import { LayoutDashboard, Calendar, Users, Car, Package, UserCog, FileText, Zap } from "lucide-react"
+import { LayoutDashboard, Calendar, Users, Car, Package, UserCog, FileText, Zap, MessageSquare } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -17,8 +17,9 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import { useRole } from "@/components/auth-provider"
 
-const navItems = [
+const baseNav = [
   {
     title: "Dashboard",
     url: "/",
@@ -44,20 +45,22 @@ const navItems = [
     url: "/inventory",
     icon: Package,
   },
-  {
-    title: "Staff",
-    url: "/staff",
-    icon: UserCog,
-  },
-  {
-    title: "Reports",
-    url: "/reports",
-    icon: FileText,
-  },
 ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname()
+  const role = useRole()
+
+  const navItems = (role === "Staff"
+    ? [
+        ...baseNav,
+        { title: "Chat", url: "/chat", icon: MessageSquare },
+      ]
+    : [
+        ...baseNav,
+        { title: "Staff", url: "/staff", icon: UserCog },
+        { title: "Reports", url: "/reports", icon: FileText },
+      ]) as { title: string; url: string; icon: any }[]
 
   return (
     <Sidebar collapsible="icon" {...props}>

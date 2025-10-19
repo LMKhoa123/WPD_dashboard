@@ -8,9 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { mockVehicles } from "@/src/lib/mock-data"
 import { Search, Pencil, Trash2, Plus } from "lucide-react"
+import { useIsAdmin } from "@/components/auth-provider"
 
 export default function VehiclesPage() {
   const [searchQuery, setSearchQuery] = useState("")
+  const isAdmin = useIsAdmin()
 
   const filteredVehicles = mockVehicles.filter(
     (vehicle) =>
@@ -26,10 +28,12 @@ export default function VehiclesPage() {
           <h1 className="text-3xl font-bold tracking-tight">Vehicles</h1>
           <p className="text-muted-foreground">Manage vehicle registrations and information</p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Vehicle
-        </Button>
+        {isAdmin && (
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Vehicle
+          </Button>
+        )}
       </div>
 
       <Card>
@@ -71,14 +75,16 @@ export default function VehiclesPage() {
                     <TableCell className="text-muted-foreground">{vehicle.customerName}</TableCell>
                     <TableCell className="font-mono text-sm text-muted-foreground">{vehicle.vin}</TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="icon">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      {isAdmin && (
+                        <div className="flex justify-end gap-2">
+                          <Button variant="ghost" size="icon">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

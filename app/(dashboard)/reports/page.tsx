@@ -12,6 +12,8 @@ import { MonthlyRevenueChart } from "@/components/reports/monthly-revenue-chart"
 import { RevenueByServiceChart } from "@/components/reports/revenue-by-service-chart"
 import { TopCustomersTable } from "@/components/reports/top-customers-table"
 import type { DateRange } from "react-day-picker"
+import { AdminOnly } from "@/components/role-guards"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 export default function ReportsPage() {
   const [date, setDate] = useState<DateRange | undefined>({
@@ -20,7 +22,8 @@ export default function ReportsPage() {
   })
 
   return (
-    <div className="space-y-6">
+    <AdminOnly>
+      <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Reports & Finance</h1>
@@ -116,6 +119,41 @@ export default function ReportsPage() {
       </div>
 
       <TopCustomersTable />
+
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold">Billing Pipeline: Quotes → Invoices → Payments</h2>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Quote #</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead>Service</TableHead>
+              <TableHead>Amount</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Invoice #</TableHead>
+              <TableHead>Payment</TableHead>
+              <TableHead>Method</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {[{q:"Q-1001", c:"Jane Smith", s:"Battery Inspection", a:180, st:"Invoiced", i:"INV-7781", p:"Paid", m:"Online"},
+              {q:"Q-1002", c:"John Doe", s:"Brake Service", a:420, st:"Quoted", i:"-", p:"-", m:"-"},
+              {q:"Q-1003", c:"Emily Davis", s:"Software Update", a:90, st:"Paid", i:"INV-7784", p:"Paid", m:"Offline"}].map((r)=> (
+              <TableRow key={r.q}>
+                <TableCell className="font-medium">{r.q}</TableCell>
+                <TableCell>{r.c}</TableCell>
+                <TableCell>{r.s}</TableCell>
+                <TableCell>${'{'}r.a.toFixed(2){'}'}</TableCell>
+                <TableCell>{r.st}</TableCell>
+                <TableCell>{r.i}</TableCell>
+                <TableCell>{r.p}</TableCell>
+                <TableCell>{r.m}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
+    </AdminOnly>
   )
 }
