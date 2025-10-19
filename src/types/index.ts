@@ -1,5 +1,13 @@
 export type AppointmentStatus = "scheduled" | "in-progress" | "completed" | "cancelled"
 
+export type UserRole = "Admin" | "Staff"
+
+export interface AuthUser {
+  name: string
+  email: string
+  role: UserRole
+}
+
 export interface Customer {
   id: string
   customerName: string

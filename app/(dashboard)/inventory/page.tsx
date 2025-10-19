@@ -10,9 +10,11 @@ import { mockAutoParts } from "@/src/lib/mock-data"
 import { Search, Pencil, Trash2, Plus, AlertTriangle } from "lucide-react"
 import { AiSuggestionDialog } from "@/components/inventory/ai-suggestion-dialog"
 import { cn } from "@/lib/utils"
+import { useIsAdmin } from "@/components/auth-provider"
 
 export default function InventoryPage() {
   const [searchQuery, setSearchQuery] = useState("")
+  const isAdmin = useIsAdmin()
 
   const filteredParts = mockAutoParts.filter(
     (part) =>
@@ -42,10 +44,12 @@ export default function InventoryPage() {
         </div>
         <div className="flex gap-2">
           <AiSuggestionDialog />
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Part
-          </Button>
+          {isAdmin && (
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Part
+            </Button>
+          )}
         </div>
       </div>
 
@@ -141,14 +145,16 @@ export default function InventoryPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="icon">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      {isAdmin && (
+                        <div className="flex justify-end gap-2">
+                          <Button variant="ghost" size="icon">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

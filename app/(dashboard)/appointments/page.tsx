@@ -12,8 +12,10 @@ import { format } from "date-fns"
 import { Search, Pencil, Trash2 } from "lucide-react"
 import { AppointmentDialog } from "@/components/appointments/appointment-dialog"
 import type { AppointmentStatus } from "@/src/types"
+import { useIsAdmin } from "@/components/auth-provider"
+import { EvChecklistDialog } from "@/components/appointments/ev-checklist-dialog"
 
-const statusColors = {
+const statusColors: Record<AppointmentStatus, string> = {
   scheduled: "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20",
   "in-progress": "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20",
   completed: "bg-green-500/10 text-green-500 hover:bg-green-500/20",
@@ -23,6 +25,7 @@ const statusColors = {
 export default function AppointmentsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<AppointmentStatus | "all">("all")
+  const isAdmin = useIsAdmin()
 
   const filteredAppointments = mockAppointments
     .filter((apt) => {
@@ -42,7 +45,7 @@ export default function AppointmentsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Appointments</h1>
           <p className="text-muted-foreground">Manage service appointments and schedules</p>
         </div>
-        <AppointmentDialog />
+    <AppointmentDialog />
       </div>
 
       <Card>
@@ -99,12 +102,17 @@ export default function AppointmentsPage() {
                       {format(appointment.startTime, "MMM d, yyyy h:mm a")}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className={statusColors[appointment.status]}>
+                      <Badge
+                        variant="secondary"
+                        className={statusColors[appointment.status as AppointmentStatus]}
+                      >
                         {appointment.status.replace("-", " ")}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
+                        {/* EV checklist always visible */}
+                        <EvChecklistDialog appointment={appointment} />
                         <AppointmentDialog
                           appointment={appointment}
                           trigger={
@@ -113,9 +121,11 @@ export default function AppointmentsPage() {
                             </Button>
                           }
                         />
-                        <Button variant="ghost" size="icon">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {isAdmin && (
+                          <Button variant="ghost" size="icon">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

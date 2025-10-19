@@ -10,9 +10,11 @@ import { Badge } from "@/components/ui/badge"
 import { mockCustomers } from "@/src/lib/mock-data"
 import { Search, Pencil, Trash2, Eye } from "lucide-react"
 import { CustomerDialog } from "@/components/customers/customer-dialog"
+import { useIsAdmin } from "@/components/auth-provider"
 
 export default function CustomersPage() {
   const [searchQuery, setSearchQuery] = useState("")
+  const isAdmin = useIsAdmin()
 
   const filteredCustomers = mockCustomers.filter(
     (customer) =>
@@ -28,7 +30,7 @@ export default function CustomersPage() {
           <h1 className="text-3xl font-bold tracking-tight">Customers</h1>
           <p className="text-muted-foreground">Manage customer information and records</p>
         </div>
-        <CustomerDialog />
+  {isAdmin && <CustomerDialog />}
       </div>
 
       <Card>
@@ -80,17 +82,21 @@ export default function CustomersPage() {
                             <Eye className="h-4 w-4" />
                           </Link>
                         </Button>
-                        <CustomerDialog
-                          customer={customer}
-                          trigger={
-                            <Button variant="ghost" size="icon">
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          }
-                        />
-                        <Button variant="ghost" size="icon">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {isAdmin && (
+                          <CustomerDialog
+                            customer={customer}
+                            trigger={
+                              <Button variant="ghost" size="icon">
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            }
+                          />
+                        )}
+                        {isAdmin && (
+                          <Button variant="ghost" size="icon">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

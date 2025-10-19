@@ -6,6 +6,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
+import { AuthProvider } from "@/components/auth-provider"
 
 export const metadata: Metadata = {
   title: "EV Service Center Management",
@@ -22,7 +23,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-          <Suspense fallback={null}>{children}</Suspense>
+          <AuthProvider>
+            <Suspense fallback={null}>{children}</Suspense>
+          </AuthProvider>
         </ThemeProvider>
         <Analytics />
       </body>

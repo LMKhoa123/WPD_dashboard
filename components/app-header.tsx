@@ -14,8 +14,17 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { SidebarTrigger } from "@/components/ui/sidebar"
+import { useAuth } from "@/components/auth-provider"
+import { useRouter } from "next/navigation"
 
 export function AppHeader() {
+  const { user, logout } = useAuth()
+  const router = useRouter()
+
+  const handleLogout = () => {
+    logout()
+    router.replace("/login")
+  }
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
       <SidebarTrigger className="-ml-2" />
@@ -44,11 +53,17 @@ export function AppHeader() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="gap-2 px-2">
               <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-primary text-primary-foreground">AU</AvatarFallback>
+                <AvatarFallback className="bg-primary text-primary-foreground">
+                  {user?.name
+                    ?.split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase() || "--"}
+                </AvatarFallback>
               </Avatar>
               <div className="hidden md:flex flex-col items-start text-sm">
-                <span className="font-medium">Admin User</span>
-                <span className="text-xs text-muted-foreground">Administrator</span>
+                <span className="font-medium">{user?.name || "Guest"}</span>
+                <span className="text-xs text-muted-foreground">{user?.role === "Admin" ? "Administrator" : "Staff"}</span>
               </div>
             </Button>
           </DropdownMenuTrigger>
@@ -58,7 +73,7 @@ export function AppHeader() {
             <DropdownMenuItem>Profile</DropdownMenuItem>
             <DropdownMenuItem>Settings</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">Logout</DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout} className="text-destructive">Logout</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

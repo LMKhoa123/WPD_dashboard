@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { mockStaff } from "@/src/lib/mock-data"
 import { Search, Pencil, Trash2, Plus } from "lucide-react"
+import { AdminOnly } from "@/components/role-guards"
 
 export default function StaffPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -42,7 +43,8 @@ export default function StaffPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <AdminOnly>
+      <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Staff</h1>
@@ -162,6 +164,7 @@ export default function StaffPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </AdminOnly>
   )
 }
