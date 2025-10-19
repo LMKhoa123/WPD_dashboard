@@ -10,6 +10,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { mockStaff } from "@/src/lib/mock-data"
 import { Search, Pencil, Trash2, Plus } from "lucide-react"
 import { AdminOnly } from "@/components/role-guards"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { TechnicianScheduler } from "@/components/staff/technician-scheduler"
+import { PerformanceDashboard } from "@/components/staff/performance-dashboard"
+import { CertificationsManager } from "@/components/staff/certifications"
 
 export default function StaffPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -85,6 +89,15 @@ export default function StaffPage() {
         </Card>
       </div>
 
+      <Tabs defaultValue="team" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="team">Team</TabsTrigger>
+          <TabsTrigger value="schedule">Scheduling</TabsTrigger>
+          <TabsTrigger value="performance">Performance</TabsTrigger>
+          <TabsTrigger value="certs">Certifications</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="team">
       <Card>
         <CardHeader>
           <CardTitle>All Staff Members</CardTitle>
@@ -164,6 +177,20 @@ export default function StaffPage() {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="schedule">
+          <TechnicianScheduler />
+        </TabsContent>
+
+        <TabsContent value="performance">
+          <PerformanceDashboard />
+        </TabsContent>
+
+        <TabsContent value="certs">
+          <CertificationsManager />
+        </TabsContent>
+      </Tabs>
       </div>
     </AdminOnly>
   )
