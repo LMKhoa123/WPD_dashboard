@@ -58,3 +58,17 @@ export interface StaffMember {
   phone: string
   status: "Active" | "Inactive"
 }
+
+export interface Certification {
+  id: string
+  name: string
+  description?: string
+}
+
+export interface StaffCertification {
+  staffId: string
+  certificationId: string
+  obtainedDate: string
+  expiresDate?: string
+  level?: "Associate" | "Professional" | "Expert"
+}

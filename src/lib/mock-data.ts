@@ -1,4 +1,4 @@
-import type { Customer, Vehicle, Appointment, AutoPart, StaffMember } from "@/types"
+import type { Customer, Vehicle, Appointment, AutoPart, StaffMember, Certification, StaffCertification } from "@/src/types"
 
 export const mockCustomers: Customer[] = [
   {
@@ -660,4 +660,17 @@ export const mockStaff: StaffMember[] = [
     phone: "+1 (555) 888-9999",
     status: "Active",
   },
+]
+
+export const mockCertifications: Certification[] = [
+  { id: "cert_1", name: "EV High-Voltage Safety", description: "Safe handling of HV systems" },
+  { id: "cert_2", name: "Battery Diagnostics Pro", description: "Advanced battery diagnostics" },
+  { id: "cert_3", name: "EV Powertrain Repair", description: "Motor/inverter service procedures" },
+]
+
+export const mockStaffCerts: StaffCertification[] = [
+  { staffId: "staff_1", certificationId: "cert_1", obtainedDate: "2024-03-01", level: "Professional" },
+  { staffId: "staff_1", certificationId: "cert_2", obtainedDate: "2024-06-12" },
+  { staffId: "staff_2", certificationId: "cert_1", obtainedDate: "2023-11-20", level: "Associate" },
+  { staffId: "staff_3", certificationId: "cert_3", obtainedDate: "2024-01-10", level: "Professional" },
 ]
