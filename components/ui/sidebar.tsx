@@ -68,6 +68,8 @@ function SidebarProvider({
 }) {
   const isMobile = useIsMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
+  const [mounted, setMounted] = React.useState(false)
+  React.useEffect(() => setMounted(true), [])
 
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
@@ -129,6 +131,7 @@ function SidebarProvider({
   return (
     <SidebarContext.Provider value={contextValue}>
       <TooltipProvider delayDuration={0}>
+        {mounted && (
         <div
           data-slot="sidebar-wrapper"
           style={
@@ -146,6 +149,7 @@ function SidebarProvider({
         >
           {children}
         </div>
+        )}
       </TooltipProvider>
     </SidebarContext.Provider>
   )

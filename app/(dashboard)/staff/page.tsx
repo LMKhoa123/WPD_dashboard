@@ -11,7 +11,8 @@ import { mockStaff } from "@/src/lib/mock-data"
 import { Search, Pencil, Trash2, Plus } from "lucide-react"
 import { AdminOnly } from "@/components/role-guards"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { TechnicianScheduler } from "@/components/staff/technician-scheduler"
+import { AdvancedScheduler } from "@/components/staff/advanced-scheduler"
+import ShiftScheduler from "@/components/staff/shift-scheduler"
 import { PerformanceDashboard } from "@/components/staff/performance-dashboard"
 import { CertificationsManager } from "@/components/staff/certifications"
 
@@ -93,6 +94,7 @@ export default function StaffPage() {
         <TabsList>
           <TabsTrigger value="team">Team</TabsTrigger>
           <TabsTrigger value="schedule">Scheduling</TabsTrigger>
+          <TabsTrigger value="shift">Shift (DnD Sidebar)</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="certs">Certifications</TabsTrigger>
         </TabsList>
@@ -180,7 +182,11 @@ export default function StaffPage() {
         </TabsContent>
 
         <TabsContent value="schedule">
-          <TechnicianScheduler />
+          <AdvancedScheduler />
+        </TabsContent>
+
+        <TabsContent value="shift">
+          <ShiftScheduler />
         </TabsContent>
 
         <TabsContent value="performance">
