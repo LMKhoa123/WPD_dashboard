@@ -9,26 +9,23 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Zap } from "lucide-react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/components/auth-provider"
+import Link from "next/link"
 
 export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [role, setRole] = useState<"Admin" | "Staff">("Admin")
-  const { login, user } = useAuth()
+  const { loginWithCredentials, user } = useAuth()
 
   // If already logged in, redirect to home
   useEffect(() => {
     if (user) router.replace("/")
   }, [user, router])
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Mock login using selected role
-    const name = role === "Admin" ? "Admin User" : "Staff User"
-    login({ name, email: email || (role === "Admin" ? "admin@evservice.com" : "staff@evservice.com"), role })
+    await loginWithCredentials(email, password)
     const url = new URL(window.location.href)
     const next = url.searchParams.get("next")
     router.push(next || "/")
@@ -70,21 +67,13 @@ export default function LoginPage() {
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
-              <Select value={role} onValueChange={(v) => setRole(v as any)}>
-                <SelectTrigger id="role">
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Admin">Admin</SelectItem>
-                  <SelectItem value="Staff">Staff</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
             <Button type="submit" className="w-full" size="lg">
               Sign In
             </Button>
+            <p className="text-sm text-muted-foreground text-center">
+              Don't have an account? {" "}
+              <Link href="/register" className="text-primary hover:underline">Register</Link>
+            </p>
           </form>
         </CardContent>
       </Card>

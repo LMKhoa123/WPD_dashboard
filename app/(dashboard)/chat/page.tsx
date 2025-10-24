@@ -108,7 +108,8 @@ export default function ChatDashboardPage() {
   }
 
   return (
-    <div className="dark:bg-gray-900" style={{ backgroundColor: "#fff" }}>
+     
+    <div className="dark:bg-gray-900 "  style={{ backgroundColor: "#fff" }}>
       <div className="mx-auto  bg-white/90 dark:bg-gray-800/90 p-3 shadow-xl ring-1 ring-black/5 dark:ring-white/10 pb-10">
         {/* 4 columns layout on xl (nav rail + 3 panes) */}
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-[320px_minmax(0,1fr)_280px] ">
