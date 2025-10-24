@@ -16,6 +16,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { useAuth } from "@/components/auth-provider"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 export function AppHeader() {
   const { user, logout } = useAuth()
@@ -70,7 +71,9 @@ export function AppHeader() {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Profile</DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/profile">Profile</Link>
+            </DropdownMenuItem>
             <DropdownMenuItem>Settings</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-destructive">Logout</DropdownMenuItem>

@@ -72,3 +72,18 @@ export interface StaffCertification {
   expiresDate?: string
   level?: "Associate" | "Professional" | "Expert"
 }
+
+export interface UserProfile {
+  _id: string
+  userId: {
+    _id: string
+    email: string
+    role: "ADMIN" | "STAFF"
+  }
+  name: string
+  dateOfBirth: string | null
+  certification: string
+  isOnline: boolean
+  createdAt: string
+  updatedAt: string
+}
