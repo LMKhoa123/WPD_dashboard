@@ -1,25 +1,46 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { mockVehicles } from "@/src/lib/mock-data"
 import { Search, Pencil, Trash2, Plus } from "lucide-react"
 import { useIsAdmin } from "@/components/auth-provider"
+import { getApiClient, type VehicleRecord } from "@/lib/api"
+import { toast } from "@/components/ui/use-toast"
 
 export default function VehiclesPage() {
   const [searchQuery, setSearchQuery] = useState("")
+  const [loading, setLoading] = useState(true)
+  const [vehicles, setVehicles] = useState<VehicleRecord[]>([])
   const isAdmin = useIsAdmin()
 
-  const filteredVehicles = mockVehicles.filter(
-    (vehicle) =>
-      vehicle.vehicleName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      vehicle.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      vehicle.vin.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+  useEffect(() => {
+    const run = async () => {
+      try {
+        setLoading(true)
+        const api = getApiClient()
+        const list = await api.getVehicles({ limit: 200 })
+        setVehicles(list)
+      } catch (e: any) {
+        toast({ title: "Lỗi tải danh sách xe", description: e?.message || "Failed to load vehicles", variant: "destructive" })
+      } finally {
+        setLoading(false)
+      }
+    }
+    run()
+  }, [])
+
+  const filteredVehicles = useMemo(() => {
+    const q = searchQuery.toLowerCase()
+    return vehicles.filter((v) => {
+      const owner = typeof v.customerId === "object" && v.customerId ? (v.customerId.customerName || "") : ""
+      const vin = (v.VIN || "").toLowerCase()
+      return v.vehicleName.toLowerCase().includes(q) || owner.toLowerCase().includes(q) || vin.includes(q)
+    })
+  }, [vehicles, searchQuery])
 
   return (
     <div className="space-y-6">
@@ -42,6 +63,10 @@ export default function VehiclesPage() {
           <CardDescription>View and manage registered vehicles</CardDescription>
         </CardHeader>
         <CardContent>
+          {loading ? (
+            <div className="py-10 text-center text-muted-foreground">Loading vehicles...</div>
+          ) : (
+          <>
           <div className="mb-6">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -66,14 +91,14 @@ export default function VehiclesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredVehicles.map((vehicle) => (
-                  <TableRow key={vehicle.id}>
-                    <TableCell className="font-medium">{vehicle.vehicleName}</TableCell>
+                {filteredVehicles.map((v) => (
+                  <TableRow key={v._id}>
+                    <TableCell className="font-medium">{v.vehicleName}</TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{vehicle.model}</Badge>
+                      <Badge variant="secondary">{v.model}</Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{vehicle.customerName}</TableCell>
-                    <TableCell className="font-mono text-sm text-muted-foreground">{vehicle.vin}</TableCell>
+                    <TableCell className="text-muted-foreground">{typeof v.customerId === "object" && v.customerId ? v.customerId.customerName || "—" : "—"}</TableCell>
+                    <TableCell className="font-mono text-sm text-muted-foreground">{v.VIN}</TableCell>
                     <TableCell className="text-right">
                       {isAdmin && (
                         <div className="flex justify-end gap-2">
@@ -91,6 +116,8 @@ export default function VehiclesPage() {
               </TableBody>
             </Table>
           </div>
+          </>
+          )}
         </CardContent>
       </Card>
     </div>

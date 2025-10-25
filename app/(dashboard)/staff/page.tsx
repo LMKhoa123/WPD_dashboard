@@ -1,13 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { mockStaff } from "@/src/lib/mock-data"
 import { Search, Pencil, Trash2, Plus } from "lucide-react"
 import { AdminOnly } from "@/components/role-guards"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -15,25 +14,53 @@ import { AdvancedScheduler } from "@/components/staff/advanced-scheduler"
 import ShiftScheduler from "@/components/staff/shift-scheduler"
 import { PerformanceDashboard } from "@/components/staff/performance-dashboard"
 import { CertificationsManager } from "@/components/staff/certifications"
+import { getApiClient, type SystemUserRecord, type UserAccount } from "@/lib/api"
+import { toast } from "@/components/ui/use-toast"
 
 export default function StaffPage() {
   const [searchQuery, setSearchQuery] = useState("")
+  const [loading, setLoading] = useState(true)
+  const [systemUsers, setSystemUsers] = useState<SystemUserRecord[]>([])
+  const [users, setUsers] = useState<UserAccount[]>([])
 
-  const filteredStaff = mockStaff.filter(
-    (member) =>
-      member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      member.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      member.role.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+  useEffect(() => {
+    const run = async () => {
+      try {
+        setLoading(true)
+        const api = getApiClient()
+        const [sys, us] = await Promise.all([api.getSystemUsers({ limit: 200 }), api.getUsers({ limit: 200 })])
+        setSystemUsers(sys.data.systemUsers)
+        setUsers(us)
+      } catch (e: any) {
+        toast({ title: "Lỗi tải danh sách nhân sự", description: e?.message || "Failed to load staff", variant: "destructive" })
+      } finally {
+        setLoading(false)
+      }
+    }
+    run()
+  }, [])
+
+  const usersById = useMemo(() => new Map(users.map((u) => [u._id, u])), [users])
+
+  const filteredStaff = useMemo(() => {
+    const q = searchQuery.toLowerCase()
+    return systemUsers.filter((s) => {
+      const account = usersById.get(s.userId)
+      const name = (s.name || "").toLowerCase()
+      const email = (account?.email || "").toLowerCase()
+      const role = mapRole(account?.role)
+      return name.includes(q) || email.includes(q) || role.toLowerCase().includes(q)
+    })
+  }, [systemUsers, usersById, searchQuery])
 
   const getRoleColor = (role: string) => {
     switch (role) {
       case "Admin":
         return "bg-purple-500/10 text-purple-500 hover:bg-purple-500/20"
-      case "Technician":
-        return "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20"
       case "Staff":
         return "bg-gray-500/10 text-gray-500 hover:bg-gray-500/20"
+      case "Technician":
+        return "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20"
       default:
         return ""
     }
@@ -67,7 +94,7 @@ export default function StaffPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Staff</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockStaff.length}</div>
+            <div className="text-2xl font-bold">{systemUsers.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -76,7 +103,7 @@ export default function StaffPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-500">
-              {mockStaff.filter((s) => s.status === "Active").length}
+              {systemUsers.filter((s) => s.isOnline).length}
             </div>
           </CardContent>
         </Card>
@@ -85,7 +112,7 @@ export default function StaffPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Technicians</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockStaff.filter((s) => s.role === "Technician").length}</div>
+            <div className="text-2xl font-bold">{/* unknown technicians from API */}0</div>
           </CardContent>
         </Card>
       </div>
@@ -131,35 +158,40 @@ export default function StaffPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredStaff.map((member) => (
-                  <TableRow key={member.id}>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-10">Loading staff...</TableCell>
+                  </TableRow>
+                ) : filteredStaff.map((s) => {
+                  const account = usersById.get(s.userId)
+                  const role = mapRole(account?.role)
+                  const status = s.isOnline ? "Active" : "Inactive"
+                  const name = s.name || (account?.email?.split("@")[0] ?? "—")
+                  return (
+                  <TableRow key={s._id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
                           <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                            {getInitials(member.name)}
+                            {getInitials(name)}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="font-medium">{member.name}</span>
+                        <span className="font-medium">{name}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{member.email}</TableCell>
-                    <TableCell className="text-muted-foreground">{member.phone}</TableCell>
+                    <TableCell className="text-muted-foreground">{account?.email || "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{account?.phone || "—"}</TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className={getRoleColor(member.role)}>
-                        {member.role}
+                      <Badge variant="secondary" className={getRoleColor(role)}>
+                        {role}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <Badge
                         variant="secondary"
-                        className={
-                          member.status === "Active"
-                            ? "bg-green-500/10 text-green-500 hover:bg-green-500/20"
-                            : "bg-gray-500/10 text-gray-500 hover:bg-gray-500/20"
-                        }
+                        className={status === "Active" ? "bg-green-500/10 text-green-500 hover:bg-green-500/20" : "bg-gray-500/10 text-gray-500 hover:bg-gray-500/20"}
                       >
-                        {member.status}
+                        {status}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -173,7 +205,7 @@ export default function StaffPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                )})}
               </TableBody>
             </Table>
           </div>
@@ -200,4 +232,10 @@ export default function StaffPage() {
       </div>
     </AdminOnly>
   )
+}
+
+function mapRole(apiRole?: string): "Admin" | "Staff" | "Technician" | "Unknown" {
+  if (apiRole === "ADMIN") return "Admin"
+  if (apiRole === "STAFF") return "Staff"
+  return "Unknown"
 }

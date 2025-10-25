@@ -2,8 +2,9 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
 import type { AuthUser, UserRole } from "@/src/types"
-import { ApiClient, loadTokens, saveTokens, type Tokens } from "@/lib/api"
+import { ApiClient, loadTokens, saveTokens, setGlobalApiClient, type Tokens } from "@/lib/api"
 import { toast } from "@/components/ui/use-toast"
+import { useRouter } from "next/navigation"
 
 interface AuthContextValue {
   user: AuthUser | null
@@ -35,16 +36,56 @@ function mapUiRoleToApi(role: UserRole): "ADMIN" | "STAFF" {
   return role === "Admin" ? "ADMIN" : "STAFF"
 }
 
-const api = new ApiClient({ getTokens: loadTokens, setTokens: saveTokens })
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
+
+  // Create API client with redirect callback
+  const api = useMemo(
+    () =>
+      new ApiClient({
+        getTokens: loadTokens,
+        setTokens: saveTokens,
+        onUnauthorized: () => {
+          // Clear user state
+          setUser(null)
+          try {
+            localStorage.removeItem(USER_KEY)
+          } catch {}
+          // Redirect to login
+          router.replace("/login")
+          toast({
+            title: "Phiên đăng nhập hết hạn",
+            description: "Vui lòng đăng nhập lại",
+            variant: "destructive",
+          })
+        },
+      }),
+    [router]
+  )
+
+  // Set as global API client
+  useEffect(() => {
+    setGlobalApiClient(api)
+  }, [api])
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem(USER_KEY)
-      if (raw) setUser(JSON.parse(raw))
+      if (raw) {
+        const storedUser = JSON.parse(raw)
+        // Check if tokens still exist and are valid
+        const tokens = loadTokens()
+        if (tokens) {
+          // Check if refresh token is expired (compare with current time)
+          // Note: We don't have refresh token expiry in our Tokens type, so we'll just check existence
+          setUser(storedUser)
+        } else {
+          // No tokens found, clear user
+          localStorage.removeItem(USER_KEY)
+        }
+      }
     } catch {}
     setLoading(false)
   }, [])
@@ -97,7 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo(
     () => ({ user, loading, loginWithCredentials, register, logout, getAccessToken }),
-    [user, loading]
+    [user, loading, api]
   )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
