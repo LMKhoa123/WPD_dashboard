@@ -1,8 +1,6 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -17,20 +15,60 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Plus } from "lucide-react"
-import type { Customer } from "@/src/types"
+import { getApiClient, type CustomerRecord } from "@/lib/api"
+import { useToast } from "@/components/ui/use-toast"
 
 interface CustomerDialogProps {
-  customer?: Customer
+  customer?: CustomerRecord
   trigger?: React.ReactNode
+  onSuccess?: (customer: CustomerRecord) => void
 }
 
-export function CustomerDialog({ customer, trigger }: CustomerDialogProps) {
+export function CustomerDialog({ customer, trigger, onSuccess }: CustomerDialogProps) {
   const [open, setOpen] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [customerName, setCustomerName] = useState("")
+  const [address, setAddress] = useState("")
+  const { toast } = useToast()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (open && customer) {
+      setCustomerName(customer.customerName)
+      setAddress(customer.address)
+    } else if (!open) {
+      resetForm()
+    }
+  }, [open, customer])
+
+  const resetForm = () => {
+    setCustomerName("")
+    setAddress("")
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Mock form submission
-    setOpen(false)
+    if (!customer) return // Only support editing for now
+
+    try {
+      setSubmitting(true)
+      const api = getApiClient()
+      const updated = await api.updateCustomer(customer._id, {
+        customerName,
+        address,
+      })
+
+      toast({ title: "Cập nhật khách hàng thành công" })
+      setOpen(false)
+      onSuccess?.(updated)
+    } catch (e: any) {
+      toast({
+        title: "Cập nhật thất bại",
+        description: e?.message || "Failed to update customer",
+        variant: "destructive",
+      })
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -54,31 +92,32 @@ export function CustomerDialog({ customer, trigger }: CustomerDialogProps) {
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="name">Full Name</Label>
-              <Input id="name" defaultValue={customer?.customerName} placeholder="John Doe" required />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" defaultValue={customer?.email} placeholder="john@example.com" required />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" type="tel" defaultValue={customer?.phone} placeholder="+1 (555) 123-4567" required />
+              <Input
+                id="name"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder="John Doe"
+                required
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="address">Address</Label>
               <Textarea
                 id="address"
-                defaultValue={customer?.address}
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
                 placeholder="123 Main St, City, State ZIP"
                 rows={3}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={submitting}>
               Cancel
             </Button>
-            <Button type="submit">{customer ? "Update" : "Create"} Customer</Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? "Saving..." : customer ? "Update Customer" : "Create Customer"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

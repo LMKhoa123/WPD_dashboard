@@ -1,20 +1,37 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Search, Pencil, Trash2, Plus } from "lucide-react"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { Search, Pencil, Trash2, Plus, Car, Eye } from "lucide-react"
 import { useIsAdmin } from "@/components/auth-provider"
 import { getApiClient, type VehicleRecord } from "@/lib/api"
 import { toast } from "@/components/ui/use-toast"
+import { VehicleDialog } from "@/components/vehicles/vehicle-dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 export default function VehiclesPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [loading, setLoading] = useState(true)
   const [vehicles, setVehicles] = useState<VehicleRecord[]>([])
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [vehicleToDelete, setVehicleToDelete] = useState<VehicleRecord | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const isAdmin = useIsAdmin()
 
   useEffect(() => {
@@ -38,9 +55,57 @@ export default function VehiclesPage() {
     return vehicles.filter((v) => {
       const owner = typeof v.customerId === "object" && v.customerId ? (v.customerId.customerName || "") : ""
       const vin = (v.VIN || "").toLowerCase()
-      return v.vehicleName.toLowerCase().includes(q) || owner.toLowerCase().includes(q) || vin.includes(q)
+      const plate = (v.plateNumber || "").toLowerCase()
+      return (
+        v.vehicleName.toLowerCase().includes(q) ||
+        owner.toLowerCase().includes(q) ||
+        vin.includes(q) ||
+        plate.includes(q)
+      )
     })
   }, [vehicles, searchQuery])
+
+  const formatPrice = (price?: number) => {
+    if (!price) return "—"
+    return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price)
+  }
+
+  const formatMileage = (mileage?: number) => {
+    if (mileage === undefined || mileage === null) return "—"
+    return `${mileage.toLocaleString("vi-VN")} km`
+  }
+
+  const handleDeleteClick = (vehicle: VehicleRecord) => {
+    setVehicleToDelete(vehicle)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!vehicleToDelete) return
+
+    try {
+      setDeleting(true)
+      const api = getApiClient()
+      await api.deleteVehicle(vehicleToDelete._id)
+      
+      setVehicles((prev) => prev.filter((v) => v._id !== vehicleToDelete._id))
+      toast({ title: "Xóa xe thành công" })
+      setDeleteDialogOpen(false)
+      setVehicleToDelete(null)
+    } catch (e: any) {
+      toast({
+        title: "Xóa thất bại",
+        description: e?.message || "Failed to delete vehicle",
+        variant: "destructive",
+      })
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const handleVehicleUpdated = (updated: VehicleRecord) => {
+    setVehicles((prev) => prev.map((v) => (v._id === updated._id ? updated : v)))
+  }
 
   return (
     <div className="space-y-6">
@@ -50,11 +115,54 @@ export default function VehiclesPage() {
           <p className="text-muted-foreground">Manage vehicle registrations and information</p>
         </div>
         {isAdmin && (
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Vehicle
-          </Button>
+          <VehicleDialog
+            trigger={
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Vehicle
+              </Button>
+            }
+            onCreated={(v) => {
+              setVehicles((prev) => [v, ...prev])
+            }}
+          />
         )}
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Vehicles</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{vehicles.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Value</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {formatPrice(vehicles.reduce((sum, v) => sum + (v.price || 0), 0))}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Average Mileage</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {vehicles.length > 0
+                ? formatMileage(
+                    Math.round(vehicles.reduce((sum, v) => sum + (v.mileage || 0), 0) / vehicles.length)
+                  )
+                : "—"}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
@@ -66,60 +174,122 @@ export default function VehiclesPage() {
           {loading ? (
             <div className="py-10 text-center text-muted-foreground">Loading vehicles...</div>
           ) : (
-          <>
-          <div className="mb-6">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search by vehicle name, owner, or VIN..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
+            <>
+              <div className="mb-6">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by vehicle name, owner, VIN, or plate number..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
 
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Vehicle</TableHead>
-                  <TableHead>Model Year</TableHead>
-                  <TableHead>Owner</TableHead>
-                  <TableHead>VIN</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredVehicles.map((v) => (
-                  <TableRow key={v._id}>
-                    <TableCell className="font-medium">{v.vehicleName}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{v.model}</Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{typeof v.customerId === "object" && v.customerId ? v.customerId.customerName || "—" : "—"}</TableCell>
-                    <TableCell className="font-mono text-sm text-muted-foreground">{v.VIN}</TableCell>
-                    <TableCell className="text-right">
-                      {isAdmin && (
-                        <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="icon">
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-          </>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Vehicle</TableHead>
+                      <TableHead>Model & Year</TableHead>
+                      <TableHead>Owner</TableHead>
+                      <TableHead>Plate Number</TableHead>
+                      <TableHead>VIN</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredVehicles.map((v) => (
+                      <TableRow key={v._id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={v.image} alt={v.vehicleName} />
+                              <AvatarFallback>
+                                <Car className="h-5 w-5" />
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium">{v.vehicleName}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1">
+                            <Badge variant="secondary">{v.model}</Badge>
+                            {v.year && <span className="text-xs text-muted-foreground">{v.year}</span>}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {typeof v.customerId === "object" && v.customerId
+                            ? v.customerId.customerName || "—"
+                            : "—"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{v.plateNumber || "—"}</Badge>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground">{v.VIN}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Link href={`/vehicles/${v._id}`}>
+                              <Button variant="ghost" size="icon" title="View details">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </Link>
+                            {isAdmin && (
+                              <>
+                                <VehicleDialog
+                                  vehicle={v}
+                                  trigger={
+                                    <Button variant="ghost" size="icon" title="Edit vehicle">
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                  }
+                                  onUpdated={handleVehicleUpdated}
+                                />
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  onClick={() => handleDeleteClick(v)}
+                                  title="Delete vehicle"
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the vehicle "{vehicleToDelete?.vehicleName}".
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

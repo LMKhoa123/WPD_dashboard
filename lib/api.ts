@@ -135,11 +135,19 @@ export interface CustomersListResponse {
 // System users (staff/admin profiles)
 export interface SystemUserRecord {
   _id: string
-  userId: string
+  userId: string | { _id: string; email: string; role: "ADMIN" | "STAFF"; phone?: string }
   name: string
   dateOfBirth: string | null
   certification: string
   isOnline: boolean
+  certificates?: Array<{
+    _id: string
+    name: string
+    issuingOrganization: string
+    issueDate: string
+    expirationDate: string
+    credentialUrl: string
+  }>
   createdAt: string
   updatedAt: string
   __v?: number
@@ -178,6 +186,13 @@ export interface VehicleRecord {
 export interface VehiclesListResponse {
   success: boolean
   data: VehicleRecord[]
+}
+
+// Create vehicle response shape
+export interface CreateVehicleResponse {
+  success: boolean
+  message?: string
+  data: VehicleRecord
 }
 
 const API_BASE = (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_BASE_URL) ||
@@ -384,6 +399,18 @@ export class ApiClient {
     return (await res.json()) as CustomersListResponse
   }
 
+  async updateCustomer(customerId: string, payload: { customerName?: string; address?: string }): Promise<CustomerRecord> {
+    const res = await this.fetchJson<{ success: boolean; data: CustomerRecord }>(`/customers/${customerId}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    })
+    return res.data
+  }
+
+  async deleteCustomer(customerId: string): Promise<void> {
+    await this.fetchJson(`/customers/${customerId}`, { method: "DELETE" })
+  }
+
   async getSystemUsers(params?: { page?: number; limit?: number }): Promise<SystemUsersListResponse> {
     const url = new URL(this.buildUrl("/system-users"))
     if (params?.page) url.searchParams.set("page", String(params.page))
@@ -391,6 +418,33 @@ export class ApiClient {
     const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
     if (!res.ok) throw new Error(await safeErrorMessage(res))
     return (await res.json()) as SystemUsersListResponse
+  }
+
+  async getSystemUserById(systemUserId: string): Promise<SystemUserRecord> {
+    const res = await this.fetchJson<{ success: boolean; data: SystemUserRecord }>(`/system-users/${systemUserId}`, { method: "GET" })
+    return res.data
+  }
+
+  async updateSystemUser(systemUserId: string, payload: {
+    name?: string
+    dateOfBirth?: string | null
+    certificates?: Array<{
+      name: string
+      issuingOrganization: string
+      issueDate: string
+      expirationDate: string
+      credentialUrl: string
+    }>
+  }): Promise<SystemUserRecord> {
+    const res = await this.fetchJson<{ success: boolean; data: SystemUserRecord }>(`/system-users/${systemUserId}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    })
+    return res.data
+  }
+
+  async deleteSystemUser(systemUserId: string): Promise<void> {
+    await this.fetchJson(`/system-users/${systemUserId}`, { method: "DELETE" })
   }
 
   async getVehicles(params?: { page?: number; limit?: number }): Promise<VehicleRecord[]> {
@@ -401,6 +455,81 @@ export class ApiClient {
     if (!res.ok) throw new Error(await safeErrorMessage(res))
     const data = (await res.json()) as VehiclesListResponse
     return data.data
+  }
+
+  // Create a new vehicle with multipart/form-data (supports image upload)
+  async createVehicle(form: FormData): Promise<VehicleRecord> {
+    await this.ensureFreshAccessToken()
+    const doRequest = async () =>
+      rawFetch(this.buildUrl("/vehicles"), {
+        method: "POST",
+        body: form,
+        headers: {
+          // Do NOT set Content-Type for FormData; browser will set boundary
+          accept: "application/json",
+          ...this.authHeader(),
+        },
+      })
+
+    let res = await doRequest()
+    if (res.status === 401) {
+      try {
+        await this.refreshToken()
+        res = await doRequest()
+      } catch {
+        this.handleUnauthorized()
+        throw new Error("Unauthorized")
+      }
+    }
+    if (!res.ok) throw new Error(await safeErrorMessage(res))
+    const data = (await res.json()) as CreateVehicleResponse
+    return data.data
+  }
+
+  // Get vehicle details by ID
+  async getVehicleById(vehicleId: string): Promise<VehicleRecord> {
+    const res = await this.fetchJson<CreateVehicleResponse>(`/vehicles/${vehicleId}`, { method: "GET" })
+    return res.data
+  }
+
+  // Get vehicles by customer ID
+  async getVehiclesByCustomerId(customerId: string): Promise<VehicleRecord[]> {
+    const res = await this.fetchJson<VehiclesListResponse>(`/vehicles/customer/${customerId}`, { method: "GET" })
+    return res.data
+  }
+
+  // Update a vehicle with multipart/form-data (supports image upload)
+  async updateVehicle(vehicleId: string, form: FormData): Promise<VehicleRecord> {
+    await this.ensureFreshAccessToken()
+    const doRequest = async () =>
+      rawFetch(this.buildUrl(`/vehicles/${vehicleId}`), {
+        method: "PATCH",
+        body: form,
+        headers: {
+          // Do NOT set Content-Type for FormData; browser will set boundary
+          accept: "application/json",
+          ...this.authHeader(),
+        },
+      })
+
+    let res = await doRequest()
+    if (res.status === 401) {
+      try {
+        await this.refreshToken()
+        res = await doRequest()
+      } catch {
+        this.handleUnauthorized()
+        throw new Error("Unauthorized")
+      }
+    }
+    if (!res.ok) throw new Error(await safeErrorMessage(res))
+    const data = (await res.json()) as CreateVehicleResponse
+    return data.data
+  }
+
+  // Delete a vehicle
+  async deleteVehicle(vehicleId: string): Promise<void> {
+    await this.fetchJson(`/vehicles/${vehicleId}`, { method: "DELETE" })
   }
 }
 

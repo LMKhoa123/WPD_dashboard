@@ -1,31 +1,179 @@
-import { notFound } from "next/navigation"
+"use client"
+
+import { useEffect, useState } from "react"
+import { useParams, useRouter } from "next/navigation"
+import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { mockCustomers, mockVehicles, mockAppointments } from "@/src/lib/mock-data"
-import { Mail, Phone, MapPin, Calendar } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { Skeleton } from "@/components/ui/skeleton"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { getApiClient, type CustomerRecord, type VehicleRecord } from "@/lib/api"
+import { toast } from "@/components/ui/use-toast"
+import { Mail, Phone, MapPin, Calendar, Car, ArrowLeft, Eye, AlertCircle, Pencil, Trash2 } from "lucide-react"
+import { CustomerDialog } from "@/components/customers/customer-dialog"
+import { useIsAdmin } from "@/components/auth-provider"
 
-export default function CustomerDetailPage({ params }: { params: { id: string } }) {
-  const customer = mockCustomers.find((c) => c.id === params.id)
+export default function CustomerDetailPage() {
+  const params = useParams()
+  const router = useRouter()
+  const customerId = params.id as string
+  const isAdmin = useIsAdmin()
 
-  if (!customer) {
-    notFound()
+  const [customer, setCustomer] = useState<CustomerRecord | null>(null)
+  const [vehicles, setVehicles] = useState<VehicleRecord[]>([])
+  const [loading, setLoading] = useState(true)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  useEffect(() => {
+    const run = async () => {
+      try {
+        setLoading(true)
+        const api = getApiClient()
+        
+        // Load customer data and vehicles in parallel
+        const [customersRes, vehiclesData] = await Promise.all([
+          api.getCustomers({ limit: 200 }),
+          api.getVehiclesByCustomerId(customerId),
+        ])
+
+        const customerData = customersRes.data.customers.find((c) => c._id === customerId)
+        if (!customerData) {
+          throw new Error("Customer not found")
+        }
+
+        setCustomer(customerData)
+        setVehicles(vehiclesData)
+      } catch (e: any) {
+        toast({
+          title: "Không tải được thông tin khách hàng",
+          description: e?.message || "Failed to load customer details",
+          variant: "destructive",
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+    run()
+  }, [customerId])
+
+  const handleDeleteClick = () => {
+    setDeleteDialogOpen(true)
   }
 
-  const customerVehicles = mockVehicles.filter((v) => v.customerId === customer.id)
-  const customerAppointments = mockAppointments
-    .filter((a) => a.customerId === customer.id)
-    .sort((a, b) => b.startTime.getTime() - a.startTime.getTime())
-    .slice(0, 5)
+  const handleDeleteConfirm = async () => {
+    if (!customer) return
+
+    try {
+      setDeleting(true)
+      const api = getApiClient()
+      await api.deleteCustomer(customer._id)
+      
+      toast({ title: "Xóa khách hàng thành công" })
+      router.push("/customers")
+    } catch (e: any) {
+      toast({
+        title: "Xóa thất bại",
+        description: e?.message || "Failed to delete customer",
+        variant: "destructive",
+      })
+      setDeleting(false)
+    }
+  }
+
+  const handleUpdateSuccess = (updated: CustomerRecord) => {
+    setCustomer(updated)
+  }
+
+  const formatPrice = (price?: number) => {
+    if (!price) return "—"
+    return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price)
+  }
+
+  const formatMileage = (mileage?: number) => {
+    if (mileage === undefined || mileage === null) return "—"
+    return `${mileage.toLocaleString("vi-VN")} km`
+  }
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return "—"
+    return new Date(dateStr).toLocaleDateString("vi-VN", { year: "numeric", month: "long", day: "numeric" })
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-10 w-10" />
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+        </div>
+        <div className="grid gap-6 md:grid-cols-2">
+          <Skeleton className="h-64" />
+          <Skeleton className="h-64" />
+        </div>
+      </div>
+    )
+  }
+
+  if (!customer) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+        <h2 className="text-xl font-semibold mb-2">Customer not found</h2>
+        <Button onClick={() => router.push("/customers")}>Back to Customers</Button>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">{customer.customerName}</h1>
-        <p className="text-muted-foreground">Customer details and service history</p>
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => router.push("/customers")}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">{customer.customerName}</h1>
+            <p className="text-muted-foreground">Customer details and registered vehicles</p>
+          </div>
+        </div>
+        {isAdmin && (
+          <div className="flex gap-2">
+            <CustomerDialog
+              customer={customer}
+              trigger={
+                <Button variant="outline">
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+              }
+              onSuccess={handleUpdateSuccess}
+            />
+            <Button variant="destructive" onClick={handleDeleteClick}>
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
+        {/* Contact Information */}
         <Card>
           <CardHeader>
             <CardTitle>Contact Information</CardTitle>
@@ -33,75 +181,144 @@ export default function CustomerDetailPage({ params }: { params: { id: string } 
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-3">
-              <Mail className="h-4 w-4 text-muted-foreground" />
-              <span>{customer.email}</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Phone className="h-4 w-4 text-muted-foreground" />
-              <span>{customer.phone}</span>
-            </div>
-            <div className="flex items-center gap-3">
               <MapPin className="h-4 w-4 text-muted-foreground" />
-              <span>{customer.address}</span>
+              <span>{customer.address || "No address provided"}</span>
             </div>
             <div className="flex items-center gap-3">
               <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span>Registered: {new Date(customer.registeredDate).toLocaleDateString()}</span>
+              <span>Registered: {formatDate(customer.createdAt)}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Car className="h-4 w-4 text-muted-foreground" />
+              <span>{vehicles.length} vehicle{vehicles.length !== 1 ? "s" : ""} registered</span>
             </div>
           </CardContent>
         </Card>
 
+        {/* Statistics */}
         <Card>
           <CardHeader>
-            <CardTitle>Vehicles</CardTitle>
-            <CardDescription>Customer's registered vehicles</CardDescription>
+            <CardTitle>Statistics</CardTitle>
+            <CardDescription>Vehicle ownership summary</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {customerVehicles.map((vehicle) => (
-                <div key={vehicle.id} className="flex items-center justify-between p-3 rounded-lg border">
-                  <div>
-                    <p className="font-medium">{vehicle.vehicleName}</p>
-                    <p className="text-sm text-muted-foreground">Model: {vehicle.model}</p>
-                  </div>
-                  <Badge variant="secondary">VIN: {vehicle.vin.slice(-6)}</Badge>
-                </div>
-              ))}
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Total Vehicles</span>
+              <span className="text-2xl font-bold">{vehicles.length}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Total Value</span>
+              <span className="text-lg font-semibold">
+                {formatPrice(vehicles.reduce((sum, v) => sum + (v.price || 0), 0))}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Average Mileage</span>
+              <span className="text-lg font-semibold">
+                {vehicles.length > 0
+                  ? formatMileage(Math.round(vehicles.reduce((sum, v) => sum + (v.mileage || 0), 0) / vehicles.length))
+                  : "—"}
+              </span>
             </div>
           </CardContent>
         </Card>
       </div>
 
+      {/* Vehicles List */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Appointments</CardTitle>
-          <CardDescription>Service history for this customer</CardDescription>
+          <CardTitle>Registered Vehicles ({vehicles.length})</CardTitle>
+          <CardDescription>All vehicles owned by this customer</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Vehicle</TableHead>
-                <TableHead>Service</TableHead>
-                <TableHead>Technician</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {customerAppointments.map((appointment) => (
-                <TableRow key={appointment.id}>
-                  <TableCell className="text-muted-foreground">{appointment.startTime.toLocaleDateString()}</TableCell>
-                  <TableCell className="font-medium">{appointment.vehicleName}</TableCell>
-                  <TableCell>{appointment.service}</TableCell>
-                  <TableCell className="text-muted-foreground">{appointment.technician}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{appointment.status}</Badge>
-                  </TableCell>
-                </TableRow>
+          {vehicles.length === 0 ? (
+            <div className="py-12 text-center">
+              <Car className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">No vehicles registered yet</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {vehicles.map((vehicle) => (
+                <Card key={vehicle._id} className="overflow-hidden">
+                  <div className="relative aspect-video w-full bg-muted">
+                    {vehicle.image ? (
+                      <img
+                        src={vehicle.image}
+                        alt={vehicle.vehicleName}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <Car className="h-12 w-12 text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                  <CardContent className="p-4 space-y-3">
+                    <div>
+                      <h3 className="font-semibold text-lg">{vehicle.vehicleName}</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="secondary">{vehicle.model}</Badge>
+                        {vehicle.year && (
+                          <span className="text-xs text-muted-foreground">{vehicle.year}</span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Price</span>
+                        <span className="font-semibold">{formatPrice(vehicle.price)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Mileage</span>
+                        <span>{formatMileage(vehicle.mileage)}</span>
+                      </div>
+                      {vehicle.plateNumber && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Plate</span>
+                          <Badge variant="outline" className="text-xs">{vehicle.plateNumber}</Badge>
+                        </div>
+                      )}
+                    </div>
+
+                    <Link href={`/vehicles/${vehicle._id}`} className="block">
+                      <Button variant="outline" size="sm" className="w-full">
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Details
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
               ))}
-            </TableBody>
-          </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* System Info */}
+      <Card>
+        <CardHeader>
+          <CardTitle>System Information</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Customer ID</span>
+            <span className="font-mono text-xs">{customer._id}</span>
+          </div>
+          {customer.userId && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">User ID</span>
+              <span className="font-mono text-xs">{customer.userId._id}</span>
+            </div>
+          )}
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Created</span>
+            <span>{formatDate(customer.createdAt)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Last Updated</span>
+            <span>{formatDate(customer.updatedAt)}</span>
+          </div>
         </CardContent>
       </Card>
     </div>

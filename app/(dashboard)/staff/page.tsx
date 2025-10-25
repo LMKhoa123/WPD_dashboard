@@ -1,19 +1,32 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Search, Pencil, Trash2, Plus } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Search, Pencil, Trash2, Plus, Eye } from "lucide-react"
 import { AdminOnly } from "@/components/role-guards"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AdvancedScheduler } from "@/components/staff/advanced-scheduler"
 import ShiftScheduler from "@/components/staff/shift-scheduler"
 import { PerformanceDashboard } from "@/components/staff/performance-dashboard"
 import { CertificationsManager } from "@/components/staff/certifications"
+import { StaffDialog } from "@/components/staff/staff-dialog"
+import { AddStaffDialog } from "@/components/staff/add-staff-dialog"
 import { getApiClient, type SystemUserRecord, type UserAccount } from "@/lib/api"
 import { toast } from "@/components/ui/use-toast"
 
@@ -22,36 +35,68 @@ export default function StaffPage() {
   const [loading, setLoading] = useState(true)
   const [systemUsers, setSystemUsers] = useState<SystemUserRecord[]>([])
   const [users, setUsers] = useState<UserAccount[]>([])
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [userToDelete, setUserToDelete] = useState<SystemUserRecord | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
-    const run = async () => {
-      try {
-        setLoading(true)
-        const api = getApiClient()
-        const [sys, us] = await Promise.all([api.getSystemUsers({ limit: 200 }), api.getUsers({ limit: 200 })])
-        setSystemUsers(sys.data.systemUsers)
-        setUsers(us)
-      } catch (e: any) {
-        toast({ title: "Lỗi tải danh sách nhân sự", description: e?.message || "Failed to load staff", variant: "destructive" })
-      } finally {
-        setLoading(false)
-      }
-    }
-    run()
+    loadData()
   }, [])
+
+  const loadData = async () => {
+    try {
+      setLoading(true)
+      const api = getApiClient()
+      const [sys, us] = await Promise.all([api.getSystemUsers({ limit: 200 }), api.getUsers({ limit: 200 })])
+      setSystemUsers(sys.data.systemUsers)
+      setUsers(us)
+    } catch (e: any) {
+      toast({ title: "Lỗi tải danh sách nhân sự", description: e?.message || "Failed to load staff", variant: "destructive" })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const usersById = useMemo(() => new Map(users.map((u) => [u._id, u])), [users])
 
   const filteredStaff = useMemo(() => {
     const q = searchQuery.toLowerCase()
     return systemUsers.filter((s) => {
-      const account = usersById.get(s.userId)
+      const account = typeof s.userId === "object" ? s.userId : usersById.get(s.userId)
       const name = (s.name || "").toLowerCase()
       const email = (account?.email || "").toLowerCase()
       const role = mapRole(account?.role)
       return name.includes(q) || email.includes(q) || role.toLowerCase().includes(q)
     })
   }, [systemUsers, usersById, searchQuery])
+
+  const handleDeleteClick = (user: SystemUserRecord) => {
+    setUserToDelete(user)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!userToDelete) return
+
+    try {
+      setDeleting(true)
+      const api = getApiClient()
+      await api.deleteSystemUser(userToDelete._id)
+      
+      setSystemUsers((prev) => prev.filter((u) => u._id !== userToDelete._id))
+      toast({ title: "Xóa nhân viên thành công" })
+      setDeleteDialogOpen(false)
+      setUserToDelete(null)
+    } catch (e: any) {
+      toast({
+        title: "Xóa thất bại",
+        description: e?.message || "Failed to delete system user",
+        variant: "destructive",
+      })
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -82,10 +127,7 @@ export default function StaffPage() {
           <h1 className="text-3xl font-bold tracking-tight">Staff</h1>
           <p className="text-muted-foreground">Manage team members and roles</p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Staff Member
-        </Button>
+        <AddStaffDialog onSuccess={loadData} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -153,6 +195,7 @@ export default function StaffPage() {
                   <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead>Certificates</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -160,13 +203,14 @@ export default function StaffPage() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-10">Loading staff...</TableCell>
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-10">Loading staff...</TableCell>
                   </TableRow>
                 ) : filteredStaff.map((s) => {
-                  const account = usersById.get(s.userId)
+                  const account = typeof s.userId === "object" ? s.userId : usersById.get(s.userId)
                   const role = mapRole(account?.role)
                   const status = s.isOnline ? "Active" : "Inactive"
                   const name = s.name || (account?.email?.split("@")[0] ?? "—")
+                  const certCount = s.certificates?.length || 0
                   return (
                   <TableRow key={s._id}>
                     <TableCell>
@@ -187,6 +231,13 @@ export default function StaffPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
+                      {certCount > 0 ? (
+                        <Badge variant="outline">{certCount} certificate{certCount !== 1 ? "s" : ""}</Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">None</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
                       <Badge
                         variant="secondary"
                         className={status === "Active" ? "bg-green-500/10 text-green-500 hover:bg-green-500/20" : "bg-gray-500/10 text-gray-500 hover:bg-gray-500/20"}
@@ -196,10 +247,21 @@ export default function StaffPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="icon">
-                          <Pencil className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" asChild>
+                          <Link href={`/staff/${s._id}`}>
+                            <Eye className="h-4 w-4" />
+                          </Link>
                         </Button>
-                        <Button variant="ghost" size="icon">
+                        <StaffDialog
+                          systemUser={s}
+                          trigger={
+                            <Button variant="ghost" size="icon">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          }
+                          onSuccess={() => loadData()}
+                        />
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(s)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -229,6 +291,24 @@ export default function StaffPage() {
           <CertificationsManager />
         </TabsContent>
       </Tabs>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete staff member "{userToDelete?.name || "this user"}". This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       </div>
     </AdminOnly>
   )
@@ -237,5 +317,6 @@ export default function StaffPage() {
 function mapRole(apiRole?: string): "Admin" | "Staff" | "Technician" | "Unknown" {
   if (apiRole === "ADMIN") return "Admin"
   if (apiRole === "STAFF") return "Staff"
+  if (apiRole === "TECHNICIAN") return "Technician"
   return "Unknown"
 }
