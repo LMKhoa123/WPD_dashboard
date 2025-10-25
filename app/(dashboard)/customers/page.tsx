@@ -7,6 +7,16 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Search, Pencil, Trash2, Eye } from "lucide-react"
 import { CustomerDialog } from "@/components/customers/customer-dialog"
 import { useIsAdmin } from "@/components/auth-provider"
@@ -18,6 +28,9 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true)
   const [customers, setCustomers] = useState<CustomerRecord[]>([])
   const [users, setUsers] = useState<UserAccount[]>([])
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [customerToDelete, setCustomerToDelete] = useState<CustomerRecord | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const isAdmin = useIsAdmin()
 
   useEffect(() => {
@@ -52,6 +65,38 @@ export default function CustomersPage() {
       return name.includes(q) || email.includes(q) || phone.includes(searchQuery)
     })
   }, [customers, usersById, searchQuery])
+
+  const handleDeleteClick = (customer: CustomerRecord) => {
+    setCustomerToDelete(customer)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!customerToDelete) return
+
+    try {
+      setDeleting(true)
+      const api = getApiClient()
+      await api.deleteCustomer(customerToDelete._id)
+      
+      setCustomers((prev) => prev.filter((c) => c._id !== customerToDelete._id))
+      toast({ title: "Xóa khách hàng thành công" })
+      setDeleteDialogOpen(false)
+      setCustomerToDelete(null)
+    } catch (e: any) {
+      toast({
+        title: "Xóa thất bại",
+        description: e?.message || "Failed to delete customer",
+        variant: "destructive",
+      })
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const handleUpdateSuccess = (updated: CustomerRecord) => {
+    setCustomers((prev) => prev.map((c) => (c._id === updated._id ? updated : c)))
+  }
 
   return (
     <div className="space-y-6">
@@ -120,15 +165,17 @@ export default function CustomersPage() {
                         </Button>
                         {isAdmin && (
                           <CustomerDialog
+                            customer={c}
                             trigger={
                               <Button variant="ghost" size="icon">
                                 <Pencil className="h-4 w-4" />
                               </Button>
                             }
+                            onSuccess={handleUpdateSuccess}
                           />
                         )}
                         {isAdmin && (
-                          <Button variant="ghost" size="icon">
+                          <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(c)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         )}
@@ -143,6 +190,24 @@ export default function CustomersPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete customer "{customerToDelete?.customerName}". This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} disabled={deleting}>
+              {deleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
