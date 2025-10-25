@@ -1,27 +1,57 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { mockCustomers } from "@/src/lib/mock-data"
 import { Search, Pencil, Trash2, Eye } from "lucide-react"
 import { CustomerDialog } from "@/components/customers/customer-dialog"
 import { useIsAdmin } from "@/components/auth-provider"
+import { getApiClient, type CustomerRecord, type UserAccount } from "@/lib/api"
+import { toast } from "@/components/ui/use-toast"
 
 export default function CustomersPage() {
   const [searchQuery, setSearchQuery] = useState("")
+  const [loading, setLoading] = useState(true)
+  const [customers, setCustomers] = useState<CustomerRecord[]>([])
+  const [users, setUsers] = useState<UserAccount[]>([])
   const isAdmin = useIsAdmin()
 
-  const filteredCustomers = mockCustomers.filter(
-    (customer) =>
-      customer.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      customer.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      customer.phone.includes(searchQuery),
-  )
+  useEffect(() => {
+    const run = async () => {
+      try {
+        setLoading(true)
+        const api = getApiClient()
+        const [custRes, usersList] = await Promise.all([
+          api.getCustomers({ page: 1, limit: 50 }),
+          api.getUsers({ limit: 200 }),
+        ])
+        setCustomers(custRes.data.customers)
+        setUsers(usersList)
+      } catch (e: any) {
+        toast({ title: "Lỗi tải danh sách khách hàng", description: e?.message || "Failed to load customers", variant: "destructive" })
+      } finally {
+        setLoading(false)
+      }
+    }
+    run()
+  }, [])
+
+  const usersById = useMemo(() => new Map(users.map((u) => [u._id, u])), [users])
+
+  const filteredCustomers = useMemo(() => {
+    const q = searchQuery.toLowerCase()
+    return customers.filter((c) => {
+      const u = c.userId ? usersById.get(c.userId._id) : undefined
+      const name = (c.customerName || "").toLowerCase()
+      const email = (u?.email || "").toLowerCase()
+      const phone = u?.phone || ""
+      return name.includes(q) || email.includes(q) || phone.includes(searchQuery)
+    })
+  }, [customers, usersById, searchQuery])
 
   return (
     <div className="space-y-6">
@@ -39,6 +69,10 @@ export default function CustomersPage() {
           <CardDescription>View and manage customer database</CardDescription>
         </CardHeader>
         <CardContent>
+          {loading ? (
+            <div className="py-10 text-center text-muted-foreground">Loading customers...</div>
+          ) : (
+          <>
           <div className="mb-6">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -59,32 +93,33 @@ export default function CustomersPage() {
                   <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Vehicles</TableHead>
-                  <TableHead>Registered</TableHead>
+                  <TableHead>Created</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCustomers.map((customer) => (
-                  <TableRow key={customer.id}>
-                    <TableCell className="font-medium">{customer.customerName}</TableCell>
-                    <TableCell className="text-muted-foreground">{customer.email}</TableCell>
-                    <TableCell className="text-muted-foreground">{customer.phone}</TableCell>
+                {filteredCustomers.map((c) => {
+                  const u = c.userId ? usersById.get(c.userId._id) : undefined
+                  return (
+                  <TableRow key={c._id}>
+                    <TableCell className="font-medium">{c.customerName || "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{u?.email || "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{u?.phone || "—"}</TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{customer.vehicleCount} vehicles</Badge>
+                      <Badge variant="secondary">—</Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {new Date(customer.registeredDate).toLocaleDateString()}
+                      {new Date(c.createdAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button variant="ghost" size="icon" asChild>
-                          <Link href={`/customers/${customer.id}`}>
+                          <Link href={`/customers/${c._id}`}>
                             <Eye className="h-4 w-4" />
                           </Link>
                         </Button>
                         {isAdmin && (
                           <CustomerDialog
-                            customer={customer}
                             trigger={
                               <Button variant="ghost" size="icon">
                                 <Pencil className="h-4 w-4" />
@@ -100,10 +135,12 @@ export default function CustomersPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                )})}
               </TableBody>
             </Table>
           </div>
+          </>
+          )}
         </CardContent>
       </Card>
     </div>

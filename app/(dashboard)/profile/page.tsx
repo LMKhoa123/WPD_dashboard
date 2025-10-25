@@ -8,11 +8,9 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { useAuth } from "@/components/auth-provider"
-import { ApiClient, loadTokens, saveTokens, type ProfileData } from "@/lib/api"
+import { getApiClient, type ProfileData } from "@/lib/api"
 import { toast } from "@/components/ui/use-toast"
 import { Calendar, Mail, Shield, Award, Loader2 } from "lucide-react"
-
-const api = new ApiClient({ getTokens: loadTokens, setTokens: saveTokens })
 
 export default function ProfilePage() {
   const { user } = useAuth()
@@ -33,6 +31,7 @@ export default function ProfilePage() {
   const loadProfile = async () => {
     try {
       setLoading(true)
+      const api = getApiClient()
       const res = await api.getProfile()
       setProfile(res.data)
       setName(res.data.name || "")
@@ -49,6 +48,7 @@ export default function ProfilePage() {
     e.preventDefault()
     try {
       setSaving(true)
+      const api = getApiClient()
       const res = await api.updateProfile({
         name: name.trim() || undefined,
         dateOfBirth: dateOfBirth || null,

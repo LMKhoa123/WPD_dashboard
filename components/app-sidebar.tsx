@@ -58,6 +58,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       ]
     : [
         ...baseNav,
+        { title: "Users", url: "/users", icon: Users },
         { title: "Staff", url: "/staff", icon: UserCog },
         { title: "Reports", url: "/reports", icon: FileText },
       ]) as { title: string; url: string; icon: any }[]

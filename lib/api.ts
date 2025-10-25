@@ -82,6 +82,104 @@ export interface Tokens {
   accessTokenExpiresAt: number
 }
 
+// Users (accounts)
+export interface UserAccount {
+  _id: string
+  email?: string
+  phone?: string
+  role: "ADMIN" | "STAFF" | "CUSTOMER" | string
+  isDeleted: boolean
+  refreshToken?: string | null
+  createdAt: string
+  updatedAt: string
+  __v?: number
+}
+
+export interface UsersListResponse {
+  success: boolean
+  message?: string
+  data:
+    | UserAccount[]
+    | {
+        users: UserAccount[]
+        total?: number
+        page?: number
+        limit?: number
+        totalPages?: number
+      }
+}
+
+// Customers
+export interface CustomerRecord {
+  _id: string
+  userId: { _id: string; role: "CUSTOMER" } | null
+  customerName: string
+  address: string
+  deviceTokens?: string[]
+  createdAt: string
+  updatedAt: string
+  __v?: number
+}
+
+export interface CustomersListResponse {
+  success: boolean
+  data: {
+    customers: CustomerRecord[]
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
+
+// System users (staff/admin profiles)
+export interface SystemUserRecord {
+  _id: string
+  userId: string
+  name: string
+  dateOfBirth: string | null
+  certification: string
+  isOnline: boolean
+  createdAt: string
+  updatedAt: string
+  __v?: number
+}
+
+export interface SystemUsersListResponse {
+  success: boolean
+  data: {
+    systemUsers: SystemUserRecord[]
+    total?: number
+    page?: number
+    limit?: number
+    totalPages?: number
+  }
+}
+
+// Vehicles
+export interface VehicleRecord {
+  _id: string
+  vehicleName: string
+  model: string
+  year?: number
+  VIN: string
+  price?: number
+  mileage?: number
+  plateNumber?: string
+  last_service_date?: string
+  last_alert_mileage?: number
+  image?: string
+  customerId?: { _id: string; customerName: string; address: string } | string
+  createdAt: string
+  updatedAt: string
+  __v?: number
+}
+
+export interface VehiclesListResponse {
+  success: boolean
+  data: VehicleRecord[]
+}
+
 const API_BASE = (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_BASE_URL) ||
   "https://ev-maintenance-9bd58b96744e.herokuapp.com/api"
 
@@ -116,11 +214,18 @@ export class ApiClient {
   private baseUrl: string
   private getTokens: () => Tokens | null
   private setTokens: (t: Tokens | null) => void
+  private onUnauthorized?: () => void
 
-  constructor(opts?: { baseUrl?: string; getTokens?: () => Tokens | null; setTokens?: (t: Tokens | null) => void }) {
+  constructor(opts?: { 
+    baseUrl?: string
+    getTokens?: () => Tokens | null
+    setTokens?: (t: Tokens | null) => void
+    onUnauthorized?: () => void
+  }) {
     this.baseUrl = (opts?.baseUrl || API_BASE).replace(/\/$/, "")
     this.getTokens = opts?.getTokens || loadTokens
     this.setTokens = opts?.setTokens || saveTokens
+    this.onUnauthorized = opts?.onUnauthorized
   }
 
   private buildUrl(path: string) {
@@ -162,6 +267,8 @@ export class ApiClient {
         await this.refreshToken()
         return this.fetchJson<T>(path, init, false)
       } catch {
+        // Refresh failed - token is invalid or expired
+        this.handleUnauthorized()
         throw new Error("Unauthorized")
       }
     }
@@ -171,6 +278,15 @@ export class ApiClient {
       throw new Error(msg)
     }
     return (await res.json()) as T
+  }
+
+  private handleUnauthorized() {
+    // Clear tokens
+    this.setTokens(null)
+    // Call the unauthorized callback if provided
+    if (this.onUnauthorized) {
+      this.onUnauthorized()
+    }
   }
 
   async login(payload: LoginRequest): Promise<LoginResponse> {
@@ -198,19 +314,29 @@ export class ApiClient {
 
   async refreshToken(): Promise<RefreshResponse> {
     const tokens = this.getTokens()
-    if (!tokens?.refreshToken) throw new Error("No refresh token")
-    const data = await this.fetchJson<RefreshResponse>("/auth/refresh-token", {
-      method: "POST",
-      body: JSON.stringify({ refreshToken: tokens.refreshToken } satisfies RefreshRequest),
-    }, false)
-
-    const next: Tokens = {
-      accessToken: data.data.accessToken,
-      refreshToken: tokens.refreshToken,
-      accessTokenExpiresAt: nowMs() + data.data.expiresIn * 1000,
+    if (!tokens?.refreshToken) {
+      this.handleUnauthorized()
+      throw new Error("No refresh token")
     }
-    this.setTokens(next)
-    return data
+    
+    try {
+      const data = await this.fetchJson<RefreshResponse>("/auth/refresh-token", {
+        method: "POST",
+        body: JSON.stringify({ refreshToken: tokens.refreshToken } satisfies RefreshRequest),
+      }, false)
+
+      const next: Tokens = {
+        accessToken: data.data.accessToken,
+        refreshToken: tokens.refreshToken,
+        accessTokenExpiresAt: nowMs() + data.data.expiresIn * 1000,
+      }
+      this.setTokens(next)
+      return data
+    } catch (e) {
+      // Refresh failed - likely expired refresh token
+      this.handleUnauthorized()
+      throw e
+    }
   }
 
   async logout(): Promise<void> {
@@ -233,6 +359,49 @@ export class ApiClient {
       body: JSON.stringify(payload),
     })
   }
+
+  async getUsers(params?: { page?: number; limit?: number; role?: string; q?: string }): Promise<UserAccount[]> {
+    const url = new URL(this.buildUrl("/users"))
+    if (params?.page) url.searchParams.set("page", String(params.page))
+    if (params?.limit) url.searchParams.set("limit", String(params.limit))
+    if (params?.role) url.searchParams.set("role", params.role)
+    if (params?.q) url.searchParams.set("q", params.q)
+    const res = await rawFetch(url.toString(), {
+      headers: { accept: "application/json", ...this.authHeader() },
+    })
+    if (!res.ok) throw new Error(await safeErrorMessage(res))
+    const data = (await res.json()) as UsersListResponse
+    if (Array.isArray(data.data)) return data.data
+    return data.data.users
+  }
+
+  async getCustomers(params?: { page?: number; limit?: number }): Promise<CustomersListResponse> {
+    const url = new URL(this.buildUrl("/customers"))
+    if (params?.page) url.searchParams.set("page", String(params.page))
+    if (params?.limit) url.searchParams.set("limit", String(params.limit))
+    const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
+    if (!res.ok) throw new Error(await safeErrorMessage(res))
+    return (await res.json()) as CustomersListResponse
+  }
+
+  async getSystemUsers(params?: { page?: number; limit?: number }): Promise<SystemUsersListResponse> {
+    const url = new URL(this.buildUrl("/system-users"))
+    if (params?.page) url.searchParams.set("page", String(params.page))
+    if (params?.limit) url.searchParams.set("limit", String(params.limit))
+    const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
+    if (!res.ok) throw new Error(await safeErrorMessage(res))
+    return (await res.json()) as SystemUsersListResponse
+  }
+
+  async getVehicles(params?: { page?: number; limit?: number }): Promise<VehicleRecord[]> {
+    const url = new URL(this.buildUrl("/vehicles"))
+    if (params?.page) url.searchParams.set("page", String(params.page))
+    if (params?.limit) url.searchParams.set("limit", String(params.limit))
+    const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
+    if (!res.ok) throw new Error(await safeErrorMessage(res))
+    const data = (await res.json()) as VehiclesListResponse
+    return data.data
+  }
 }
 
 async function safeErrorMessage(res: Response): Promise<string> {
@@ -242,4 +411,19 @@ async function safeErrorMessage(res: Response): Promise<string> {
   } catch {
     return `${res.status} ${res.statusText}`
   }
+}
+
+// Global API client instance - will be configured with onUnauthorized in auth provider
+let globalApiClient: ApiClient | null = null
+
+export function setGlobalApiClient(client: ApiClient) {
+  globalApiClient = client
+}
+
+export function getApiClient(): ApiClient {
+  if (!globalApiClient) {
+    // Fallback for when called outside of auth context
+    globalApiClient = new ApiClient({ getTokens: loadTokens, setTokens: saveTokens })
+  }
+  return globalApiClient
 }
