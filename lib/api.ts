@@ -195,8 +195,58 @@ export interface CreateVehicleResponse {
   data: VehicleRecord
 }
 
-const API_BASE = (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_BASE_URL) ||
-  "https://ev-maintenance-9bd58b96744e.herokuapp.com/api"
+// Chat – waiting conversations
+export interface ChatConversationRecord {
+  _id: string
+  customerId: { _id: string; customerName: string } | string
+  assignedStaffId: string | null
+  lastAssignedStaff: string | null
+  status: "waiting" | "assigned" | string
+  assignmentHistory: Array<any>
+  createdAt: string
+  updatedAt: string
+  __v?: number
+}
+
+export interface ChatWaitingResponse {
+  success: boolean
+  data: {
+    conversations: ChatConversationRecord[]
+    totalCount: number
+    currentPage: number
+    totalPages: number
+  }
+}
+
+export interface MessageRecord {
+  _id: string
+  conversationId: string
+  senderId: null | { _id: string; name?: string }
+  senderRole: "user" | "staff" | "system"
+  content: string
+  isRead: boolean
+  attachment?: string | null
+  systemMessageType?: string | null
+  createdAt: string
+  updatedAt: string
+  __v?: number
+}
+
+export interface StaffConversationsResponse {
+  success: boolean
+  data: ChatConversationRecord[]
+}
+
+export interface ConversationDetailResponse {
+  success: boolean
+  data: {
+    conversation: ChatConversationRecord
+    messages: MessageRecord[]
+  }
+}
+
+// Ensure API_BASE is always a string to avoid type issues
+const API_BASE: string = (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_BASE_URL) || ""
 
 const TOKENS_KEY = "evsc:tokens"
 
@@ -496,6 +546,54 @@ export class ApiClient {
   async getVehiclesByCustomerId(customerId: string): Promise<VehicleRecord[]> {
     const res = await this.fetchJson<VehiclesListResponse>(`/vehicles/customer/${customerId}`, { method: "GET" })
     return res.data
+  }
+
+  // Chat: get waiting conversations
+  async getChatWaiting(params?: { page?: number; limit?: number }): Promise<ChatWaitingResponse> {
+    const url = new URL(this.buildUrl("/chat/waiting"))
+    if (params?.page) url.searchParams.set("page", String(params.page))
+    if (params?.limit) url.searchParams.set("limit", String(params.limit))
+    const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
+    if (!res.ok) throw new Error(await safeErrorMessage(res))
+    return (await res.json()) as ChatWaitingResponse
+  }
+
+  // Chat: take/claim a conversation
+  async takeConversation(conversationId: string, staffId: string): Promise<{ success: boolean; message?: string }>{
+    const res = await this.fetchJson<{ success: boolean; message?: string }>(`/chat/${conversationId}/take`, {
+      method: "POST",
+      body: JSON.stringify({ staffId }),
+    })
+    return res
+  }
+
+  // Chat: get staff's conversations
+  async getStaffConversations(staffId: string): Promise<StaffConversationsResponse> {
+    const res = await this.fetchJson<StaffConversationsResponse>(`/chat/staff/${staffId}`, { method: "GET" })
+    return res
+  }
+
+  // Chat: get conversation detail (messages)
+  async getConversationDetail(conversationId: string): Promise<ConversationDetailResponse> {
+    return this.fetchJson<ConversationDetailResponse>(`/chat/${conversationId}`, { method: "GET" })
+  }
+
+  // Chat: staff sends a message
+  async sendStaffMessage(conversationId: string, payload: { staffId: string; content: string; attachment?: string | null }): Promise<{ success: boolean }>{
+    return this.fetchJson<{ success: boolean }>(`/chat/${conversationId}/staff-message`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+  }
+
+  // Chat: mark messages as read
+  async markConversationRead(conversationId: string): Promise<{ success: boolean }>{
+    return this.fetchJson<{ success: boolean }>(`/chat/${conversationId}/mark-read`, { method: "POST", body: JSON.stringify({}) })
+  }
+
+  // Chat: close conversation
+  async closeConversation(conversationId: string): Promise<{ success: boolean }>{
+    return this.fetchJson<{ success: boolean }>(`/chat/${conversationId}/close`, { method: "POST", body: JSON.stringify({}) })
   }
 
   // Update a vehicle with multipart/form-data (supports image upload)
