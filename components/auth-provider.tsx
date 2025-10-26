@@ -71,24 +71,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [api])
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(USER_KEY)
-      if (raw) {
+    const initAuth = async () => {
+      try {
+        const raw = localStorage.getItem(USER_KEY)
+        if (!raw) {
+          setLoading(false)
+          return
+        }
+
         const storedUser = JSON.parse(raw)
-        // Check if tokens still exist and are valid
         const tokens = loadTokens()
-        if (tokens) {
-          // Check if refresh token is expired (compare with current time)
-          // Note: We don't have refresh token expiry in our Tokens type, so we'll just check existence
-          setUser(storedUser)
-        } else {
+        
+        if (!tokens) {
           // No tokens found, clear user
           localStorage.removeItem(USER_KEY)
+          setLoading(false)
+          return
         }
+
+        // Check if access token is expired or about to expire
+        const now = Date.now()
+        const isAccessTokenExpired = tokens.accessTokenExpiresAt <= now
+
+        if (isAccessTokenExpired) {
+          // Try to refresh the token
+          try {
+            await api.refreshToken()
+            // Refresh successful, restore user
+            setUser(storedUser)
+          } catch (error) {
+            // Refresh failed - token is invalid
+            console.error("Failed to refresh token on mount:", error)
+            localStorage.removeItem(USER_KEY)
+            // Token will be cleared by handleUnauthorized in api.refreshToken
+          }
+        } else {
+          // Access token is still valid
+          setUser(storedUser)
+        }
+      } catch (error) {
+        console.error("Error initializing auth:", error)
+        localStorage.removeItem(USER_KEY)
+      } finally {
+        setLoading(false)
       }
-    } catch {}
-    setLoading(false)
-  }, [])
+    }
+
+    initAuth()
+  }, [api])
 
   const persistUser = (u: AuthUser | null) => {
     setUser(u)
@@ -138,8 +168,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo(
     () => ({ user, loading, loginWithCredentials, register, logout, getAccessToken }),
-    [user, loading, api]
+    [user, loading]
   )
+  
+  // Show loading screen while checking auth
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
+          <p className="text-muted-foreground">Đang tải...</p>
+        </div>
+      </div>
+    )
+  }
+  
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 

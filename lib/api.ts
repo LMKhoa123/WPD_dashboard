@@ -1,4 +1,4 @@
-// Centralized API client for auth and authenticated requests
+
 export type ApiRole = "ADMIN" | "STAFF" | string
 
 export interface LoginRequest {
@@ -78,7 +78,6 @@ export interface UpdateProfileResponse {
 export interface Tokens {
   accessToken: string
   refreshToken: string
-  // epoch ms when access token expires
   accessTokenExpiresAt: number
 }
 
@@ -245,7 +244,6 @@ export interface ConversationDetailResponse {
   }
 }
 
-// Ensure API_BASE is always a string to avoid type issues
 const API_BASE: string = (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_BASE_URL) || ""
 
 const TOKENS_KEY = "evsc:tokens"
@@ -280,6 +278,7 @@ export class ApiClient {
   private getTokens: () => Tokens | null
   private setTokens: (t: Tokens | null) => void
   private onUnauthorized?: () => void
+  private refreshPromise: Promise<RefreshResponse> | null = null
 
   constructor(opts?: { 
     baseUrl?: string
@@ -309,6 +308,16 @@ export class ApiClient {
     if (!tokens) return
     // Refresh slightly before expiry (10s skew)
     if (tokens.accessTokenExpiresAt - nowMs() > 10_000) return
+    
+    // If already refreshing, wait for that promise
+    if (this.refreshPromise) {
+      await this.refreshPromise.catch(() => {
+        // swallow; next request will likely 401 and we can handle upstream
+      })
+      return
+    }
+    
+    // Start refresh
     await this.refreshToken().catch(() => {
       // swallow; next request will likely 401 and we can handle upstream
     })
@@ -346,6 +355,8 @@ export class ApiClient {
   }
 
   private handleUnauthorized() {
+    // Clear any ongoing refresh
+    this.refreshPromise = null
     // Clear tokens
     this.setTokens(null)
     // Call the unauthorized callback if provided
@@ -355,11 +366,19 @@ export class ApiClient {
   }
 
   async login(payload: LoginRequest): Promise<LoginResponse> {
-    const data = await this.fetchJson<LoginResponse>("/auth/login", {
+    // Use rawFetch for login (no auth required)
+    const res = await rawFetch(this.buildUrl("/auth/login"), {
       method: "POST",
       body: JSON.stringify(payload),
       headers: { "Content-Type": "application/json", accept: "application/json" },
     })
+    
+    if (!res.ok) {
+      const msg = await safeErrorMessage(res)
+      throw new Error(msg)
+    }
+    
+    const data = (await res.json()) as LoginResponse
     const { accessToken, refreshToken, expiresIn } = data.data
     const tokens: Tokens = {
       accessToken,
@@ -371,42 +390,86 @@ export class ApiClient {
   }
 
   async register(payload: RegisterRequest): Promise<RegisterResponse> {
-    return this.fetchJson<RegisterResponse>("/auth/register", {
+    // Use rawFetch for register (no auth required)
+    const res = await rawFetch(this.buildUrl("/auth/register"), {
       method: "POST",
       body: JSON.stringify(payload),
+      headers: { "Content-Type": "application/json", accept: "application/json" },
     })
+    
+    if (!res.ok) {
+      const msg = await safeErrorMessage(res)
+      throw new Error(msg)
+    }
+    
+    return (await res.json()) as RegisterResponse
   }
 
   async refreshToken(): Promise<RefreshResponse> {
+    // If already refreshing, return the existing promise
+    if (this.refreshPromise) {
+      return this.refreshPromise
+    }
+
     const tokens = this.getTokens()
     if (!tokens?.refreshToken) {
       this.handleUnauthorized()
       throw new Error("No refresh token")
     }
     
-    try {
-      const data = await this.fetchJson<RefreshResponse>("/auth/refresh-token", {
-        method: "POST",
-        body: JSON.stringify({ refreshToken: tokens.refreshToken } satisfies RefreshRequest),
-      }, false)
+    // Create and store the refresh promise
+    this.refreshPromise = (async () => {
+      try {
+        // Use rawFetch to avoid infinite loop (don't call ensureFreshAccessToken)
+        const res = await rawFetch(this.buildUrl("/auth/refresh-token"), {
+          method: "POST",
+          body: JSON.stringify({ refreshToken: tokens.refreshToken } satisfies RefreshRequest),
+          headers: { "Content-Type": "application/json", accept: "application/json" },
+        })
 
-      const next: Tokens = {
-        accessToken: data.data.accessToken,
-        refreshToken: tokens.refreshToken,
-        accessTokenExpiresAt: nowMs() + data.data.expiresIn * 1000,
+        if (!res.ok) {
+          const msg = await safeErrorMessage(res)
+          throw new Error(msg)
+        }
+
+        const data = (await res.json()) as RefreshResponse
+        const next: Tokens = {
+          accessToken: data.data.accessToken,
+          refreshToken: tokens.refreshToken,
+          accessTokenExpiresAt: nowMs() + data.data.expiresIn * 1000,
+        }
+        this.setTokens(next)
+        return data
+      } catch (e) {
+        // Refresh failed - likely expired refresh token
+        this.handleUnauthorized()
+        throw e
+      } finally {
+        // Clear the promise after completion (success or failure)
+        this.refreshPromise = null
       }
-      this.setTokens(next)
-      return data
-    } catch (e) {
-      // Refresh failed - likely expired refresh token
-      this.handleUnauthorized()
-      throw e
-    }
+    })()
+
+    return this.refreshPromise
   }
 
   async logout(): Promise<void> {
+    // Clear any ongoing refresh
+    this.refreshPromise = null
+    
     try {
-      await this.fetchJson("/auth/logout", { method: "POST" }, false)
+      // Use rawFetch for logout to avoid auth loops
+      const tokens = this.getTokens()
+      if (tokens?.accessToken) {
+        await rawFetch(this.buildUrl("/auth/logout"), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            accept: "application/json",
+            Authorization: `Bearer ${tokens.accessToken}`,
+          },
+        })
+      }
     } catch {
       // ignore logout errors
     } finally {
