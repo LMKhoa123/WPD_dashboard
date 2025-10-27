@@ -194,6 +194,285 @@ export interface CreateVehicleResponse {
   data: VehicleRecord
 }
 
+// Service Packages
+export interface ServicePackageRecord {
+  _id: string
+  name: string
+  description: string
+  price: number
+  duration: number
+  km_interval: number
+  service_interval_days: number
+  createdAt: string
+  updatedAt: string
+  __v?: number
+}
+
+export interface ServicePackagesListResponse {
+  success: boolean
+  data: ServicePackageRecord[]
+}
+
+export interface ServicePackageResponse {
+  success: boolean
+  data: ServicePackageRecord
+}
+
+export interface CreateServicePackageRequest {
+  name: string
+  description: string
+  price: number
+  duration: number
+  km_interval: number
+  service_interval_days: number
+}
+
+export interface UpdateServicePackageRequest {
+  name?: string
+  description?: string
+  price?: number
+  duration?: number
+  km_interval?: number
+  service_interval_days?: number
+}
+
+// Service Centers
+export interface CenterRecord {
+  _id: string
+  name: string
+  address: string
+  phone: string
+  createdAt: string
+  updatedAt: string
+  __v?: number
+}
+
+export interface CentersListResponse {
+  success: boolean
+  data: {
+    centers: CenterRecord[]
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
+
+export interface CenterResponse {
+  success: boolean
+  data: CenterRecord
+}
+
+export interface CreateCenterRequest {
+  name: string
+  address: string
+  phone: string
+}
+
+export interface UpdateCenterRequest {
+  name?: string
+  address?: string
+  phone?: string
+}
+
+// Appointments
+export type AppointmentStatus = "scheduled" | "in-progress" | "confirmed" | "completed" | "cancelled" | string
+
+export interface AppointmentRecord {
+  _id: string
+  staffId: string | { _id: string; name?: string; email?: string }
+  customer_id: string | null | { _id: string; customerName?: string }
+  vehicle_id: string | { _id: string; vehicleName?: string; model?: string; mileage?: number; plateNumber?: string }
+  center_id: string | { _id: string; name?: string; address?: string; phone?: string }
+  startTime: string
+  endTime: string
+  status: AppointmentStatus
+  createdAt: string
+  updatedAt: string
+  __v?: number
+}
+
+export interface AppointmentsListResponse {
+  success: boolean
+  data: {
+    appointments: AppointmentRecord[]
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
+
+export interface AppointmentResponse {
+  success: boolean
+  data: AppointmentRecord
+}
+
+export interface CreateAppointmentRequest {
+  staffId: string
+  customer_id?: string | null
+  vehicle_id: string
+  center_id: string
+  startTime: string // ISO date
+  endTime: string   // ISO date
+  status: AppointmentStatus
+}
+
+export interface UpdateAppointmentRequest {
+  staffId?: string
+  customer_id?: string | null
+  vehicle_id?: string
+  center_id?: string
+  startTime?: string
+  endTime?: string
+  status?: AppointmentStatus
+}
+
+// Service Records
+export type ServiceRecordStatus = "pending" | "in-progress" | "completed" | "cancelled" | string
+
+export interface ServiceRecordRecord {
+  _id: string
+  appointment_id: string | null | AppointmentRecord
+  technician_id: string | { _id: string; name?: string; email?: string }
+  start_time: string
+  end_time: string
+  description: string
+  status: ServiceRecordStatus
+  createdAt: string
+  updatedAt: string
+  __v?: number
+}
+
+export interface ServiceRecordsListResponse {
+  success: boolean
+  data: {
+    records: ServiceRecordRecord[]
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
+
+export interface ServiceRecordResponse {
+  success: boolean
+  data: ServiceRecordRecord
+}
+
+export interface CreateServiceRecordRequest {
+  appointment_id?: string | null
+  technician_id: string
+  start_time: string // ISO date
+  end_time: string   // ISO date
+  description: string
+  status: ServiceRecordStatus
+}
+
+export interface UpdateServiceRecordRequest {
+  appointment_id?: string | null
+  technician_id?: string
+  start_time?: string
+  end_time?: string
+  description?: string
+  status?: ServiceRecordStatus
+}
+
+// Service Checklist types
+export type ServiceChecklistStatus = "pending" | "in_progress" | "completed"
+
+export interface ServiceChecklistRecord {
+  _id: string
+  record_id: string | ServiceRecordRecord
+  name: string
+  status: ServiceChecklistStatus
+  note?: string
+  createdAt: string
+  updatedAt: string
+  __v?: number
+}
+
+export interface ServiceChecklistsListResponse {
+  success: boolean
+  data: {
+    checklists: ServiceChecklistRecord[]
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
+
+export interface ServiceChecklistResponse {
+  success: boolean
+  data: ServiceChecklistRecord
+}
+
+export interface CreateServiceChecklistRequest {
+  record_id: string
+  name: string
+  status: ServiceChecklistStatus
+  note?: string
+}
+
+export interface UpdateServiceChecklistRequest {
+  record_id?: string
+  name?: string
+  status?: ServiceChecklistStatus
+  note?: string
+}
+
+// Auto Parts types
+export interface AutoPartRecord {
+  _id: string
+  name: string
+  quantity: number
+  cost_price: number
+  selling_price: number
+  min_stock: number
+  recommended_min_stock: number
+  last_forecast_date?: string
+  createdAt: string
+  updatedAt: string
+  __v?: number
+}
+
+export interface AutoPartsListResponse {
+  success: boolean
+  data: {
+    parts: AutoPartRecord[]
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
+
+export interface AutoPartResponse {
+  success: boolean
+  data: AutoPartRecord
+}
+
+export interface CreateAutoPartRequest {
+  name: string
+  quantity: number
+  cost_price: number
+  selling_price: number
+  min_stock: number
+  recommended_min_stock: number
+  last_forecast_date?: string
+}
+
+export interface UpdateAutoPartRequest {
+  name?: string
+  quantity?: number
+  cost_price?: number
+  selling_price?: number
+  min_stock?: number
+  recommended_min_stock?: number
+  last_forecast_date?: string
+}
+
 // Chat – waiting conversations
 export interface ChatConversationRecord {
   _id: string
@@ -611,6 +890,41 @@ export class ApiClient {
     return res.data
   }
 
+  // Service Packages: list
+  async getServicePackages(): Promise<ServicePackageRecord[]> {
+    const res = await this.fetchJson<ServicePackagesListResponse>(`/service-packages`, { method: "GET" })
+    return res.data
+  }
+
+  // Service Packages: get by id
+  async getServicePackageById(id: string): Promise<ServicePackageRecord> {
+    const res = await this.fetchJson<ServicePackageResponse>(`/service-packages/${id}`, { method: "GET" })
+    return res.data
+  }
+
+  // Service Packages: create
+  async createServicePackage(payload: CreateServicePackageRequest): Promise<ServicePackageRecord> {
+    const res = await this.fetchJson<ServicePackageResponse>(`/service-packages`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+    return res.data
+  }
+
+  // Service Packages: update (PATCH)
+  async updateServicePackage(id: string, payload: UpdateServicePackageRequest): Promise<ServicePackageRecord> {
+    const res = await this.fetchJson<ServicePackageResponse>(`/service-packages/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    })
+    return res.data
+  }
+
+  // Service Packages: delete
+  async deleteServicePackage(id: string): Promise<void> {
+    await this.fetchJson(`/service-packages/${id}`, { method: "DELETE" })
+  }
+
   // Chat: get waiting conversations
   async getChatWaiting(params?: { page?: number; limit?: number }): Promise<ChatWaitingResponse> {
     const url = new URL(this.buildUrl("/chat/waiting"))
@@ -692,7 +1006,263 @@ export class ApiClient {
   async deleteVehicle(vehicleId: string): Promise<void> {
     await this.fetchJson(`/vehicles/${vehicleId}`, { method: "DELETE" })
   }
+
+  // Vehicle Subscriptions: list
+  async getVehicleSubscriptions(): Promise<VehicleSubscriptionRecord[]> {
+    const res = await this.fetchJson<VehicleSubscriptionsListResponse>(`/vehicle-subscriptions`, { method: "GET" })
+    return res.data
+  }
+
+  // Vehicle Subscriptions: get by id
+  async getVehicleSubscriptionById(id: string): Promise<VehicleSubscriptionRecord> {
+    const res = await this.fetchJson<VehicleSubscriptionResponse>(`/vehicle-subscriptions/${id}`, { method: "GET" })
+    return res.data
+  }
+
+  // Vehicle Subscriptions: create
+  async createVehicleSubscription(payload: CreateVehicleSubscriptionRequest): Promise<VehicleSubscriptionRecord> {
+    const res = await this.fetchJson<VehicleSubscriptionResponse>(`/vehicle-subscriptions`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+    return res.data
+  }
+
+  // Vehicle Subscriptions: update
+  async updateVehicleSubscription(id: string, payload: UpdateVehicleSubscriptionRequest): Promise<VehicleSubscriptionRecord> {
+    const res = await this.fetchJson<VehicleSubscriptionResponse>(`/vehicle-subscriptions/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    })
+    return res.data
+  }
+
+  // Vehicle Subscriptions: delete
+  async deleteVehicleSubscription(id: string): Promise<void> {
+    await this.fetchJson(`/vehicle-subscriptions/${id}`, { method: "DELETE" })
+  }
+
+  // Service Centers: list
+  async getCenters(params?: { page?: number; limit?: number }): Promise<CentersListResponse> {
+    const url = new URL(this.buildUrl("/centers"))
+    if (params?.page) url.searchParams.set("page", String(params.page))
+    if (params?.limit) url.searchParams.set("limit", String(params.limit))
+    const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
+    if (!res.ok) throw new Error(await safeErrorMessage(res))
+    return (await res.json()) as CentersListResponse
+  }
+
+  // Service Centers: get by id
+  async getCenterById(id: string): Promise<CenterRecord> {
+    const res = await this.fetchJson<CenterResponse>(`/centers/${id}`, { method: "GET" })
+    return res.data
+  }
+
+  // Service Centers: create
+  async createCenter(payload: CreateCenterRequest): Promise<CenterRecord> {
+    const res = await this.fetchJson<CenterResponse>(`/centers`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+    return res.data
+  }
+
+  // Service Centers: update (PUT)
+  async updateCenter(id: string, payload: UpdateCenterRequest): Promise<CenterRecord> {
+    const res = await this.fetchJson<CenterResponse>(`/centers/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    })
+    return res.data
+  }
+
+  // Service Centers: delete
+  async deleteCenter(id: string): Promise<void> {
+    await this.fetchJson(`/centers/${id}`, { method: "DELETE" })
+  }
+
+  // Appointments: list
+  async getAppointments(params?: { page?: number; limit?: number }): Promise<AppointmentsListResponse> {
+    const url = new URL(this.buildUrl("/appointments"))
+    if (params?.page) url.searchParams.set("page", String(params.page))
+    if (params?.limit) url.searchParams.set("limit", String(params.limit))
+    const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
+    if (!res.ok) throw new Error(await safeErrorMessage(res))
+    return (await res.json()) as AppointmentsListResponse
+  }
+
+  // Appointments: get by id
+  async getAppointmentById(id: string): Promise<AppointmentRecord> {
+    const res = await this.fetchJson<AppointmentResponse>(`/appointments/${id}`, { method: "GET" })
+    return res.data
+  }
+
+  // Appointments: create
+  async createAppointment(payload: CreateAppointmentRequest): Promise<AppointmentRecord> {
+    const res = await this.fetchJson<AppointmentResponse>(`/appointments`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+    return res.data
+  }
+
+  // Appointments: update (PUT)
+  async updateAppointment(id: string, payload: UpdateAppointmentRequest): Promise<AppointmentRecord> {
+    const res = await this.fetchJson<AppointmentResponse>(`/appointments/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    })
+    return res.data
+  }
+
+  // Appointments: delete
+  async deleteAppointment(id: string): Promise<void> {
+    await this.fetchJson(`/appointments/${id}`, { method: "DELETE" })
+  }
+
+  // Service Records: list
+  async getServiceRecords(params?: { page?: number; limit?: number }): Promise<ServiceRecordsListResponse> {
+    const url = new URL(this.buildUrl("/service-records"))
+    if (params?.page) url.searchParams.set("page", String(params.page))
+    if (params?.limit) url.searchParams.set("limit", String(params.limit))
+    const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
+    if (!res.ok) throw new Error(await safeErrorMessage(res))
+    return (await res.json()) as ServiceRecordsListResponse
+  }
+
+  // Service Records: get by id
+  async getServiceRecordById(id: string): Promise<ServiceRecordRecord> {
+    const res = await this.fetchJson<ServiceRecordResponse>(`/service-records/${id}`, { method: "GET" })
+    return res.data
+  }
+
+  // Service Records: create
+  async createServiceRecord(payload: CreateServiceRecordRequest): Promise<ServiceRecordRecord> {
+    const res = await this.fetchJson<ServiceRecordResponse>(`/service-records`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+    return res.data
+  }
+
+  // Service Records: update (PUT)
+  async updateServiceRecord(id: string, payload: UpdateServiceRecordRequest): Promise<ServiceRecordRecord> {
+    const res = await this.fetchJson<ServiceRecordResponse>(`/service-records/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    })
+    return res.data
+  }
+
+  // Service Records: delete
+  async deleteServiceRecord(id: string): Promise<void> {
+    await this.fetchJson(`/service-records/${id}`, { method: "DELETE" })
+  }
+
+  // Service Checklists: get all
+  async getServiceChecklists(page = 1, limit = 10): Promise<ServiceChecklistsListResponse> {
+    return this.fetchJson(`/service-checklists?page=${page}&limit=${limit}`)
+  }
+
+  // Service Checklists: get by id
+  async getServiceChecklistById(id: string): Promise<ServiceChecklistResponse> {
+    return this.fetchJson(`/service-checklists/${id}`)
+  }
+
+  // Service Checklists: create
+  async createServiceChecklist(data: CreateServiceChecklistRequest): Promise<ServiceChecklistResponse> {
+    return this.fetchJson("/service-checklists", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+  }
+
+  // Service Checklists: update
+  async updateServiceChecklist(id: string, data: UpdateServiceChecklistRequest): Promise<ServiceChecklistResponse> {
+    return this.fetchJson(`/service-checklists/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    })
+  }
+
+  // Service Checklists: delete
+  async deleteServiceChecklist(id: string): Promise<void> {
+    await this.fetchJson(`/service-checklists/${id}`, { method: "DELETE" })
+  }
+
+  // Auto Parts: get all
+  async getAutoParts(page = 1, limit = 10): Promise<AutoPartsListResponse> {
+    return this.fetchJson(`/auto-parts?page=${page}&limit=${limit}`)
+  }
+
+  // Auto Parts: get by id
+  async getAutoPartById(id: string): Promise<AutoPartResponse> {
+    return this.fetchJson(`/auto-parts/${id}`)
+  }
+
+  // Auto Parts: create
+  async createAutoPart(data: CreateAutoPartRequest): Promise<AutoPartResponse> {
+    return this.fetchJson("/auto-parts", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+  }
+
+  // Auto Parts: update
+  async updateAutoPart(id: string, data: UpdateAutoPartRequest): Promise<AutoPartResponse> {
+    return this.fetchJson(`/auto-parts/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    })
+  }
+
+  // Auto Parts: delete
+  async deleteAutoPart(id: string): Promise<void> {
+    await this.fetchJson(`/auto-parts/${id}`, { method: "DELETE" })
+  }
 }
+
+// Subscription types and APIs
+export type SubscriptionStatus = "ACTIVE" | "EXPIRED" | "CANCELLED" | string
+
+export interface VehicleSubscriptionRecord {
+  _id: string
+  vehicleId: string | { _id: string; vehicleName?: string; model?: string; VIN?: string }
+  package_id: string | { _id: string; name?: string; description?: string; price?: number; duration?: number; km_interval?: number }
+  start_date: string
+  end_date?: string
+  status: SubscriptionStatus
+  createdAt: string
+  updatedAt: string
+  __v?: number
+}
+
+export interface VehicleSubscriptionsListResponse {
+  success: boolean
+  data: VehicleSubscriptionRecord[]
+}
+
+export interface VehicleSubscriptionResponse {
+  success: boolean
+  data: VehicleSubscriptionRecord
+}
+
+export interface CreateVehicleSubscriptionRequest {
+  vehicleId: string
+  package_id: string
+  start_date: string // YYYY-MM-DD or ISO date
+  status: SubscriptionStatus
+}
+
+export interface UpdateVehicleSubscriptionRequest {
+  vehicleId?: string
+  package_id?: string
+  start_date?: string
+  end_date?: string | null
+  status?: SubscriptionStatus
+}
+
+ 
 
 async function safeErrorMessage(res: Response): Promise<string> {
   try {
