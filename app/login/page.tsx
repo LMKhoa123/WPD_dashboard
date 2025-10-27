@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Zap } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
-import Link from "next/link"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -70,10 +69,6 @@ export default function LoginPage() {
             <Button type="submit" className="w-full" size="lg">
               Sign In
             </Button>
-            <p className="text-sm text-muted-foreground text-center">
-              Don't have an account? {" "}
-              <Link href="/register" className="text-primary hover:underline">Register</Link>
-            </p>
           </form>
         </CardContent>
       </Card>

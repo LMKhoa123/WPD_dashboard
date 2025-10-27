@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { getApiClient } from "@/lib/api"
+import { getApiClient, type CenterRecord } from "@/lib/api"
 import { toast } from "@/components/ui/use-toast"
 import { Plus } from "lucide-react"
 
@@ -32,9 +32,35 @@ interface AddStaffDialogProps {
 export function AddStaffDialog({ trigger, onSuccess }: AddStaffDialogProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [loadingCenters, setLoadingCenters] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [role, setRole] = useState<"STAFF" | "TECHNICIAN">("STAFF")
+  const [centerId, setCenterId] = useState<string>("__none__")
+  const [centers, setCenters] = useState<CenterRecord[]>([])
+
+  useEffect(() => {
+    if (open) {
+      loadCenters()
+    }
+  }, [open])
+
+  const loadCenters = async () => {
+    try {
+      setLoadingCenters(true)
+      const api = getApiClient()
+      const response = await api.getCenters({ limit: 100 })
+      setCenters(response.data.centers)
+    } catch (error: any) {
+      toast({
+        title: "Error loading centers",
+        description: error.response?.data?.message || "Failed to load service centers",
+        variant: "destructive",
+      })
+    } finally {
+      setLoadingCenters(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -47,6 +73,7 @@ export function AddStaffDialog({ trigger, onSuccess }: AddStaffDialogProps) {
         email,
         password,
         role,
+        centerId: centerId === "__none__" ? undefined : centerId,
       })
 
       toast({
@@ -58,6 +85,7 @@ export function AddStaffDialog({ trigger, onSuccess }: AddStaffDialogProps) {
       setEmail("")
       setPassword("")
       setRole("STAFF")
+  setCenterId("__none__")
       setOpen(false)
       onSuccess?.()
     } catch (error: any) {
@@ -130,6 +158,26 @@ export function AddStaffDialog({ trigger, onSuccess }: AddStaffDialogProps) {
                   <SelectItem value="TECHNICIAN">Technician</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="center">Service Center</Label>
+              <Select value={centerId} onValueChange={setCenterId} disabled={loadingCenters}>
+                <SelectTrigger id="center">
+                  <SelectValue placeholder={loadingCenters ? "Loading centers..." : "Select a center (optional)"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">None</SelectItem>
+                  {centers.map((center) => (
+                    <SelectItem key={center._id} value={center._id}>
+                      {center.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Optional: Assign staff to a specific service center
+              </p>
             </div>
           </div>
 

@@ -8,11 +8,12 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Search, Pencil, Trash2, Plus, Car, Eye } from "lucide-react"
-import { useIsAdmin } from "@/components/auth-provider"
+import { Search, Pencil, Trash2, Plus, Car, Eye, UserPlus } from "lucide-react"
+import { useIsAdmin, useIsStaff } from "@/components/auth-provider"
 import { getApiClient, type VehicleRecord } from "@/lib/api"
 import { toast } from "@/components/ui/use-toast"
 import { VehicleDialog } from "@/components/vehicles/vehicle-dialog"
+import { AssignVehicleDialog } from "@/components/vehicles/assign-vehicle-dialog"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +34,7 @@ export default function VehiclesPage() {
   const [vehicleToDelete, setVehicleToDelete] = useState<VehicleRecord | null>(null)
   const [deleting, setDeleting] = useState(false)
   const isAdmin = useIsAdmin()
+  const isStaff = useIsStaff()
 
   useEffect(() => {
     const run = async () => {
@@ -40,9 +42,10 @@ export default function VehiclesPage() {
         setLoading(true)
         const api = getApiClient()
         const list = await api.getVehicles({ limit: 200 })
-        setVehicles(list)
+        setVehicles(Array.isArray(list) ? list : [])
       } catch (e: any) {
         toast({ title: "Lỗi tải danh sách xe", description: e?.message || "Failed to load vehicles", variant: "destructive" })
+        setVehicles([])
       } finally {
         setLoading(false)
       }
@@ -51,6 +54,7 @@ export default function VehiclesPage() {
   }, [])
 
   const filteredVehicles = useMemo(() => {
+    if (!Array.isArray(vehicles)) return []
     const q = searchQuery.toLowerCase()
     return vehicles.filter((v) => {
       const owner = typeof v.customerId === "object" && v.customerId ? (v.customerId.customerName || "") : ""
@@ -235,6 +239,17 @@ export default function VehiclesPage() {
                                 <Eye className="h-4 w-4" />
                               </Button>
                             </Link>
+                            {isStaff && (
+                              <AssignVehicleDialog
+                                vehicleId={v._id}
+                                vehicleName={v.vehicleName}
+                                trigger={
+                                  <Button variant="ghost" size="icon" title="Gán xe cho khách hàng">
+                                    <UserPlus className="h-4 w-4 text-blue-600" />
+                                  </Button>
+                                }
+                              />
+                            )}
                             {isAdmin && (
                               <>
                                 <VehicleDialog

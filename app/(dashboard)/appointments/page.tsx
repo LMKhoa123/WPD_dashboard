@@ -16,7 +16,7 @@ import { useIsAdmin } from "@/components/auth-provider"
 import { getApiClient, type AppointmentRecord, type AppointmentStatus } from "@/lib/api"
 
 const statusColors: Record<AppointmentStatus, string> = {
-  scheduled: "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20",
+  pending: "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20",
   confirmed: "bg-cyan-500/10 text-cyan-500 hover:bg-cyan-500/20",
   "in-progress": "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20",
   completed: "bg-green-500/10 text-green-500 hover:bg-green-500/20",
@@ -113,7 +113,7 @@ export default function AppointmentsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="scheduled">Scheduled</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="confirmed">Confirmed</SelectItem>
                 <SelectItem value="in-progress">In Progress</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
@@ -161,7 +161,7 @@ export default function AppointmentsPage() {
                       <TableCell>
                         <Badge
                           variant="secondary"
-                          className={statusColors[apt.status as AppointmentStatus] || statusColors.scheduled}
+                          className={statusColors[apt.status as AppointmentStatus] || statusColors.pending}
                         >
                           {apt.status.replace("-", " ")}
                         </Badge>

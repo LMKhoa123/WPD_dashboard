@@ -28,12 +28,14 @@ export function CustomerDialog({ customer, trigger, onSuccess }: CustomerDialogP
   const [open, setOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [customerName, setCustomerName] = useState("")
+  const [dateOfBirth, setDateOfBirth] = useState("")
   const [address, setAddress] = useState("")
   const { toast } = useToast()
 
   useEffect(() => {
     if (open && customer) {
       setCustomerName(customer.customerName)
+      setDateOfBirth(customer.dateOfBirth ? customer.dateOfBirth.split('T')[0] : "")
       setAddress(customer.address)
     } else if (!open) {
       resetForm()
@@ -42,6 +44,7 @@ export function CustomerDialog({ customer, trigger, onSuccess }: CustomerDialogP
 
   const resetForm = () => {
     setCustomerName("")
+    setDateOfBirth("")
     setAddress("")
   }
 
@@ -54,6 +57,7 @@ export function CustomerDialog({ customer, trigger, onSuccess }: CustomerDialogP
       const api = getApiClient()
       const updated = await api.updateCustomer(customer._id, {
         customerName,
+        dateOfBirth: dateOfBirth || null,
         address,
       })
 
@@ -98,6 +102,16 @@ export function CustomerDialog({ customer, trigger, onSuccess }: CustomerDialogP
                 onChange={(e) => setCustomerName(e.target.value)}
                 placeholder="John Doe"
                 required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="dateOfBirth">Date of Birth</Label>
+              <Input
+                id="dateOfBirth"
+                type="date"
+                value={dateOfBirth}
+                onChange={(e) => setDateOfBirth(e.target.value)}
+                placeholder="1990-01-15"
               />
             </div>
             <div className="grid gap-2">

@@ -312,7 +312,7 @@ export const mockAppointments: Appointment[] = [
     technician: "Alex Thompson",
     startTime: new Date("2025-01-15T09:00:00"),
     endTime: new Date("2025-01-15T11:00:00"),
-    status: "scheduled",
+  status: "pending",
   },
   {
     id: "app_2",
@@ -336,7 +336,7 @@ export const mockAppointments: Appointment[] = [
     technician: "Mike Rodriguez",
     startTime: new Date("2025-01-15T13:00:00"),
     endTime: new Date("2025-01-15T14:00:00"),
-    status: "scheduled",
+  status: "pending",
   },
   {
     id: "app_4",
@@ -360,7 +360,7 @@ export const mockAppointments: Appointment[] = [
     technician: "Sarah Chen",
     startTime: new Date("2025-01-16T09:00:00"),
     endTime: new Date("2025-01-16T12:00:00"),
-    status: "scheduled",
+  status: "pending",
   },
   {
     id: "app_6",
@@ -384,7 +384,7 @@ export const mockAppointments: Appointment[] = [
     technician: "Alex Thompson",
     startTime: new Date("2025-01-16T14:00:00"),
     endTime: new Date("2025-01-16T15:00:00"),
-    status: "scheduled",
+  status: "pending",
   },
   {
     id: "app_8",
@@ -408,7 +408,7 @@ export const mockAppointments: Appointment[] = [
     technician: "Mike Rodriguez",
     startTime: new Date("2025-01-17T10:00:00"),
     endTime: new Date("2025-01-17T13:00:00"),
-    status: "scheduled",
+  status: "pending",
   },
   {
     id: "app_10",
@@ -432,7 +432,7 @@ export const mockAppointments: Appointment[] = [
     technician: "Sarah Chen",
     startTime: new Date("2025-01-18T09:00:00"),
     endTime: new Date("2025-01-18T11:00:00"),
-    status: "scheduled",
+  status: "pending",
   },
   {
     id: "app_12",
@@ -456,7 +456,7 @@ export const mockAppointments: Appointment[] = [
     technician: "Alex Thompson",
     startTime: new Date("2025-01-19T10:00:00"),
     endTime: new Date("2025-01-19T12:00:00"),
-    status: "scheduled",
+  status: "pending",
   },
   {
     id: "app_14",
@@ -480,7 +480,7 @@ export const mockAppointments: Appointment[] = [
     technician: "Mike Rodriguez",
     startTime: new Date("2025-01-20T09:00:00"),
     endTime: new Date("2025-01-20T15:00:00"),
-    status: "scheduled",
+  status: "pending",
   },
 ]
 
