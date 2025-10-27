@@ -21,6 +21,7 @@ import {
 } from "lucide-react"
 import { getApiClient, type ChatConversationRecord, type MessageRecord } from "@/lib/api"
 import { useToast } from "@/components/ui/use-toast"
+import { useSocket } from "@/lib/useSocket"
 
 type Msg =
   | { id: string; from: "me" | "them"; ts: number; type: "text"; text: string }
@@ -56,6 +57,8 @@ export default function ChatDashboardPage() {
   const { toast } = useToast()
   const [staffId, setStaffId] = useState<string | null>(null)
   const [taking, setTaking] = useState(false)
+  const prevConversationRef = useRef<string | null>(null)
+  const { socket, joinConversation, leaveConversation, on, off } = useSocket()
   // Track last read message index per conversation to support "new messages" UX
   const [readIndexMap, setReadIndexMap] = useState<Record<string, number>>({})
   const prevListLengthRef = useRef<number>(0)
@@ -141,9 +144,28 @@ export default function ChatDashboardPage() {
       return { id: m._id, from, ts, type: "text", text: m.content }
     })
 
+  const mapSocketMessage = (m: any): Msg => {
+    const from = m.senderRole === "user" ? ("them" as const) : ("me" as const)
+    const ts = m.createdAt ? new Date(m.createdAt).getTime() : Date.now()
+    if (m.attachment && isImageLike(m.attachment)) {
+      return { id: m.id || m._id || crypto.randomUUID(), from, ts, type: "image", caption: m.content || undefined, src: m.attachment }
+    }
+    if (m.attachment && !isImageLike(m.attachment)) {
+      return { id: m.id || m._id || crypto.randomUUID(), from, ts, type: "file", filename: undefined, src: m.attachment }
+    }
+    return { id: m.id || m._id || crypto.randomUUID(), from, ts, type: "text", text: m.content }
+  }
+
   const loadConversation = async (conversationId: string) => {
     try {
       const api = getApiClient()
+      // leave previous joined conversation room
+      if (prevConversationRef.current && prevConversationRef.current !== conversationId) {
+        try {
+          leaveConversation(prevConversationRef.current)
+        } catch { }
+      }
+
       const detail = await api.getConversationDetail(conversationId)
       setConversations((prev) => ({ ...prev, [conversationId]: mapMessages(detail.data.messages) }))
       // Mark all as read on initial open
@@ -152,11 +174,74 @@ export default function ChatDashboardPage() {
         const el = scrollRef.current
         if (el) el.scrollTop = el.scrollHeight
       }, 30)
+      // join conversation room on socket so we receive realtime messages
+      try {
+        joinConversation(conversationId)
+        prevConversationRef.current = conversationId
+      } catch { }
+
       await api.markConversationRead(conversationId)
     } catch (e: any) {
       toast({ title: "Không tải được hội thoại", description: e?.message || "Failed to load conversation", variant: "destructive" })
     }
   }
+
+  // Socket listeners: handle incoming messages and new waiting chats
+  useEffect(() => {
+    if (!socket) return
+
+    const onMessageNew = (msg: any) => {
+      try {
+        const convId = msg.conversationId
+        const mapped = mapSocketMessage(msg)
+        if (!convId) return
+        // If currently viewing this conversation, append message
+        if (convId === selected) {
+          setConversations((prev) => ({ ...prev, [convId]: [...(prev[convId] ?? []), mapped] }))
+          // auto-scroll if at bottom
+          setTimeout(() => {
+            const el = scrollRef.current
+            if (el) el.scrollTop = el.scrollHeight
+          }, 20)
+        } else {
+          // message for other conversation: ensure we keep it in memory for later
+          setConversations((prev) => ({ ...prev, [convId]: [...(prev[convId] ?? []), mapped] }))
+        }
+      } catch (err) {
+        console.warn("onMessageNew error", err)
+      }
+    }
+
+    const onChatWaiting = (data: any) => {
+      try {
+        if (!data || !data.conversationId) return
+        const exists = waitingChats.some((c) => c._id === data.conversationId)
+        if (!exists) {
+          const stub: ChatConversationRecord = {
+            _id: data.conversationId,
+            customerId: (data.customerId && typeof data.customerId === 'object') ? data.customerId : { _id: data.customerId || data.customerId, customerName: data.customerName || 'Customer' },
+            assignedStaffId: null,
+            lastAssignedStaff: null,
+            status: "waiting",
+            assignmentHistory: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }
+          setWaitingChats((prev) => [stub, ...prev])
+        }
+      } catch (err) {
+        console.warn("onChatWaiting error", err)
+      }
+    }
+
+    socket.on("message:new", onMessageNew)
+    socket.on("chat:waiting", onChatWaiting)
+
+    return () => {
+      socket.off("message:new", onMessageNew)
+      socket.off("chat:waiting", onChatWaiting)
+    }
+  }, [socket, selected, waitingChats])
 
   // Whenever we are at the bottom and the list changes, advance read pointer
   useEffect(() => {
@@ -250,7 +335,7 @@ export default function ChatDashboardPage() {
   const stopListening = () => {
     const rec = recognitionRef.current
     if (rec) {
-      try { rec.stop() } catch {}
+      try { rec.stop() } catch { }
     }
   }
 
@@ -277,12 +362,12 @@ export default function ChatDashboardPage() {
   }
 
   return (
-     
-    <div className="dark:bg-gray-900 "  style={{ backgroundColor: "#fff" }}>
+
+    <div className="dark:bg-gray-900 " style={{ backgroundColor: "#fff" }}>
       <div className="mx-auto  bg-white/90 dark:bg-gray-800/90 p-3 shadow-xl ring-1 ring-black/5 dark:ring-white/10 pb-10">
         {/* 4 columns layout on xl (nav rail + 3 panes) */}
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-[320px_minmax(0,1fr)_280px] ">
-          
+
           {/* Left: Chat list */}
           <aside className="rounded-2xl bg-white dark:bg-gray-800 p-3 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
             {/* Tabs */}
@@ -324,9 +409,8 @@ export default function ChatDashboardPage() {
                       setSelectedIsWaiting(isWaiting)
                       await loadConversation(c._id)
                     }}
-                    className={`mb-2 flex w-full items-center gap-3 rounded-xl border p-3 text-left transition ${
-                      active ? "border-primary/40 bg-primary/10 dark:border-primary/60 dark:bg-primary/20" : "border-transparent hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                    }`}
+                    className={`mb-2 flex w-full items-center gap-3 rounded-xl border p-3 text-left transition ${active ? "border-primary/40 bg-primary/10 dark:border-primary/60 dark:bg-primary/20" : "border-transparent hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                      }`}
                   >
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-200 dark:bg-gray-700 text-sm font-semibold text-gray-600 dark:text-gray-300">
                       {initials(name || "?")}
@@ -340,7 +424,7 @@ export default function ChatDashboardPage() {
                       </div>
                       <p className="mt-0.5 truncate text-xs leading-tight text-gray-500 dark:text-gray-400">#{c._id.slice(-6)}</p>
                     </div>
-                  
+
                     <span className="shrink-0 text-xs text-gray-500 dark:text-gray-400">{new Date(c.updatedAt).toLocaleTimeString()}</span>
                   </button>
                 )
@@ -803,20 +887,20 @@ function AvatarCircle({ name, avatar }: { name: string; avatar?: string }) {
 
 function MiniAvatarRight() {
   return (
-    <img 
-      src="https://i.pravatar.cc/150?img=45" 
-      alt="You" 
-      className="mt-1 ml-1 hidden h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-gray-100 dark:ring-gray-700 md:flex" 
+    <img
+      src="https://i.pravatar.cc/150?img=45"
+      alt="You"
+      className="mt-1 ml-1 hidden h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-gray-100 dark:ring-gray-700 md:flex"
     />
   )
 }
 
 function MetaRow({ isMe, timestamp, withMedia = false }: { isMe: boolean; timestamp: number; withMedia?: boolean }) {
-  const time = new Date(timestamp).toLocaleTimeString('vi-VN', { 
-    hour: '2-digit', 
-    minute: '2-digit' 
+  const time = new Date(timestamp).toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit'
   })
-  
+
   return (
     <div className={`mt-1.5 flex items-center gap-3 ${isMe ? "justify-end" : "justify-start"} text-xs text-gray-500 dark:text-gray-400`}>
       <span>{time}</span>

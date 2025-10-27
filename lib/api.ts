@@ -98,14 +98,14 @@ export interface UsersListResponse {
   success: boolean
   message?: string
   data:
-    | UserAccount[]
-    | {
-        users: UserAccount[]
-        total?: number
-        page?: number
-        limit?: number
-        totalPages?: number
-      }
+  | UserAccount[]
+  | {
+    users: UserAccount[]
+    total?: number
+    page?: number
+    limit?: number
+    totalPages?: number
+  }
 }
 
 // Customers
@@ -545,7 +545,16 @@ export function saveTokens(tokens: Tokens | null) {
     if (typeof localStorage === "undefined") return
     if (tokens) localStorage.setItem(TOKENS_KEY, JSON.stringify(tokens))
     else localStorage.removeItem(TOKENS_KEY)
-  } catch {}
+    // Notify same-tab listeners about token changes (e.g. socket reconnect)
+    try {
+      if (typeof window !== "undefined") {
+        const ev = new CustomEvent("ev_tokens_changed", { detail: tokens })
+        window.dispatchEvent(ev)
+      }
+    } catch (e) {
+      // ignore
+    }
+  } catch { }
 }
 
 async function rawFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
@@ -559,7 +568,7 @@ export class ApiClient {
   private onUnauthorized?: () => void
   private refreshPromise: Promise<RefreshResponse> | null = null
 
-  constructor(opts?: { 
+  constructor(opts?: {
     baseUrl?: string
     getTokens?: () => Tokens | null
     setTokens?: (t: Tokens | null) => void
@@ -587,7 +596,7 @@ export class ApiClient {
     if (!tokens) return
     // Refresh slightly before expiry (10s skew)
     if (tokens.accessTokenExpiresAt - nowMs() > 10_000) return
-    
+
     // If already refreshing, wait for that promise
     if (this.refreshPromise) {
       await this.refreshPromise.catch(() => {
@@ -595,7 +604,7 @@ export class ApiClient {
       })
       return
     }
-    
+
     // Start refresh
     await this.refreshToken().catch(() => {
       // swallow; next request will likely 401 and we can handle upstream
@@ -651,12 +660,12 @@ export class ApiClient {
       body: JSON.stringify(payload),
       headers: { "Content-Type": "application/json", accept: "application/json" },
     })
-    
+
     if (!res.ok) {
       const msg = await safeErrorMessage(res)
       throw new Error(msg)
     }
-    
+
     const data = (await res.json()) as LoginResponse
     const { accessToken, refreshToken, expiresIn } = data.data
     const tokens: Tokens = {
@@ -675,12 +684,12 @@ export class ApiClient {
       body: JSON.stringify(payload),
       headers: { "Content-Type": "application/json", accept: "application/json" },
     })
-    
+
     if (!res.ok) {
       const msg = await safeErrorMessage(res)
       throw new Error(msg)
     }
-    
+
     return (await res.json()) as RegisterResponse
   }
 
@@ -695,7 +704,7 @@ export class ApiClient {
       this.handleUnauthorized()
       throw new Error("No refresh token")
     }
-    
+
     // Create and store the refresh promise
     this.refreshPromise = (async () => {
       try {
@@ -735,7 +744,7 @@ export class ApiClient {
   async logout(): Promise<void> {
     // Clear any ongoing refresh
     this.refreshPromise = null
-    
+
     try {
       // Use rawFetch for logout to avoid auth loops
       const tokens = this.getTokens()
@@ -936,7 +945,7 @@ export class ApiClient {
   }
 
   // Chat: take/claim a conversation
-  async takeConversation(conversationId: string, staffId: string): Promise<{ success: boolean; message?: string }>{
+  async takeConversation(conversationId: string, staffId: string): Promise<{ success: boolean; message?: string }> {
     const res = await this.fetchJson<{ success: boolean; message?: string }>(`/chat/${conversationId}/take`, {
       method: "POST",
       body: JSON.stringify({ staffId }),
@@ -956,7 +965,7 @@ export class ApiClient {
   }
 
   // Chat: staff sends a message
-  async sendStaffMessage(conversationId: string, payload: { staffId: string; content: string; attachment?: string | null }): Promise<{ success: boolean }>{
+  async sendStaffMessage(conversationId: string, payload: { staffId: string; content: string; attachment?: string | null }): Promise<{ success: boolean }> {
     return this.fetchJson<{ success: boolean }>(`/chat/${conversationId}/staff-message`, {
       method: "POST",
       body: JSON.stringify(payload),
@@ -964,12 +973,12 @@ export class ApiClient {
   }
 
   // Chat: mark messages as read
-  async markConversationRead(conversationId: string): Promise<{ success: boolean }>{
+  async markConversationRead(conversationId: string): Promise<{ success: boolean }> {
     return this.fetchJson<{ success: boolean }>(`/chat/${conversationId}/mark-read`, { method: "POST", body: JSON.stringify({}) })
   }
 
   // Chat: close conversation
-  async closeConversation(conversationId: string): Promise<{ success: boolean }>{
+  async closeConversation(conversationId: string): Promise<{ success: boolean }> {
     return this.fetchJson<{ success: boolean }>(`/chat/${conversationId}/close`, { method: "POST", body: JSON.stringify({}) })
   }
 
@@ -1262,7 +1271,7 @@ export interface UpdateVehicleSubscriptionRequest {
   status?: SubscriptionStatus
 }
 
- 
+
 
 async function safeErrorMessage(res: Response): Promise<string> {
   try {
