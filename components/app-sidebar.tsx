@@ -1,7 +1,7 @@
 "use client"
 
 import type * as React from "react"
-import { LayoutDashboard, Calendar, Users, Car, Package, UserCog, FileText, Zap, MessageSquare } from "lucide-react"
+import { LayoutDashboard, Calendar, Users, Car, Package, UserCog, FileText, Zap, MessageSquare, MapPin, ClipboardCheck, Wrench } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -31,6 +31,16 @@ const baseNav = [
     icon: Calendar,
   },
   {
+    title: "Service Records",
+    url: "/service-records",
+    icon: FileText,
+  },
+  {
+    title: "Service Checklists",
+    url: "/service-checklists",
+    icon: ClipboardCheck,
+  },
+  {
     title: "Customers",
     url: "/customers",
     icon: Users,
@@ -58,6 +68,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       ]
     : [
         ...baseNav,
+        { title: "Service Packages", url: "/service-packages", icon: Package },
+        { title: "Vehicle Subscriptions", url: "/vehicle-subscriptions", icon: Car },
+        { title: "Service Centers", url: "/centers", icon: MapPin },
+        { title: "Auto Parts", url: "/auto-parts", icon: Wrench },
         { title: "Users", url: "/users", icon: Users },
         { title: "Staff", url: "/staff", icon: UserCog },
         { title: "Reports", url: "/reports", icon: FileText },
