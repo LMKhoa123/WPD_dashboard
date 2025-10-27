@@ -43,15 +43,10 @@ export default function CustomerDetailPage() {
         const api = getApiClient()
         
         // Load customer data and vehicles in parallel
-        const [customersRes, vehiclesData] = await Promise.all([
-          api.getCustomers({ limit: 200 }),
+        const [customerData, vehiclesData] = await Promise.all([
+          api.getCustomerById(customerId),
           api.getVehiclesByCustomerId(customerId),
         ])
-
-        const customerData = customersRes.data.customers.find((c) => c._id === customerId)
-        if (!customerData) {
-          throw new Error("Customer not found")
-        }
 
         setCustomer(customerData)
         setVehicles(vehiclesData)
@@ -180,6 +175,16 @@ export default function CustomerDetailPage() {
             <CardDescription>Customer contact details</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Phone className="h-4 w-4 text-muted-foreground" />
+              <span>{customer.userId?.phone || "No phone provided"}</span>
+            </div>
+            {customer.dateOfBirth && (
+              <div className="flex items-center gap-3">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span>Date of Birth: {formatDate(customer.dateOfBirth)}</span>
+              </div>
+            )}
             <div className="flex items-center gap-3">
               <MapPin className="h-4 w-4 text-muted-foreground" />
               <span>{customer.address || "No address provided"}</span>

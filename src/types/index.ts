@@ -1,4 +1,4 @@
-export type AppointmentStatus = "scheduled" | "in-progress" | "completed" | "cancelled"
+export type AppointmentStatus = "pending" | "confirmed" | "in-progress" | "completed" | "cancelled"
 
 export type UserRole = "Admin" | "Staff"
 

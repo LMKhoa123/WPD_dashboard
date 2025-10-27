@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
-import { getApiClient, type AppointmentRecord, type CreateAppointmentRequest, type UpdateAppointmentRequest, type VehicleRecord, type CenterRecord, type SystemUserRecord } from "@/lib/api"
+import { getApiClient, type AppointmentRecord, type CreateAppointmentRequest, type UpdateAppointmentRequest, type VehicleRecord, type CenterRecord, type SystemUserRecord, type CustomerRecord } from "@/lib/api"
 
 interface AppointmentDialogProps {
   appointment?: AppointmentRecord
@@ -35,9 +35,10 @@ export function AppointmentDialog({ appointment, trigger, onCreated, onUpdated }
   const [staffId, setStaffId] = useState("")
   const [vehicleId, setVehicleId] = useState("")
   const [centerId, setCenterId] = useState("")
+  const [customerId, setCustomerId] = useState("")
   const [startTime, setStartTime] = useState("")
   const [endTime, setEndTime] = useState("")
-  const [status, setStatus] = useState<string>("scheduled")
+  const [status, setStatus] = useState<string>("pending")
 
   const { toast } = useToast()
   const api = useMemo(() => getApiClient(), [])
@@ -45,6 +46,7 @@ export function AppointmentDialog({ appointment, trigger, onCreated, onUpdated }
   const [vehicles, setVehicles] = useState<VehicleRecord[]>([])
   const [centers, setCenters] = useState<CenterRecord[]>([])
   const [staff, setStaff] = useState<SystemUserRecord[]>([])
+  const [customers, setCustomers] = useState<CustomerRecord[]>([])
   const [loadingLists, setLoadingLists] = useState(false)
 
   useEffect(() => {
@@ -52,14 +54,16 @@ export function AppointmentDialog({ appointment, trigger, onCreated, onUpdated }
       const run = async () => {
         try {
           setLoadingLists(true)
-          const [vs, cs, ss] = await Promise.all([
+          const [vs, cs, ss, cus] = await Promise.all([
             api.getVehicles({ limit: 500 }).catch(() => [] as VehicleRecord[]),
             api.getCenters({ limit: 100 }).then(r => r.data.centers).catch(() => [] as CenterRecord[]),
             api.getSystemUsers({ limit: 100 }).then(r => r.data.systemUsers).catch(() => [] as SystemUserRecord[]),
+            api.getCustomers({ limit: 200 }).then(r => r.data.customers).catch(() => [] as CustomerRecord[]),
           ])
           setVehicles(vs)
           setCenters(cs)
           setStaff(ss)
+          setCustomers(cus)
         } catch (e: any) {
           toast({ title: "Không tải được dữ liệu", description: e?.message || "Failed to load data", variant: "destructive" })
         } finally {
@@ -75,9 +79,10 @@ export function AppointmentDialog({ appointment, trigger, onCreated, onUpdated }
       setStaffId(typeof appointment.staffId === 'string' ? appointment.staffId : appointment.staffId?._id || "")
       setVehicleId(typeof appointment.vehicle_id === 'string' ? appointment.vehicle_id : appointment.vehicle_id?._id || "")
       setCenterId(typeof appointment.center_id === 'string' ? appointment.center_id : appointment.center_id?._id || "")
+  setCustomerId(typeof appointment.customer_id === 'string' ? appointment.customer_id : (appointment.customer_id as any)?._id || "")
       setStartTime(appointment.startTime?.slice(0, 16) || "")
       setEndTime(appointment.endTime?.slice(0, 16) || "")
-      setStatus(appointment.status || "scheduled")
+  setStatus(appointment.status || "pending")
     } else if (!open) {
       resetForm()
     }
@@ -87,9 +92,10 @@ export function AppointmentDialog({ appointment, trigger, onCreated, onUpdated }
     setStaffId("")
     setVehicleId("")
     setCenterId("")
+    setCustomerId("")
     setStartTime("")
     setEndTime("")
-    setStatus("scheduled")
+  setStatus("pending")
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -102,6 +108,7 @@ export function AppointmentDialog({ appointment, trigger, onCreated, onUpdated }
           staffId,
           vehicle_id: vehicleId,
           center_id: centerId,
+          customer_id: customerId || null,
           startTime: new Date(startTime).toISOString(),
           endTime: new Date(endTime).toISOString(),
           status: status as any,
@@ -116,6 +123,7 @@ export function AppointmentDialog({ appointment, trigger, onCreated, onUpdated }
           staffId,
           vehicle_id: vehicleId,
           center_id: centerId,
+          customer_id: customerId || null,
           startTime: new Date(startTime).toISOString(),
           endTime: new Date(endTime).toISOString(),
           status: status as any,
@@ -157,6 +165,19 @@ export function AppointmentDialog({ appointment, trigger, onCreated, onUpdated }
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>Customer (optional)</Label>
+              <Select value={customerId} onValueChange={setCustomerId}>
+                <SelectTrigger>
+                  <SelectValue placeholder={loadingLists ? "Loading customers..." : "Select customer (optional)"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {customers.map(c => (
+                    <SelectItem key={c._id} value={c._id}>{c.customerName} • {c.userId?.phone}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid gap-2">
               <Label>Vehicle</Label>
               <Select value={vehicleId} onValueChange={setVehicleId}>
@@ -217,7 +238,7 @@ export function AppointmentDialog({ appointment, trigger, onCreated, onUpdated }
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="confirmed">Confirmed</SelectItem>
                   <SelectItem value="in-progress">In Progress</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>

@@ -3,11 +3,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react"
 import { getApiClient, type VehicleSubscriptionRecord } from "@/lib/api"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { VehicleSubscriptionDialog } from "@/components/subscriptions/vehicle-subscription-dialog"
+import { VehicleSubscriptionDetailDialog } from "@/components/subscriptions/vehicle-subscription-detail-dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Spinner } from "@/components/ui/spinner"
 import { useToast } from "@/components/ui/use-toast"
+import { Eye } from "lucide-react"
 
 export default function VehicleSubscriptionsPage() {
   const [items, setItems] = useState<VehicleSubscriptionRecord[]>([])
@@ -54,6 +58,15 @@ export default function VehicleSubscriptionsPage() {
     }
   }
 
+  const getStatusBadge = (status: string) => {
+    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+      ACTIVE: "default",
+      EXPIRED: "destructive",
+      CANCELLED: "secondary"
+    }
+    return <Badge variant={variants[status] || "outline"}>{status}</Badge>
+  }
+
   return (
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
@@ -79,43 +92,82 @@ export default function VehicleSubscriptionsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items.map((it) => (
-              <TableRow key={it._id}>
-                <TableCell className="font-medium">
-                  {typeof it.vehicleId === 'string' ? it.vehicleId : `${it.vehicleId?.vehicleName} • ${it.vehicleId?.model} • ${it.vehicleId?.VIN}`}
-                </TableCell>
-                <TableCell>
-                  {typeof it.package_id === 'string' ? it.package_id : `${it.package_id?.name}`}
-                </TableCell>
-                <TableCell>{new Date(it.start_date).toLocaleDateString()}</TableCell>
-                <TableCell>{it.end_date ? new Date(it.end_date).toLocaleDateString() : '-'}</TableCell>
-                <TableCell>{it.status}</TableCell>
-                <TableCell>{new Date(it.createdAt).toLocaleString()}</TableCell>
-                <TableCell className="text-right space-x-2">
-                  <VehicleSubscriptionDialog subscription={it} onUpdated={handleUpdated} trigger={<Button size="sm" variant="outline">Edit</Button>} />
+            {items.map((it) => {
+              const vehicle = typeof it.vehicleId === 'object' ? it.vehicleId : null
+              const packageInfo = typeof it.package_id === 'object' ? it.package_id : null
+              
+              return (
+                <TableRow key={it._id}>
+                  <TableCell className="font-medium">
+                    {vehicle ? (
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-9 w-9">
+                          <AvatarImage src={(vehicle as any).image} alt={vehicle.vehicleName || "Vehicle"} />
+                          <AvatarFallback>
+                            {(vehicle.vehicleName || "?").slice(0,1).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-semibold">{vehicle.vehicleName}</span>
+                          <span className="text-xs text-muted-foreground">{vehicle.model} • {vehicle.VIN}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {packageInfo ? (
+                      <div className="flex flex-col gap-1">
+                        <span className="font-medium">{packageInfo.name}</span>
+                        {packageInfo.price && (
+                          <span className="text-xs text-muted-foreground">
+                            {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(packageInfo.price)}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>{new Date(it.start_date).toLocaleDateString("vi-VN")}</TableCell>
+                  <TableCell>{it.end_date ? new Date(it.end_date).toLocaleDateString("vi-VN") : '—'}</TableCell>
+                  <TableCell>{getStatusBadge(it.status)}</TableCell>
+                  <TableCell>{new Date(it.createdAt).toLocaleDateString("vi-VN")}</TableCell>
+                  <TableCell className="text-right space-x-2">
+                    <VehicleSubscriptionDetailDialog 
+                      subscription={it} 
+                      trigger={
+                        <Button size="sm" variant="ghost" title="View details">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      }
+                    />
+                    <VehicleSubscriptionDialog subscription={it} onUpdated={handleUpdated} trigger={<Button size="sm" variant="outline">Edit</Button>} />
 
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button size="sm" variant="destructive" disabled={deletingId === it._id}>Delete</Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Xóa đăng ký?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Hành động này không thể hoàn tác. Bản ghi sẽ bị xóa vĩnh viễn.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDelete(it._id)} disabled={deletingId === it._id}>
-                          {deletingId === it._id ? "Deleting..." : "Delete"}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </TableCell>
-              </TableRow>
-            ))}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="sm" variant="destructive" disabled={deletingId === it._id}>Delete</Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Xóa đăng ký?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Hành động này không thể hoàn tác. Bản ghi sẽ bị xóa vĩnh viễn.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDelete(it._id)} disabled={deletingId === it._id}>
+                            {deletingId === it._id ? "Deleting..." : "Delete"}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
           </TableBody>
         </Table>
       )}

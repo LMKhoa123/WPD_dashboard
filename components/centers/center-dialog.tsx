@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { Plus } from "lucide-react"
-import { getApiClient, type CenterRecord, type CreateCenterRequest, type UpdateCenterRequest } from "@/lib/api"
+import { getApiClient, type CenterRecord } from "@/lib/api"
 
 export interface CenterDialogProps {
   center?: CenterRecord
@@ -33,6 +33,8 @@ export function CenterDialog({ center, trigger, onCreated, onUpdated }: CenterDi
   const [name, setName] = useState("")
   const [address, setAddress] = useState("")
   const [phone, setPhone] = useState("")
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
 
   const { toast } = useToast()
 
@@ -41,6 +43,8 @@ export function CenterDialog({ center, trigger, onCreated, onUpdated }: CenterDi
       setName(center.name)
       setAddress(center.address)
       setPhone(center.phone)
+      setImagePreview(center.image ?? null)
+      setImageFile(null)
     } else if (!open) {
       resetForm()
     }
@@ -50,6 +54,8 @@ export function CenterDialog({ center, trigger, onCreated, onUpdated }: CenterDi
     setName("")
     setAddress("")
     setPhone("")
+    setImageFile(null)
+    setImagePreview(null)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -58,16 +64,22 @@ export function CenterDialog({ center, trigger, onCreated, onUpdated }: CenterDi
       setSubmitting(true)
       const api = getApiClient()
 
+      const form = new FormData()
+      form.append("name", name)
+      form.append("address", address)
+      form.append("phone", phone)
+      if (imageFile) {
+        form.append("image", imageFile)
+      }
+
       if (isEditMode && center) {
-        const payload: UpdateCenterRequest = { name, address, phone }
-        const updated = await api.updateCenter(center._id, payload)
+        const updated = await api.updateCenter(center._id, form)
         toast({ title: "Cập nhật trung tâm dịch vụ thành công" })
         setOpen(false)
         resetForm()
         onUpdated?.(updated)
       } else {
-        const payload: CreateCenterRequest = { name, address, phone }
-        const created = await api.createCenter(payload)
+        const created = await api.createCenter(form)
         toast({ title: "Tạo trung tâm dịch vụ thành công" })
         setOpen(false)
         resetForm()
@@ -117,6 +129,31 @@ export function CenterDialog({ center, trigger, onCreated, onUpdated }: CenterDi
             <div className="grid gap-2">
               <Label htmlFor="phone">Phone</Label>
               <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="image">Image</Label>
+              <Input
+                id="image"
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null
+                  setImageFile(file)
+                  if (file) {
+                    const url = URL.createObjectURL(file)
+                    setImagePreview(url)
+                  } else {
+                    setImagePreview(null)
+                  }
+                }}
+                disabled={submitting}
+              />
+              {imagePreview && (
+                <div className="mt-2">
+                  <img src={imagePreview} alt="Preview" className="h-28 w-28 rounded object-cover border" />
+                </div>
+              )}
             </div>
           </div>
 

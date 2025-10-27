@@ -5,9 +5,11 @@ import { getApiClient, type ServicePackageRecord } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ServicePackageDialog } from "@/components/service-packages/service-package-dialog"
+import { ServicePackageDetailDialog } from "@/components/service-packages/service-package-detail-dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Spinner } from "@/components/ui/spinner"
 import { useToast } from "@/components/ui/use-toast"
+import { Eye } from "lucide-react"
 
 export default function ServicePackagesPage() {
   const [packages, setPackages] = useState<ServicePackageRecord[]>([])
@@ -72,7 +74,6 @@ export default function ServicePackagesPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Description</TableHead>
               <TableHead>Price</TableHead>
               <TableHead>Duration</TableHead>
               <TableHead>KM Interval</TableHead>
@@ -85,13 +86,20 @@ export default function ServicePackagesPage() {
             {packages.map((sp) => (
               <TableRow key={sp._id}>
                 <TableCell className="font-medium">{sp.name}</TableCell>
-                <TableCell className="max-w-[420px] truncate" title={sp.description}>{sp.description}</TableCell>
                 <TableCell>{formatCurrency(sp.price)}</TableCell>
                 <TableCell>{sp.duration} days</TableCell>
                 <TableCell>{sp.km_interval.toLocaleString()} km</TableCell>
                 <TableCell>{sp.service_interval_days} days</TableCell>
                 <TableCell>{new Date(sp.createdAt).toLocaleString()}</TableCell>
                 <TableCell className="text-right space-x-2">
+                  <ServicePackageDetailDialog 
+                    servicePackage={sp} 
+                    trigger={
+                      <Button size="sm" variant="ghost" title="View details">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    }
+                  />
                   <ServicePackageDialog servicePackage={sp} onUpdated={handleUpdated} trigger={<Button size="sm" variant="outline">Edit</Button>} />
 
                   <AlertDialog>

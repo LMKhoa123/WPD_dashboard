@@ -8,6 +8,7 @@ import { CenterDialog } from "@/components/centers/center-dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Spinner } from "@/components/ui/spinner"
 import { useToast } from "@/components/ui/use-toast"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 
 export default function ServiceCentersPage() {
   const [centers, setCenters] = useState<CenterRecord[]>([])
@@ -79,7 +80,15 @@ export default function ServiceCentersPage() {
           <TableBody>
             {centers.map((ct) => (
               <TableRow key={ct._id}>
-                <TableCell className="font-medium">{ct.name}</TableCell>
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-9 w-9">
+                      <AvatarImage src={ct.image} alt={ct.name} />
+                      <AvatarFallback>{(ct.name || "?").slice(0,1).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <span className="font-medium">{ct.name}</span>
+                  </div>
+                </TableCell>
                 <TableCell>{ct.address}</TableCell>
                 <TableCell>{ct.phone}</TableCell>
                 <TableCell>{new Date(ct.createdAt).toLocaleString()}</TableCell>

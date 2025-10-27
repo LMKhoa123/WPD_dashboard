@@ -197,6 +197,11 @@ export function useIsAdmin() {
   return user?.role === "Admin"
 }
 
+export function useIsStaff() {
+  const { user } = useAuth()
+  return user?.role === "Staff"
+}
+
 export function useRole(): UserRole | null {
   const { user } = useAuth()
   return user?.role ?? null

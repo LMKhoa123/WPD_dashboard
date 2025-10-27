@@ -21,6 +21,7 @@ export interface RegisterRequest {
   email: string
   password: string
   role: ApiRole
+  centerId?: string
 }
 
 export interface RegisterResponse {
@@ -111,10 +112,15 @@ export interface UsersListResponse {
 // Customers
 export interface CustomerRecord {
   _id: string
-  userId: { _id: string; role: "CUSTOMER" } | null
+  userId: {
+    _id: string
+    phone: string
+    role: "CUSTOMER"
+  }
   customerName: string
+  dateOfBirth: string | null
   address: string
-  deviceTokens?: string[]
+  deviceTokens: string[]
   createdAt: string
   updatedAt: string
   __v?: number
@@ -184,7 +190,13 @@ export interface VehicleRecord {
 
 export interface VehiclesListResponse {
   success: boolean
-  data: VehicleRecord[]
+  data: {
+    vehicles: VehicleRecord[]
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
 }
 
 // Create vehicle response shape
@@ -242,6 +254,7 @@ export interface CenterRecord {
   name: string
   address: string
   phone: string
+  image?: string
   createdAt: string
   updatedAt: string
   __v?: number
@@ -276,7 +289,7 @@ export interface UpdateCenterRequest {
 }
 
 // Appointments
-export type AppointmentStatus = "scheduled" | "in-progress" | "confirmed" | "completed" | "cancelled" | string
+export type AppointmentStatus = "pending" | "confirmed" | "in-progress" | "completed" | "cancelled"
 
 export interface AppointmentRecord {
   _id: string
@@ -791,7 +804,14 @@ export class ApiClient {
     return (await res.json()) as CustomersListResponse
   }
 
-  async updateCustomer(customerId: string, payload: { customerName?: string; address?: string }): Promise<CustomerRecord> {
+  async getCustomerById(customerId: string): Promise<CustomerRecord> {
+    const res = await this.fetchJson<{ success: boolean; data: CustomerRecord }>(`/customers/${customerId}`, {
+      method: "GET",
+    })
+    return res.data
+  }
+
+  async updateCustomer(customerId: string, payload: { customerName?: string; dateOfBirth?: string | null; address?: string }): Promise<CustomerRecord> {
     const res = await this.fetchJson<{ success: boolean; data: CustomerRecord }>(`/customers/${customerId}`, {
       method: "PATCH",
       body: JSON.stringify(payload),
@@ -846,7 +866,7 @@ export class ApiClient {
     const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
     if (!res.ok) throw new Error(await safeErrorMessage(res))
     const data = (await res.json()) as VehiclesListResponse
-    return data.data
+    return data.data.vehicles
   }
 
   // Create a new vehicle with multipart/form-data (supports image upload)
@@ -887,7 +907,16 @@ export class ApiClient {
   // Get vehicles by customer ID
   async getVehiclesByCustomerId(customerId: string): Promise<VehicleRecord[]> {
     const res = await this.fetchJson<VehiclesListResponse>(`/vehicles/customer/${customerId}`, { method: "GET" })
-    return res.data
+    return res.data.vehicles
+  }
+
+  // Assign vehicle to staff (for staff role)
+  async assignVehicle(vehicleId: string, phone: string): Promise<{ success: boolean; message?: string }> {
+    const res = await this.fetchJson<{ success: boolean; message?: string; data?: any }>(`/vehicles/assign-vehicle`, {
+      method: "POST",
+      body: JSON.stringify({ vehicleId, phone }),
+    })
+    return { success: res.success, message: res.message }
   }
 
   // Service Packages: list
@@ -1058,22 +1087,60 @@ export class ApiClient {
     return res.data
   }
 
-  // Service Centers: create
-  async createCenter(payload: CreateCenterRequest): Promise<CenterRecord> {
-    const res = await this.fetchJson<CenterResponse>(`/centers`, {
-      method: "POST",
-      body: JSON.stringify(payload),
-    })
-    return res.data
+  // Service Centers: create (multipart/form-data to support image upload)
+  async createCenter(form: FormData): Promise<CenterRecord> {
+    await this.ensureFreshAccessToken()
+    const doRequest = async () =>
+      rawFetch(this.buildUrl("/centers"), {
+        method: "POST",
+        body: form,
+        headers: {
+          accept: "application/json",
+          ...this.authHeader(),
+        },
+      })
+
+    let res = await doRequest()
+    if (res.status === 401) {
+      try {
+        await this.refreshToken()
+        res = await doRequest()
+      } catch {
+        this.handleUnauthorized()
+        throw new Error("Unauthorized")
+      }
+    }
+    if (!res.ok) throw new Error(await safeErrorMessage(res))
+    const data = (await res.json()) as CenterResponse
+    return data.data
   }
 
-  // Service Centers: update (PUT)
-  async updateCenter(id: string, payload: UpdateCenterRequest): Promise<CenterRecord> {
-    const res = await this.fetchJson<CenterResponse>(`/centers/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(payload),
-    })
-    return res.data
+  // Service Centers: update (PUT, multipart/form-data to support image upload)
+  async updateCenter(id: string, form: FormData): Promise<CenterRecord> {
+    await this.ensureFreshAccessToken()
+    const doRequest = async () =>
+      rawFetch(this.buildUrl(`/centers/${id}`), {
+        method: "PUT",
+        body: form,
+        headers: {
+          accept: "application/json",
+          ...this.authHeader(),
+        },
+      })
+
+    let res = await doRequest()
+    if (res.status === 401) {
+      try {
+        await this.refreshToken()
+        res = await doRequest()
+      } catch {
+        this.handleUnauthorized()
+        throw new Error("Unauthorized")
+      }
+    }
+    if (!res.ok) throw new Error(await safeErrorMessage(res))
+    const data = (await res.json()) as CenterResponse
+    return data.data
   }
 
   // Service Centers: delete
@@ -1227,7 +1294,7 @@ export type SubscriptionStatus = "ACTIVE" | "EXPIRED" | "CANCELLED" | string
 
 export interface VehicleSubscriptionRecord {
   _id: string
-  vehicleId: string | { _id: string; vehicleName?: string; model?: string; VIN?: string }
+  vehicleId: string | { _id: string; vehicleName?: string; model?: string; VIN?: string; image?: string }
   package_id: string | { _id: string; name?: string; description?: string; price?: number; duration?: number; km_interval?: number }
   start_date: string
   end_date?: string
