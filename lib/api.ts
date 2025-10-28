@@ -1,5 +1,5 @@
 
-export type ApiRole = "ADMIN" | "STAFF" | string
+export type ApiRole = "ADMIN" | "STAFF" | "TECHNICIAN" | string
 
 export interface LoginRequest {
   email: string
@@ -47,7 +47,7 @@ export interface ProfileData {
   userId: {
     _id: string
     email: string
-    role: "ADMIN" | "STAFF"
+    role: "ADMIN" | "STAFF" | "TECHNICIAN"
   }
   name: string
   dateOfBirth: string | null
@@ -87,7 +87,7 @@ export interface UserAccount {
   _id: string
   email?: string
   phone?: string
-  role: "ADMIN" | "STAFF" | "CUSTOMER" | string
+  role: "ADMIN" | "STAFF" | "TECHNICIAN" | "CUSTOMER" | string
   isDeleted: boolean
   refreshToken?: string | null
   createdAt: string
@@ -439,11 +439,12 @@ export interface UpdateServiceChecklistRequest {
 export interface AutoPartRecord {
   _id: string
   name: string
-  quantity: number
   cost_price: number
   selling_price: number
-  min_stock: number
-  recommended_min_stock: number
+  // Legacy fields from previous backend versions (may be absent in new API)
+  quantity?: number
+  min_stock?: number
+  recommended_min_stock?: number
   last_forecast_date?: string
   createdAt: string
   updatedAt: string
@@ -468,24 +469,106 @@ export interface AutoPartResponse {
 
 export interface CreateAutoPartRequest {
   name: string
-  quantity: number
   cost_price: number
   selling_price: number
+}
+
+export interface UpdateAutoPartRequest {
+  name?: string
+  cost_price?: number
+  selling_price?: number
+}
+
+// Center Auto Parts (Inventory per center per part)
+export interface CenterAutoPartRecord {
+  _id: string
+  center_id: string | CenterRecord
+  part_id: string | AutoPartRecord
+  quantity: number
+  min_stock: number
+  recommended_min_stock: number
+  last_forecast_date?: string
+  createdAt: string
+  updatedAt: string
+  __v?: number
+}
+
+export interface CenterAutoPartsListResponse {
+  success: boolean
+  data: {
+    items: CenterAutoPartRecord[]
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
+
+export interface CenterAutoPartResponse {
+  success: boolean
+  data: CenterAutoPartRecord
+}
+
+export interface CreateCenterAutoPartRequest {
+  center_id: string
+  part_id: string
+  quantity: number
   min_stock: number
   recommended_min_stock: number
   last_forecast_date?: string
 }
 
-export interface UpdateAutoPartRequest {
-  name?: string
+export interface UpdateCenterAutoPartRequest {
+  center_id?: string
+  part_id?: string
   quantity?: number
-  cost_price?: number
-  selling_price?: number
   min_stock?: number
   recommended_min_stock?: number
-  last_forecast_date?: string
+  last_forecast_date?: string | null
 }
 
+// Service Details (line items for a service record)
+export interface ServiceDetailRecord {
+  _id: string
+  record_id: string | ServiceRecordRecord
+  centerpart_id: string | CenterAutoPartRecord
+  description: string
+  quantity: number
+  unit_price: number
+  createdAt: string
+  updatedAt: string
+  __v?: number
+}
+
+export interface ServiceDetailsListResponse {
+  success: boolean
+  data: {
+    details: ServiceDetailRecord[]
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
+
+export interface ServiceDetailResponse {
+  success: boolean
+  data: ServiceDetailRecord
+}
+
+export interface CreateServiceDetailRequest {
+  record_id: string
+  centerpart_id: string
+  description: string
+  quantity: number
+  unit_price: number
+}
+
+export interface UpdateServiceDetailRequest {
+  description?: string
+  quantity?: number
+  unit_price?: number
+}
 // Chat – waiting conversations
 export interface ChatConversationRecord {
   _id: string
@@ -1295,6 +1378,88 @@ export class ApiClient {
   // Auto Parts: delete
   async deleteAutoPart(id: string): Promise<void> {
     await this.fetchJson(`/auto-parts/${id}`, { method: "DELETE" })
+  }
+
+  // Center Auto Parts: list
+  async getCenterAutoParts(params?: { page?: number; limit?: number; center_id?: string; part_id?: string }): Promise<CenterAutoPartsListResponse> {
+    const url = new URL(this.buildUrl("/center-auto-parts"))
+    if (params?.page) url.searchParams.set("page", String(params.page))
+    if (params?.limit) url.searchParams.set("limit", String(params.limit))
+    if (params?.center_id) url.searchParams.set("center_id", params.center_id)
+    if (params?.part_id) url.searchParams.set("part_id", params.part_id)
+    const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
+    if (!res.ok) throw new Error(await safeErrorMessage(res))
+    return (await res.json()) as CenterAutoPartsListResponse
+  }
+
+  // Center Auto Parts: get by id
+  async getCenterAutoPartById(id: string): Promise<CenterAutoPartRecord> {
+    const res = await this.fetchJson<CenterAutoPartResponse>(`/center-auto-parts/${id}`, { method: "GET" })
+    return res.data
+  }
+
+  // Center Auto Parts: create
+  async createCenterAutoPart(payload: CreateCenterAutoPartRequest): Promise<CenterAutoPartRecord> {
+    const res = await this.fetchJson<CenterAutoPartResponse>(`/center-auto-parts`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+    return res.data
+  }
+
+  // Center Auto Parts: update (PUT)
+  async updateCenterAutoPart(id: string, payload: UpdateCenterAutoPartRequest): Promise<CenterAutoPartRecord> {
+    const res = await this.fetchJson<CenterAutoPartResponse>(`/center-auto-parts/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    })
+    return res.data
+  }
+
+  // Center Auto Parts: delete
+  async deleteCenterAutoPart(id: string): Promise<void> {
+    await this.fetchJson(`/center-auto-parts/${id}`, { method: "DELETE" })
+  }
+
+  // Service Details: list
+  async getServiceDetails(params?: { page?: number; limit?: number; record_id?: string; centerpart_id?: string }): Promise<ServiceDetailsListResponse> {
+    const url = new URL(this.buildUrl("/service-details"))
+    if (params?.page) url.searchParams.set("page", String(params.page))
+    if (params?.limit) url.searchParams.set("limit", String(params.limit))
+    if (params?.record_id) url.searchParams.set("record_id", params.record_id)
+    if (params?.centerpart_id) url.searchParams.set("centerpart_id", params.centerpart_id)
+    const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
+    if (!res.ok) throw new Error(await safeErrorMessage(res))
+    return (await res.json()) as ServiceDetailsListResponse
+  }
+
+  // Service Details: get by id
+  async getServiceDetailById(id: string): Promise<ServiceDetailRecord> {
+    const res = await this.fetchJson<ServiceDetailResponse>(`/service-details/${id}`, { method: "GET" })
+    return res.data
+  }
+
+  // Service Details: create
+  async createServiceDetail(payload: CreateServiceDetailRequest): Promise<ServiceDetailRecord> {
+    const res = await this.fetchJson<ServiceDetailResponse>(`/service-details`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+    return res.data
+  }
+
+  // Service Details: update (PUT)
+  async updateServiceDetail(id: string, payload: UpdateServiceDetailRequest): Promise<ServiceDetailRecord> {
+    const res = await this.fetchJson<ServiceDetailResponse>(`/service-details/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    })
+    return res.data
+  }
+
+  // Service Details: delete
+  async deleteServiceDetail(id: string): Promise<void> {
+    await this.fetchJson(`/service-details/${id}`, { method: "DELETE" })
   }
 }
 

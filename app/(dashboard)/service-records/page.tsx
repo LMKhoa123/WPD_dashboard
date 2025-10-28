@@ -13,7 +13,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Spinner } from "@/components/ui/spinner"
 import { useToast } from "@/components/ui/use-toast"
 import { useIsAdmin } from "@/components/auth-provider"
-import { Search, Pencil, Trash2 } from "lucide-react"
+import { Search, Pencil, Trash2, ListTree } from "lucide-react"
+import { ServiceDetailsDialog } from "@/components/service-records/service-details-dialog"
 
 const statusColors: Record<ServiceRecordStatus, string> = {
   pending: "bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20",
@@ -148,10 +149,10 @@ export default function ServiceRecordsPage() {
                           {typeof rec.technician_id === 'string' ? rec.technician_id : rec.technician_id?.name || rec.technician_id?.email}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {new Date(rec.start_time).toLocaleString()}
+                          {rec.start_time && rec.start_time !== "" ? new Date(rec.start_time).toLocaleString() : "---"}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {new Date(rec.end_time).toLocaleString()}
+                          {rec.end_time && rec.end_time !== "" ? new Date(rec.end_time).toLocaleString() : "---"}
                         </TableCell>
                         <TableCell className="max-w-[300px] truncate" title={rec.description}>
                           {rec.description}
@@ -166,6 +167,14 @@ export default function ServiceRecordsPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
+                            <ServiceDetailsDialog
+                              recordId={rec._id}
+                              trigger={
+                                <Button variant="ghost" size="icon" title="Details">
+                                  <ListTree className="h-4 w-4" />
+                                </Button>
+                              }
+                            />
                             <ServiceRecordDialog
                               record={rec}
                               onUpdated={handleUpdated}

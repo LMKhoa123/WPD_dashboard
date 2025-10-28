@@ -1,14 +1,34 @@
+"use client"
+
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { DollarSign, Users, Car, Wrench } from "lucide-react"
 import { KpiCard } from "@/components/dashboard/kpi-card"
 import { RevenueChart } from "@/components/dashboard/revenue-chart"
 import { WorkStatusChart } from "@/components/dashboard/work-status-chart"
 import { RecentAppointments } from "@/components/dashboard/recent-appointments"
 import { mockCustomers, mockVehicles, mockAppointments } from "@/src/lib/mock-data"
+import { useAuth } from "@/components/auth-provider"
 
 export default function DashboardPage() {
+  const { user } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    // Redirect technician to their own dashboard
+    if (user?.role === "Technician") {
+      router.replace("/technician")
+    }
+  }, [user, router])
+
+  // If user is technician, show loading while redirecting
+  if (user?.role === "Technician") {
+    return null
+  }
+
   const totalRevenue = 37000
   const activeAppointments = mockAppointments.filter(
-    (apt) => apt.status === "scheduled" || apt.status === "in-progress",
+    (apt) => apt.status === "confirmed" || apt.status === "in-progress",
   ).length
   const totalCustomers = mockCustomers.length
   const totalVehicles = mockVehicles.length

@@ -25,7 +25,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { getApiClient, type AutoPartRecord } from "@/lib/api"
-import { Plus, Pencil, Trash2, Search, AlertTriangle } from "lucide-react"
+import { Plus, Pencil, Trash2, Search } from "lucide-react"
 import { AutoPartDialog } from "@/components/auto-parts/auto-part-dialog"
 import { useRole } from "@/components/auth-provider"
 
@@ -110,14 +110,7 @@ export default function AutoPartsPage() {
     }
   }
 
-  const getStockStatus = (part: AutoPartRecord) => {
-    if (part.quantity <= part.min_stock) {
-      return { label: "Critical", variant: "destructive" as const }
-    } else if (part.quantity <= part.recommended_min_stock) {
-      return { label: "Low", variant: "secondary" as const }
-    }
-    return { label: "Good", variant: "outline" as const }
-  }
+  // Stock status logic removed as new backend does not provide quantity/min stock fields
 
   // Only allow access for Admin
   if (role !== "Admin") {
@@ -170,65 +163,39 @@ export default function AutoPartsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Part Name</TableHead>
-                  <TableHead className="text-right">Quantity</TableHead>
                   <TableHead className="text-right">Cost Price</TableHead>
                   <TableHead className="text-right">Selling Price</TableHead>
-                  <TableHead className="text-right">Min Stock</TableHead>
-                  <TableHead className="text-right">Recommended Min</TableHead>
-                  <TableHead>Stock Status</TableHead>
-                  <TableHead>Last Forecast</TableHead>
+                  <TableHead>Created At</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredParts.map((part) => {
-                  const stockStatus = getStockStatus(part)
-                  return (
-                    <TableRow key={part._id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          {part.quantity <= part.min_stock && (
-                            <AlertTriangle className="h-4 w-4 text-destructive" />
-                          )}
-                          {part.name}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">{part.quantity}</TableCell>
-                      <TableCell className="text-right">${part.cost_price.toFixed(2)}</TableCell>
-                      <TableCell className="text-right">${part.selling_price.toFixed(2)}</TableCell>
-                      <TableCell className="text-right">{part.min_stock}</TableCell>
-                      <TableCell className="text-right">{part.recommended_min_stock}</TableCell>
-                      <TableCell>
-                        <Badge variant={stockStatus.variant}>
-                          {stockStatus.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {part.last_forecast_date 
-                          ? new Date(part.last_forecast_date).toLocaleDateString()
-                          : "-"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(part)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteClick(part)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
+                {filteredParts.map((part) => (
+                  <TableRow key={part._id}>
+                    <TableCell className="font-medium">{part.name}</TableCell>
+                    <TableCell className="text-right">${part.cost_price.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">${part.selling_price.toFixed(2)}</TableCell>
+                    <TableCell>{new Date(part.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(part)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteClick(part)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           )}
