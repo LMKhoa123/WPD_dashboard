@@ -12,6 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Spinner } from "@/components/ui/spinner"
 import { useToast } from "@/components/ui/use-toast"
 import { Eye } from "lucide-react"
+import { AdminOrStaffOnly } from "@/components/role-guards"
 
 export default function VehicleSubscriptionsPage() {
   const [items, setItems] = useState<VehicleSubscriptionRecord[]>([])
@@ -45,6 +46,19 @@ export default function VehicleSubscriptionsPage() {
     setItems((prev) => prev.map((it) => (it._id === s._id ? s : it)))
   }
 
+  const handleRenew = async (id: string) => {
+    try {
+      setDeletingId(id)
+      const renewed = await api.renewVehicleSubscription(id)
+      setItems((prev) => prev.map((it) => (it._id === renewed._id ? renewed : it)))
+      toast({ title: "Gia hạn thành công", description: "Đã gia hạn đăng ký gói bảo hành" })
+    } catch (e: any) {
+      toast({ title: "Gia hạn thất bại", description: e?.message || "Failed to renew subscription", variant: "destructive" })
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
   const handleDelete = async (id: string) => {
     try {
       setDeletingId(id)
@@ -68,11 +82,12 @@ export default function VehicleSubscriptionsPage() {
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Vehicle Subscriptions</h1>
-        <VehicleSubscriptionDialog onCreated={handleCreated} />
-      </div>
+    <AdminOrStaffOnly>
+      <div className="p-6">
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="text-2xl font-semibold">Vehicle Subscriptions</h1>
+          <VehicleSubscriptionDialog onCreated={handleCreated} />
+        </div>
 
       {loading ? (
         <div className="flex items-center gap-2 text-muted-foreground"><Spinner /> Loading...</div>
@@ -164,6 +179,10 @@ export default function VehicleSubscriptionsPage() {
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
+                  
+                     <Button size="sm" variant="default" onClick={() => handleRenew(it._id)} disabled={deletingId === it._id}>
+                      Renew
+                    </Button>
                   </TableCell>
                 </TableRow>
               )
@@ -171,6 +190,7 @@ export default function VehicleSubscriptionsPage() {
           </TableBody>
         </Table>
       )}
-    </div>
+      </div>
+    </AdminOrStaffOnly>
   )
 }

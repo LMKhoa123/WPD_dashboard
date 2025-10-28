@@ -35,3 +35,33 @@ export function AdminOnly({ children }: { children: React.ReactNode }) {
   if (!user || user.role !== "Admin") return null
   return <>{children}</>
 }
+
+export function TechnicianOnly({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!loading && user && user.role !== "Technician") {
+      router.replace("/")
+    }
+  }, [user, loading, router])
+
+  if (loading) return null
+  if (!user || user.role !== "Technician") return null
+  return <>{children}</>
+}
+
+export function AdminOrStaffOnly({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!loading && user && user.role !== "Admin" && user.role !== "Staff") {
+      router.replace("/")
+    }
+  }, [user, loading, router])
+
+  if (loading) return null
+  if (!user || (user.role !== "Admin" && user.role !== "Staff")) return null
+  return <>{children}</>
+}

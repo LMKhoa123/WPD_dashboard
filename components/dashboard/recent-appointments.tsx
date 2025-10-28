@@ -5,9 +5,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { mockAppointments } from "@/src/lib/mock-data"
 import { format } from "date-fns"
+import type { AppointmentStatus } from "@/src/types"
 
-const statusColors = {
-  scheduled: "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20",
+const statusColors: Record<AppointmentStatus, string> = {
+  pending: "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20",
+  confirmed: "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20",
   "in-progress": "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20",
   completed: "bg-green-500/10 text-green-500 hover:bg-green-500/20",
   cancelled: "bg-gray-500/10 text-gray-500 hover:bg-gray-500/20",
@@ -15,7 +17,7 @@ const statusColors = {
 
 export function RecentAppointments() {
   const upcomingAppointments = mockAppointments
-    .filter((apt) => apt.status === "scheduled" || apt.status === "in-progress")
+    .filter((apt) => apt.status === "pending" || apt.status === "in-progress" || apt.status === "confirmed")
     .sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
     .slice(0, 5)
 

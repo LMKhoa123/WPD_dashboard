@@ -23,8 +23,10 @@ import { AdminOnly } from "@/components/role-guards"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AdvancedScheduler } from "@/components/staff/advanced-scheduler"
 import ShiftScheduler from "@/components/staff/shift-scheduler"
+import CalendarShiftView from "@/components/staff/calendar-shift-view"
 import { PerformanceDashboard } from "@/components/staff/performance-dashboard"
 import { CertificationsManager } from "@/components/staff/certifications"
+import WorkshiftsManager from "@/components/staff/workshifts-manager"
 import { StaffDialog } from "@/components/staff/staff-dialog"
 import { AddStaffDialog } from "@/components/staff/add-staff-dialog"
 import { getApiClient, type SystemUserRecord, type UserAccount } from "@/lib/api"
@@ -162,11 +164,17 @@ export default function StaffPage() {
       <Tabs defaultValue="team" className="space-y-6">
         <TabsList>
           <TabsTrigger value="team">Team</TabsTrigger>
+          <TabsTrigger value="calendar">Calendar</TabsTrigger>
           <TabsTrigger value="schedule">Scheduling</TabsTrigger>
           <TabsTrigger value="shift">Shift (DnD Sidebar)</TabsTrigger>
+          <TabsTrigger value="workshifts">Workshifts</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="certs">Certifications</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="calendar">
+          <CalendarShiftView />
+        </TabsContent>
 
         <TabsContent value="team">
       <Card>
@@ -281,6 +289,10 @@ export default function StaffPage() {
 
         <TabsContent value="shift">
           <ShiftScheduler />
+        </TabsContent>
+
+        <TabsContent value="workshifts">
+          <WorkshiftsManager />
         </TabsContent>
 
         <TabsContent value="performance">

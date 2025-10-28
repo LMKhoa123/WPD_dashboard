@@ -26,24 +26,16 @@ export function AutoPartDialog({
   const [loading, setLoading] = useState(false)
   
   const [name, setName] = useState("")
-  const [quantity, setQuantity] = useState("")
   const [costPrice, setCostPrice] = useState("")
   const [sellingPrice, setSellingPrice] = useState("")
-  const [minStock, setMinStock] = useState("")
-  const [recommendedMinStock, setRecommendedMinStock] = useState("")
-  const [lastForecastDate, setLastForecastDate] = useState("")
 
   const isEditMode = !!autoPart
 
   useEffect(() => {
     if (open && isEditMode && autoPart) {
       setName(autoPart.name || "")
-      setQuantity(String(autoPart.quantity || 0))
       setCostPrice(String(autoPart.cost_price || 0))
       setSellingPrice(String(autoPart.selling_price || 0))
-      setMinStock(String(autoPart.min_stock || 0))
-      setRecommendedMinStock(String(autoPart.recommended_min_stock || 0))
-      setLastForecastDate(autoPart.last_forecast_date?.slice(0, 16) || "")
     } else if (!open) {
       resetForm()
     }
@@ -51,12 +43,8 @@ export function AutoPartDialog({
 
   const resetForm = () => {
     setName("")
-    setQuantity("")
     setCostPrice("")
     setSellingPrice("")
-    setMinStock("")
-    setRecommendedMinStock("")
-    setLastForecastDate("")
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -67,12 +55,8 @@ export function AutoPartDialog({
       const apiClient = getApiClient()
       const data = {
         name,
-        quantity: Number(quantity),
         cost_price: Number(costPrice),
         selling_price: Number(sellingPrice),
-        min_stock: Number(minStock),
-        recommended_min_stock: Number(recommendedMinStock),
-        last_forecast_date: lastForecastDate ? new Date(lastForecastDate).toISOString() : undefined,
       }
 
       if (isEditMode && autoPart) {
@@ -123,19 +107,6 @@ export function AutoPartDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="quantity">Quantity *</Label>
-              <Input
-                id="quantity"
-                type="number"
-                min="0"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                placeholder="0"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="costPrice">Cost Price ($) *</Label>
               <Input
                 id="costPrice"
@@ -148,9 +119,6 @@ export function AutoPartDialog({
                 required
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="sellingPrice">Selling Price ($) *</Label>
               <Input
@@ -162,44 +130,6 @@ export function AutoPartDialog({
                 onChange={(e) => setSellingPrice(e.target.value)}
                 placeholder="0.00"
                 required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="minStock">Min Stock *</Label>
-              <Input
-                id="minStock"
-                type="number"
-                min="0"
-                value={minStock}
-                onChange={(e) => setMinStock(e.target.value)}
-                placeholder="0"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="recommendedMinStock">Recommended Min Stock *</Label>
-              <Input
-                id="recommendedMinStock"
-                type="number"
-                min="0"
-                value={recommendedMinStock}
-                onChange={(e) => setRecommendedMinStock(e.target.value)}
-                placeholder="0"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="lastForecastDate">Last Forecast Date</Label>
-              <Input
-                id="lastForecastDate"
-                type="datetime-local"
-                value={lastForecastDate}
-                onChange={(e) => setLastForecastDate(e.target.value)}
               />
             </div>
           </div>

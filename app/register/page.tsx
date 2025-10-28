@@ -15,7 +15,7 @@ export default function RegisterPage() {
   const { register, user } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [role, setRole] = useState<"Admin" | "Staff">("Admin")
+  const [role, setRole] = useState<"Admin" | "Staff" | "Technician">("Admin")
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -59,6 +59,7 @@ export default function RegisterPage() {
                 <SelectContent>
                   <SelectItem value="Admin">Admin</SelectItem>
                   <SelectItem value="Staff">Staff</SelectItem>
+                  <SelectItem value="Technician">Technician</SelectItem>
                 </SelectContent>
               </Select>
             </div>

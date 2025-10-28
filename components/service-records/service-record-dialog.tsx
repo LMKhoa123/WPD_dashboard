@@ -97,10 +97,15 @@ export function ServiceRecordDialog({ record, trigger, onCreated, onUpdated }: S
         const payload: UpdateServiceRecordRequest = {
           appointment_id: appointmentId && appointmentId !== "none" ? appointmentId : null,
           technician_id: technicianId,
-          start_time: new Date(startTime).toISOString(),
-          end_time: new Date(endTime).toISOString(),
           description,
           status: status as any,
+        }
+        // Only include times if they are provided
+        if (startTime) {
+          payload.start_time = new Date(startTime).toISOString()
+        }
+        if (endTime) {
+          payload.end_time = new Date(endTime).toISOString()
         }
         const updated = await api.updateServiceRecord(record._id, payload)
         toast({ title: "Cập nhật hồ sơ dịch vụ thành công" })
@@ -111,8 +116,8 @@ export function ServiceRecordDialog({ record, trigger, onCreated, onUpdated }: S
         const payload: CreateServiceRecordRequest = {
           appointment_id: appointmentId && appointmentId !== "none" ? appointmentId : null,
           technician_id: technicianId,
-          start_time: new Date(startTime).toISOString(),
-          end_time: new Date(endTime).toISOString(),
+          start_time: startTime ? new Date(startTime).toISOString() : "",
+          end_time: endTime ? new Date(endTime).toISOString() : "",
           description,
           status: status as any,
         }
@@ -190,12 +195,12 @@ export function ServiceRecordDialog({ record, trigger, onCreated, onUpdated }: S
 
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="startTime">Start Time</Label>
-                <Input id="startTime" type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)} required />
+                <Label htmlFor="startTime">Start Time (Optional)</Label>
+                <Input id="startTime" type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="endTime">End Time</Label>
-                <Input id="endTime" type="datetime-local" value={endTime} onChange={(e) => setEndTime(e.target.value)} required />
+                <Label htmlFor="endTime">End Time (Optional)</Label>
+                <Input id="endTime" type="datetime-local" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
               </div>
             </div>
 

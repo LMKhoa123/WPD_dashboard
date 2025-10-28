@@ -26,14 +26,18 @@ function mapApiRoleToUi(role: string | undefined | null): UserRole {
       return "Admin"
     case "STAFF":
       return "Staff"
+    case "TECHNICIAN":
+      return "Technician"
     default:
       // Fallback to Staff for unknown roles
       return "Staff"
   }
 }
 
-function mapUiRoleToApi(role: UserRole): "ADMIN" | "STAFF" {
-  return role === "Admin" ? "ADMIN" : "STAFF"
+function mapUiRoleToApi(role: UserRole): "ADMIN" | "STAFF" | "TECHNICIAN" {
+  if (role === "Admin") return "ADMIN"
+  if (role === "Technician") return "TECHNICIAN"
+  return "STAFF"
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

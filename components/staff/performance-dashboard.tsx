@@ -10,7 +10,7 @@ export function PerformanceDashboard() {
     const total = mockAppointments.filter((a) => a.technician === t.name).length
     const completed = mockAppointments.filter((a) => a.technician === t.name && a.status === "completed").length
     const inProgress = mockAppointments.filter((a) => a.technician === t.name && a.status === "in-progress").length
-    const scheduled = mockAppointments.filter((a) => a.technician === t.name && a.status === "scheduled").length
+    const scheduled = mockAppointments.filter((a) => a.technician === t.name && (a.status === "pending" || a.status === "confirmed")).length
     // Mock hours: assume 1.5h per completed
     const hours = (completed * 1.5).toFixed(1)
     return { t, total, completed, inProgress, scheduled, hours }
@@ -37,7 +37,7 @@ export function PerformanceDashboard() {
               <div className="text-xl font-semibold text-amber-500">{inProgress}</div>
             </div>
             <div>
-              <div className="text-muted-foreground">Scheduled</div>
+              <div className="text-muted-foreground">Pending</div>
               <div className="text-xl font-semibold">{scheduled}</div>
             </div>
             <div>

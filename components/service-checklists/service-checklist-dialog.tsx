@@ -5,17 +5,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { getApiClient } from "@/lib/api"
-import type { ServiceChecklistRecord, ServiceChecklistStatus, ServiceRecordRecord } from "@/lib/api"
+import type { ServiceChecklistRecord } from "@/lib/api"
 
 interface ServiceChecklistDialogProps {
   open: boolean
@@ -32,89 +24,68 @@ export function ServiceChecklistDialog({
 }: ServiceChecklistDialogProps) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
-  const [serviceRecords, setServiceRecords] = useState<ServiceRecordRecord[]>([])
   
-  const [recordId, setRecordId] = useState("")
   const [name, setName] = useState("")
-  const [status, setStatus] = useState<ServiceChecklistStatus>("pending")
-  const [note, setNote] = useState("")
+  const [order, setOrder] = useState("")
 
   const isEditMode = !!checklist
 
   useEffect(() => {
-    if (open) {
-      loadServiceRecords()
-    }
-  }, [open])
-
-  useEffect(() => {
     if (open && isEditMode && checklist) {
-      setRecordId(typeof checklist.record_id === 'object' && checklist.record_id ? checklist.record_id._id : (checklist.record_id as string) || "")
       setName(checklist.name || "")
-      setStatus(checklist.status || "pending")
-      setNote(checklist.note || "")
+      setOrder(checklist.order.toString() || "")
     } else if (!open) {
       resetForm()
     }
   }, [open, isEditMode, checklist])
 
   const resetForm = () => {
-    setRecordId("")
     setName("")
-    setStatus("pending")
-    setNote("")
-  }
-
-  const loadServiceRecords = async () => {
-    try {
-      const apiClient = getApiClient()
-      const response = await apiClient.getServiceRecords({ page: 1, limit: 100 })
-      setServiceRecords(response.data.records)
-    } catch (error) {
-      console.error("Failed to load service records:", error)
-      toast({
-        title: "Error",
-        description: "Failed to load service records",
-        variant: "destructive",
-      })
-    }
+    setOrder("")
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
+    const orderNum = parseInt(order, 10)
+    if (isNaN(orderNum) || orderNum < 0) {
+      toast({
+        title: "Lỗi",
+        description: "Order phải là số nguyên dương",
+        variant: "destructive",
+      })
+      setLoading(false)
+      return
+    }
+
     try {
       const apiClient = getApiClient()
       if (isEditMode && checklist) {
         await apiClient.updateServiceChecklist(checklist._id, {
-          record_id: recordId || undefined,
           name,
-          status,
-          note: note || undefined,
+          order: orderNum,
         })
         toast({
-          title: "Success",
-          description: "Service checklist updated successfully",
+          title: "Cập nhật thành công",
+          description: "Checklist đã được cập nhật",
         })
       } else {
         await apiClient.createServiceChecklist({
-          record_id: recordId,
           name,
-          status,
-          note: note || undefined,
+          order: orderNum,
         })
         toast({
-          title: "Success",
-          description: "Service checklist created successfully",
+          title: "Tạo thành công",
+          description: "Checklist mới đã được tạo",
         })
       }
       onSuccess()
       onOpenChange(false)
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error?.message || "An error occurred",
+        title: "Lỗi",
+        description: error?.message || "Đã có lỗi xảy ra",
         variant: "destructive",
       })
     } finally {
@@ -124,77 +95,46 @@ export function ServiceChecklistDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {isEditMode ? "Edit Service Checklist" : "Create Service Checklist"}
+            {isEditMode ? "Chỉnh sửa Checklist" : "Tạo Checklist mới"}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="record_id">Service Record *</Label>
-            <Select value={recordId} onValueChange={setRecordId} required>
-              <SelectTrigger>
-                <SelectValue placeholder="Select service record" />
-              </SelectTrigger>
-              <SelectContent>
-                {serviceRecords.map((record) => {
-                  const technicianName = typeof record.technician_id === 'object' && record.technician_id 
-                    ? (record.technician_id.name || record.technician_id.email || record.technician_id._id)
-                    : record.technician_id
-                  return (
-                    <SelectItem key={record._id} value={record._id}>
-                      {technicianName} - {record.description.substring(0, 50)}
-                      {record.description.length > 50 ? "..." : ""}
-                    </SelectItem>
-                  )
-                })}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="name">Checklist Name *</Label>
+            <Label htmlFor="name">Tên Checklist *</Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Oil Change, Tire Rotation"
+              placeholder="VD: Checklist bảo dưỡng 10,000 km"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="status">Status *</Label>
-            <Select value={status} onValueChange={(val) => setStatus(val as ServiceChecklistStatus)} required>
-              <SelectTrigger>
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="note">Note</Label>
-            <Textarea
-              id="note"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Additional notes..."
-              rows={3}
+            <Label htmlFor="order">Thứ tự *</Label>
+            <Input
+              id="order"
+              type="number"
+              min="0"
+              value={order}
+              onChange={(e) => setOrder(e.target.value)}
+              placeholder="VD: 1, 2, 3..."
+              required
             />
+            <p className="text-xs text-muted-foreground">
+              Thứ tự hiển thị của checklist (số càng nhỏ càng ưu tiên)
+            </p>
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              Hủy
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : isEditMode ? "Update" : "Create"}
+              {loading ? "Đang lưu..." : isEditMode ? "Cập nhật" : "Tạo mới"}
             </Button>
           </div>
         </form>

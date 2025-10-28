@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useCallback, useMemo, useState } from "react"
+import React, { useCallback, useEffect, useMemo, useState } from "react"
 import "antd/dist/reset.css"
 import { Layout, Card as AntCard, Modal, Select as AntSelect, Tag, Avatar as AntAvatar, Typography, Space, DatePicker, TimePicker, Form } from "antd"
 import { useDroppable, useDraggable, DndContext, DragEndEvent, DragOverlay, closestCenter } from "@dnd-kit/core"
@@ -8,6 +8,9 @@ import dayjs from "dayjs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { mockStaff } from "@/src/lib/mock-data"
+import { useToast } from "@/hooks/use-toast"
+import { getApiClient, type UserAccount, type WorkshiftRecord, type ShiftAssignmentRecord } from "@/lib/api"
+import WorkshiftDialog from "./workshift-dialog"
 
 const { Sider, Content } = Layout
 const { Title, Text } = Typography
@@ -40,31 +43,36 @@ type ShiftDragData = { type: "shift"; shiftId: string }
 
 // Helpers
 const hours = Array.from({ length: 13 }, (_, i) => 8 + i) // 8..20
-const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
-function getWeekRange(base: Date) {
-  const day = base.getDay() || 7 // Monday as start
-  const monday = new Date(base)
-  monday.setDate(base.getDate() - (day - 1))
+function getWeekRange(date: Date) {
+  const d = new Date(date)
+  const day = d.getDay() || 7 // Monday as 1.. Sunday: 7
+  const monday = new Date(d)
+  monday.setDate(d.getDate() - (day - 1))
   monday.setHours(0, 0, 0, 0)
   const sunday = new Date(monday)
   sunday.setDate(monday.getDate() + 6)
+  sunday.setHours(23, 59, 59, 999)
   return { monday, sunday }
 }
 
 function formatRange(monday: Date, sunday: Date) {
-  const options: Intl.DateTimeFormatOptions = { month: "long", day: "numeric" }
-  return `${monday.toLocaleDateString(undefined, options)} – ${sunday.toLocaleDateString(undefined, options)}`
+  const fmt = (dt: Date) => dt.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" })
+  return `${fmt(monday)} – ${fmt(sunday)}`
 }
 
-// DnD wrappers
 function DraggableTech({ id, name }: { id: string; name: string }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `tech-${id}`, data: { type: "tech", technicianId: id } as TechDragData })
-  const initials = name.split(" ").map(p => p[0]).slice(0,2).join("")
   return (
-    <AntCard size="small" ref={setNodeRef as any} {...listeners} {...attributes} className={`mb-2 cursor-move ${isDragging ? "opacity-60" : ""}`}>
+    <AntCard
+      ref={setNodeRef as any}
+      size="small"
+      className={`mb-2 cursor-move ${isDragging ? "opacity-60" : ""}`}
+      {...listeners}
+      {...attributes}
+    >
       <Space>
-        <AntAvatar size={28}>{initials}</AntAvatar>
+        <AntAvatar size="small">{name?.[0]?.toUpperCase() || "T"}</AntAvatar>
         <div>
           <div className="font-medium leading-none">{name}</div>
           <Text type="secondary" style={{ fontSize: 12 }}>General</Text>
@@ -78,24 +86,76 @@ function DraggableTech({ id, name }: { id: string; name: string }) {
 function DroppableCell({ id, children }: { id: string; children?: React.ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id })
   return (
-    <div ref={setNodeRef as any} className={`h-14 border-b border-r relative ${isOver ? "bg-blue-50" : ""}`}>
+    <div ref={setNodeRef as any} className={`h-14 border-b ${isOver ? "bg-blue-50/60" : ""}`}>
       {children}
     </div>
   )
 }
 
 export function ShiftScheduler() {
+  const { toast } = useToast()
   const [currentWeek, setCurrentWeek] = useState(new Date())
   const { monday, sunday } = useMemo(() => getWeekRange(currentWeek), [currentWeek])
   const [shifts, setShifts] = useState<Shift[]>([])
+  // backend data
+  const [workshifts, setWorkshifts] = useState<WorkshiftRecord[]>([])
+  // map: workshiftId -> list of { system_user_id, optional _id }
+  const [assignmentsMap, setAssignmentsMap] = useState<Record<string, Array<{ system_user_id: string; _id?: string }>>>({})
+  const [technicians, setTechnicians] = useState<UserAccount[]>([])
   const [selectedTech, setSelectedTech] = useState<string | undefined>(undefined)
   const [skill, setSkill] = useState<string | undefined>(undefined)
+  const [loading, setLoading] = useState(false)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createSeed, setCreateSeed] = useState<{ shiftId?: string; date?: string; start?: string; end?: string } | null>(null)
 
   // Modal state
   const [editing, setEditing] = useState<{ visible: boolean; shift?: Shift }>({ visible: false })
   const [form] = Form.useForm()
 
-  const onDragEnd = useCallback((e: DragEndEvent) => {
+  // load technicians and week workshifts + assignments
+  const load = useCallback(async () => {
+      try {
+        setLoading(true)
+        const api = getApiClient()
+        const [users, ws] = await Promise.all([
+          api.getUsers({ role: "TECHNICIAN", page: 1, limit: 200 }),
+          api.getWorkshifts(),
+        ])
+        setTechnicians(users)
+        const start = new Date(monday); const end = new Date(sunday); end.setHours(23,59,59,999)
+        const inWeek = ws.filter(w => {
+          const d = new Date(w.shift_date)
+          return d >= start && d <= end
+        })
+        setWorkshifts(inWeek)
+  const assigns = await Promise.all(inWeek.map(w => api.getShiftAssignmentsByShift(w.shift_id).catch(() => [] as string[])))
+  const map: Record<string, Array<{ system_user_id: string; _id?: string }>> = {}
+  inWeek.forEach((w, i) => { map[w._id] = (assigns[i] as string[]).map(uid => ({ system_user_id: uid })) })
+        setAssignmentsMap(map)
+      } catch (e: any) {
+        toast({ title: "Lỗi tải dữ liệu", description: e?.message || "Failed to load shifts/technicians", variant: "destructive" })
+      } finally {
+        setLoading(false)
+      }
+    }, [monday, sunday, toast])
+
+  useEffect(() => { load() }, [load])
+
+  const findMatchingWorkshift = useCallback((dayIdx: number, hour: number): WorkshiftRecord | null => {
+    const date = new Date(monday); date.setDate(monday.getDate() + dayIdx)
+    const y = date.getFullYear(), m = String(date.getMonth()+1).padStart(2, "0"), d = String(date.getDate()).padStart(2, "0")
+    const key = `${y}-${m}-${d}`
+    const candidates = workshifts.filter(w => w.shift_date.startsWith(key))
+    const toMinutes = (hhmm: string) => { const [hh, mm] = hhmm.split(":").map(Number); return hh*60 + (mm||0) }
+    const cellMin = hour*60
+    return candidates.find(w => {
+      const st = toMinutes(w.start_time)
+      const en = toMinutes(w.end_time)
+      return cellMin >= st && cellMin < en
+    }) || null
+  }, [monday, workshifts])
+
+  const onDragEnd = useCallback(async (e: DragEndEvent) => {
     const active = e.active
     const over = e.over
     if (!over) return
@@ -116,8 +176,27 @@ export function ShiftScheduler() {
     const data = active.data.current as TechDragData | ShiftDragData
     if ((data as TechDragData).type === "tech") {
       const techId = (data as TechDragData).technicianId
-      const id = `shift-${Date.now()}`
-      setShifts(prev => [...prev, { id, technicianId: techId, start, end: defaultEnd, status: "scheduled" }])
+      const ws = findMatchingWorkshift(dayIdx, hour)
+      if (!ws) {
+        // Suggest quick create of a workshift at this slot
+        const date = new Date(monday); date.setDate(monday.getDate() + dayIdx)
+        const yyyy = date.getFullYear(); const mm = String(date.getMonth()+1).padStart(2,"0"); const dd = String(date.getDate()).padStart(2,"0")
+        const shiftId = `shift-${yyyy}-${mm}-${dd}-${String(hour).padStart(2,"0")}`
+        setCreateSeed({ shiftId, date: `${yyyy}-${mm}-${dd}`, start: `${String(hour).padStart(2,"0")}:00`, end: `${String(hour+1).padStart(2,"0")}:00` })
+        setCreateOpen(true)
+        return
+      }
+      try {
+  const created = await getApiClient().assignShifts({ system_user_id: techId, shift_ids: [ws.shift_id] })
+        toast({ title: "Đã phân công", description: `Gán thành công vào ca ${ws.shift_id}` })
+        setAssignmentsMap(prev => {
+          const cur = prev[ws._id] || []
+          const add = created.map(a => ({ system_user_id: (a.system_user_id as any) ?? techId, _id: a._id }))
+          return { ...prev, [ws._id]: [...cur, ...add] }
+        })
+      } catch (err: any) {
+        toast({ title: "Phân công thất bại", description: err?.message || "Error", variant: "destructive" })
+      }
     } else if ((data as ShiftDragData).type === "shift") {
       const shiftId = (data as ShiftDragData).shiftId
       setShifts(prev => prev.map(s => {
@@ -127,7 +206,7 @@ export function ShiftScheduler() {
         return { ...s, start, end: newEnd }
       }))
     }
-  }, [monday])
+  }, [monday, findMatchingWorkshift, toast])
 
   const hoursLabels = useMemo(() => hours.map(h => `${h}:00`), [])
 
@@ -189,15 +268,14 @@ export function ShiftScheduler() {
     URL.revokeObjectURL(url)
   }, [shifts])
 
-  // Filtering - basic demo
-  const technicians = useMemo(() => mockStaff.filter(s => s.role === "Technician" && s.status === "Active"), [])
-  const filteredTechs = useMemo(() => technicians.filter(t => !selectedTech || t.id === selectedTech), [technicians, selectedTech])
+  // Filtering - from backend technicians state
+  const filteredTechs = useMemo(() => technicians.filter(t => !selectedTech || t._id === selectedTech), [technicians, selectedTech])
 
   // Rendering helpers
   function ShiftBlock({ s }: { s: Shift }) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `shift-${s.id}`, data: { type: "shift", shiftId: s.id } as ShiftDragData })
-    const tech = technicians.find(t => t.id === s.technicianId)
-    const label = `${tech?.name ?? s.technicianId}`
+  const tech = technicians.find(t => t._id === s.technicianId)
+  const label = `${tech?.email ?? s.technicianId}`
     const durHrs = (s.end.getTime() - s.start.getTime()) / 3600000
     return (
       <div
@@ -227,6 +305,9 @@ export function ShiftScheduler() {
   function DayColumn({ dayIndex }: { dayIndex: number }) {
     const dayDate = new Date(monday); dayDate.setDate(monday.getDate() + dayIndex)
     const dayShifts = shifts.filter(s => s.start.toDateString() === dayDate.toDateString())
+    const yyyy = dayDate.getFullYear(); const mm = String(dayDate.getMonth()+1).padStart(2,"0"); const dd = String(dayDate.getDate()).padStart(2,"0")
+    const dayWs = workshifts.filter(w => w.shift_date.startsWith(`${yyyy}-${mm}-${dd}`))
+    const toMinutes = (hhmm: string) => { const [hh, mm2] = hhmm.split(":").map(Number); return (hh||0)*60 + (mm2||0) }
     return (
       <div className="relative">
         {/* grid cells */}
@@ -237,9 +318,61 @@ export function ShiftScheduler() {
         {dayShifts.map(s => (
           <ShiftBlock key={s.id} s={s} />
         ))}
+        {/* overlay backend workshifts with assignments */}
+        {dayWs.map(w => {
+          const stMin = toMinutes(w.start_time)
+          const enMin = toMinutes(w.end_time)
+          const topPx = (stMin/60 - 8) * 56
+          const heightPx = Math.max(1, (enMin-stMin)/60) * 56 - 4
+          const assigns = assignmentsMap[w._id] || []
+          return (
+            <div key={w._id} className="absolute left-1 right-1 rounded border border-dashed bg-blue-50/50 p-1"
+                 style={{ top: `${topPx}px`, height: `${heightPx}px` }}>
+              <div className="flex items-center justify-between gap-2 text-[10px]">
+                <span className="font-medium truncate">{w.shift_id}</span>
+                <span className="opacity-70">{w.start_time}-{w.end_time}</span>
+              </div>
+              <div className="mt-1 flex flex-wrap gap-1">
+                {assigns.map(a => {
+                  const id = a.system_user_id
+                  const name = technicians.find(t=>t._id===id)?.email || id
+                  return (
+                    <span key={a._id || id} className="inline-flex items-center gap-1 rounded border bg-white px-1 text-[10px]">
+                      {name}
+                      {a._id ? (
+                        <button className="text-red-500" title="Remove" onClick={async (ev) => {
+                          ev.stopPropagation()
+                          try {
+                            await getApiClient().deleteShiftAssignment(a._id!)
+                            const users = await getApiClient().getShiftAssignmentsByShift(w.shift_id)
+                            setAssignmentsMap(prev=>({ ...prev, [w._id]: (users as string[]).map(uid => ({ system_user_id: uid })) }))
+                          } catch (err: any) {
+                            toast({ title: "Xóa phân công thất bại", description: err?.message || "Error", variant: "destructive" })
+                          }
+                        }}>×</button>
+                      ) : null}
+                    </span>
+                  )
+                })}
+                {assigns.length === 0 && (
+                  <span className="text-[10px] text-muted-foreground">Chưa có phân công</span>
+                )}
+              </div>
+            </div>
+          )
+        })}
       </div>
     )
   }
+
+  const days = useMemo(() => {
+    const d: string[] = []
+    for (let i = 0; i < 7; i++) {
+      const dt = new Date(monday); dt.setDate(monday.getDate() + i)
+      d.push(dt.toLocaleDateString(undefined, { weekday: "short", month: "numeric", day: "numeric" }))
+    }
+    return d
+  }, [monday])
 
   return (
     <>
@@ -250,13 +383,14 @@ export function ShiftScheduler() {
           <Button variant="outline" onClick={() => setCurrentWeek(new Date(currentWeek.getTime() - 7*86400000))}>{"<"} Prev</Button>
           <div className="min-w-[220px] text-center text-sm">{formatRange(monday, sunday)}</div>
           <Button variant="outline" onClick={() => setCurrentWeek(new Date(currentWeek.getTime() + 7*86400000))}>Next {">"}</Button>
+          <Button variant="outline" onClick={load} disabled={loading}>{loading ? "Refreshing..." : "Refresh"}</Button>
           <AntSelect
             style={{ width: 200 }}
             placeholder="Filter technician"
             allowClear
             value={selectedTech}
             onChange={(v: string | undefined) => setSelectedTech(v)}
-            options={technicians.map(t => ({ value: t.id, label: t.name }))}
+            options={technicians.map(t => ({ value: t._id, label: t.email || t._id }))}
           />
           <AntSelect
             style={{ width: 160 }}
@@ -266,8 +400,6 @@ export function ShiftScheduler() {
             onChange={(v: string | undefined) => setSkill(v)}
             options={[{ value: "general", label: "General" }]}
           />
-          <Button variant="outline" onClick={addShiftManual}>Add Shift</Button>
-          <Button variant="outline" onClick={autoAssign}>Auto Assign</Button>
           <Button variant="outline" onClick={exportCsv}>Export CSV</Button>
         </div>
       </CardHeader>
@@ -277,7 +409,7 @@ export function ShiftScheduler() {
             <Sider width={260} className="bg-transparent pr-4">
               <AntCard title="Technicians" size="small">
                 {filteredTechs.map(t => (
-                  <DraggableTech key={t.id} id={t.id} name={t.name} />
+                  <DraggableTech key={t._id} id={t._id} name={t.email || t._id} />
                 ))}
               </AntCard>
               <div className="mt-4">
@@ -308,8 +440,7 @@ export function ShiftScheduler() {
               </div>
             </Content>
           </Layout>
-          <DragOverlay />
-        </DndContext>
+          </DndContext>
       </CardContent>
     </Card>
     {/* Edit Modal */}
@@ -333,7 +464,7 @@ export function ShiftScheduler() {
         onFinish={updateShift}
       >
         <Form.Item label="Technician" name="technicianId" rules={[{ required: true }] }>
-          <AntSelect options={technicians.map(t => ({ value: t.id, label: t.name }))} />
+          <AntSelect options={technicians.map(t => ({ value: t._id, label: t.email || t._id }))} />
         </Form.Item>
         <Form.Item label="Status" name="status" rules={[{ required: true }] }>
           <AntSelect options={STATUS_ORDER.map(s => ({ value: s, label: statusConfig[s].label }))} />
