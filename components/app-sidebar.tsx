@@ -1,7 +1,7 @@
 "use client"
 
 import type * as React from "react"
-import { LayoutDashboard, Calendar, Users, Car, Package, UserCog, FileText, Zap, MessageSquare, MapPin, ClipboardCheck, Wrench } from "lucide-react"
+import { LayoutDashboard, Calendar, Users, Car, Package, UserCog, FileText, Zap, MessageSquare, MapPin, ClipboardCheck, Wrench, CreditCard } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -138,6 +138,11 @@ const adminNav = [
     title: "Reports", 
     url: "/reports", 
     icon: FileText 
+  },
+  {
+    title: "Payments",
+    url: "/payments",
+    icon: CreditCard,
   },
   {
     title: "Center Inventory",

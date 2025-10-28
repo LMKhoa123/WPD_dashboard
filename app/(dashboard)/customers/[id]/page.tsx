@@ -49,7 +49,7 @@ export default function CustomerDetailPage() {
         ])
 
         setCustomer(customerData)
-        setVehicles(vehiclesData)
+        setVehicles(Array.isArray(vehiclesData) ? vehiclesData : [])
       } catch (e: any) {
         toast({
           title: "Không tải được thông tin khách hàng",
@@ -134,6 +134,10 @@ export default function CustomerDetailPage() {
     )
   }
 
+  // Guard against undefined vehicles
+  const safeVehicles = Array.isArray(vehicles) ? vehicles : []
+  const vehicleCount = safeVehicles.length
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -195,7 +199,7 @@ export default function CustomerDetailPage() {
             </div>
             <div className="flex items-center gap-3">
               <Car className="h-4 w-4 text-muted-foreground" />
-              <span>{vehicles.length} vehicle{vehicles.length !== 1 ? "s" : ""} registered</span>
+              <span>{vehicleCount} vehicle{vehicleCount !== 1 ? "s" : ""} registered</span>
             </div>
           </CardContent>
         </Card>
@@ -209,19 +213,19 @@ export default function CustomerDetailPage() {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Total Vehicles</span>
-              <span className="text-2xl font-bold">{vehicles.length}</span>
+              <span className="text-2xl font-bold">{vehicleCount}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Total Value</span>
               <span className="text-lg font-semibold">
-                {formatPrice(vehicles.reduce((sum, v) => sum + (v.price || 0), 0))}
+                {formatPrice(safeVehicles.reduce((sum, v) => sum + (v.price || 0), 0))}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Average Mileage</span>
               <span className="text-lg font-semibold">
-                {vehicles.length > 0
-                  ? formatMileage(Math.round(vehicles.reduce((sum, v) => sum + (v.mileage || 0), 0) / vehicles.length))
+                {vehicleCount > 0
+                  ? formatMileage(Math.round(safeVehicles.reduce((sum, v) => sum + (v.mileage || 0), 0) / vehicleCount))
                   : "—"}
               </span>
             </div>
@@ -232,18 +236,18 @@ export default function CustomerDetailPage() {
       {/* Vehicles List */}
       <Card>
         <CardHeader>
-          <CardTitle>Registered Vehicles ({vehicles.length})</CardTitle>
+          <CardTitle>Registered Vehicles ({vehicleCount})</CardTitle>
           <CardDescription>All vehicles owned by this customer</CardDescription>
         </CardHeader>
         <CardContent>
-          {vehicles.length === 0 ? (
+          {vehicleCount === 0 ? (
             <div className="py-12 text-center">
               <Car className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">No vehicles registered yet</p>
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {vehicles.map((vehicle) => (
+              {safeVehicles.map((vehicle) => (
                 <Card key={vehicle._id} className="overflow-hidden">
                   <div className="relative aspect-video w-full bg-muted">
                     {vehicle.image ? (

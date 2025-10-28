@@ -64,18 +64,6 @@ export interface ProfileResponse {
   data: ProfileData
 }
 
-export interface UpdateProfileRequest {
-  name?: string
-  dateOfBirth?: string | null
-  certification?: string
-}
-
-export interface UpdateProfileResponse {
-  success: boolean
-  message: string
-  data: ProfileData
-}
-
 export interface Tokens {
   accessToken: string
   refreshToken: string
@@ -107,6 +95,14 @@ export interface UsersListResponse {
     limit?: number
     totalPages?: number
   }
+}
+
+// Users update payload (Admin only)
+export interface UpdateUserRequest {
+  email?: string
+  password?: string
+  role?: "ADMIN" | "STAFF" | "TECHNICIAN" | "CUSTOMER" | string
+  isDeleted?: boolean
 }
 
 // Customers
@@ -197,6 +193,12 @@ export interface VehiclesListResponse {
     limit: number
     totalPages: number
   }
+}
+
+// Vehicles by customer response (different shape: data is an array)
+export interface VehiclesByCustomerResponse {
+  success: boolean
+  data: VehicleRecord[]
 }
 
 // Create vehicle response shape
@@ -391,15 +393,11 @@ export interface UpdateServiceRecordRequest {
   status?: ServiceRecordStatus
 }
 
-// Service Checklist types
-export type ServiceChecklistStatus = "pending" | "in_progress" | "completed"
-
+// Service Checklist types (templates managed by Admin)
 export interface ServiceChecklistRecord {
   _id: string
-  record_id: string | ServiceRecordRecord
   name: string
-  status: ServiceChecklistStatus
-  note?: string
+  order: number
   createdAt: string
   updatedAt: string
   __v?: number
@@ -418,21 +416,108 @@ export interface ServiceChecklistsListResponse {
 
 export interface ServiceChecklistResponse {
   success: boolean
+  message?: string
   data: ServiceChecklistRecord
 }
 
 export interface CreateServiceChecklistRequest {
-  record_id: string
   name: string
-  status: ServiceChecklistStatus
-  note?: string
+  order: number
 }
 
 export interface UpdateServiceChecklistRequest {
-  record_id?: string
   name?: string
-  status?: ServiceChecklistStatus
-  note?: string
+  order?: number
+}
+
+// Workshifts (Admin manages center work shifts)
+export type WorkshiftStatus = "active" | "completed" | "cancelled" | string
+
+export interface WorkshiftRecord {
+  _id: string
+  shift_id: string
+  shift_date: string // ISO date string (e.g., 2025-10-27T00:00:00.000Z)
+  start_time: string // HH:mm
+  end_time: string   // HH:mm
+  status: WorkshiftStatus
+  center_id: string
+  __v?: number
+}
+
+export interface WorkshiftsListResponse {
+  success: boolean
+  data: WorkshiftRecord[]
+}
+
+export interface WorkshiftResponse {
+  success: boolean
+  data: WorkshiftRecord
+}
+
+export interface CreateWorkshiftRequest {
+  shift_id: string
+  shift_date: string // YYYY-MM-DD
+  start_time: string // HH:mm
+  end_time: string   // HH:mm
+  status: WorkshiftStatus
+  center_id: string
+}
+
+export interface UpdateWorkshiftRequest {
+  shift_id?: string
+  shift_date?: string // YYYY-MM-DD
+  start_time?: string // HH:mm
+  end_time?: string   // HH:mm
+  status?: WorkshiftStatus
+  center_id?: string
+}
+
+// Shift Assignments
+export interface ShiftAssignmentRecord {
+  _id: string
+  shift_id: string | WorkshiftRecord
+  system_user_id: string | SystemUserRecord
+  createdAt?: string
+  updatedAt?: string
+  __v?: number
+}
+
+export interface AssignShiftsRequest {
+  system_user_id: string
+  shift_ids: string[]
+}
+
+export interface ShiftAssignmentsListResponse {
+  success: boolean
+  data: ShiftAssignmentRecord[]
+}
+
+// GET /shift-assignments/shift/{shift_id} returns array of system_user_id strings
+export interface ShiftAssignmentsByShiftResponse {
+  success: boolean
+  data: string[]
+}
+
+// GET /shift-assignments/user/{system_user_id} returns assigned shift infos (flattened workshift fields)
+export interface AssignedShiftInfo {
+  _id: string
+  shift_id: string
+  shift_date: string
+  start_time: string
+  end_time: string
+  status: WorkshiftStatus
+  center_id: string
+  __v?: number
+}
+
+export interface AssignedShiftsByUserResponse {
+  success: boolean
+  data: AssignedShiftInfo[]
+}
+
+export interface ShiftAssignmentResponse {
+  success: boolean
+  data: ShiftAssignmentRecord
 }
 
 // Auto Parts types
@@ -865,13 +950,6 @@ export class ApiClient {
     return this.fetchJson<ProfileResponse>("/auth/profile", { method: "GET" })
   }
 
-  async updateProfile(payload: UpdateProfileRequest): Promise<UpdateProfileResponse> {
-    return this.fetchJson<UpdateProfileResponse>("/auth/profile", {
-      method: "PUT",
-      body: JSON.stringify(payload),
-    })
-  }
-
   async getUsers(params?: { page?: number; limit?: number; role?: string; q?: string }): Promise<UserAccount[]> {
     const url = new URL(this.buildUrl("/users"))
     if (params?.page) url.searchParams.set("page", String(params.page))
@@ -885,6 +963,23 @@ export class ApiClient {
     const data = (await res.json()) as UsersListResponse
     if (Array.isArray(data.data)) return data.data
     return data.data.users
+  }
+
+  async getUserById(userId: string): Promise<UserAccount> {
+    const res = await this.fetchJson<{ success: boolean; data: UserAccount }>(`/users/${userId}`, { method: "GET" })
+    return res.data
+  }
+
+  async updateUser(userId: string, payload: UpdateUserRequest): Promise<UserAccount> {
+    const res = await this.fetchJson<{ success: boolean; data: UserAccount }>(`/users/${userId}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    })
+    return res.data
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    await this.fetchJson(`/users/${userId}`, { method: "DELETE" })
   }
 
   async getCustomers(params?: { page?: number; limit?: number }): Promise<CustomersListResponse> {
@@ -998,8 +1093,8 @@ export class ApiClient {
 
   // Get vehicles by customer ID
   async getVehiclesByCustomerId(customerId: string): Promise<VehicleRecord[]> {
-    const res = await this.fetchJson<VehiclesListResponse>(`/vehicles/customer/${customerId}`, { method: "GET" })
-    return res.data.vehicles
+    const res = await this.fetchJson<VehiclesByCustomerResponse>(`/vehicles/customer/${customerId}`, { method: "GET" })
+    return res.data
   }
 
   // Assign vehicle to staff (for staff role)
@@ -1161,6 +1256,14 @@ export class ApiClient {
   // Vehicle Subscriptions: delete
   async deleteVehicleSubscription(id: string): Promise<void> {
     await this.fetchJson(`/vehicle-subscriptions/${id}`, { method: "DELETE" })
+  }
+
+  // Vehicle Subscriptions: renew (Admin/Staff only)
+  async renewVehicleSubscription(id: string): Promise<VehicleSubscriptionRecord> {
+    const res = await this.fetchJson<VehicleSubscriptionResponse>(`/vehicle-subscriptions/${id}/renew`, {
+      method: "POST",
+    })
+    return res.data
   }
 
   // Service Centers: list
@@ -1339,7 +1442,7 @@ export class ApiClient {
   // Service Checklists: update
   async updateServiceChecklist(id: string, data: UpdateServiceChecklistRequest): Promise<ServiceChecklistResponse> {
     return this.fetchJson(`/service-checklists/${id}`, {
-      method: "PUT",
+      method: "PATCH",
       body: JSON.stringify(data),
     })
   }
@@ -1347,6 +1450,67 @@ export class ApiClient {
   // Service Checklists: delete
   async deleteServiceChecklist(id: string): Promise<void> {
     await this.fetchJson(`/service-checklists/${id}`, { method: "DELETE" })
+  }
+
+  // Workshifts: list
+  async getWorkshifts(): Promise<WorkshiftRecord[]> {
+    const res = await this.fetchJson<WorkshiftsListResponse>(`/workshifts`, { method: "GET" })
+    return res.data
+  }
+
+  // Workshifts: get by id
+  async getWorkshiftById(id: string): Promise<WorkshiftRecord> {
+    const res = await this.fetchJson<WorkshiftResponse>(`/workshifts/${id}`, { method: "GET" })
+    return res.data
+  }
+
+  // Workshifts: create
+  async createWorkshift(payload: CreateWorkshiftRequest): Promise<WorkshiftRecord> {
+    const res = await this.fetchJson<WorkshiftResponse>(`/workshifts`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+    return res.data
+  }
+
+  // Workshifts: update (PUT per backend)
+  async updateWorkshift(id: string, payload: UpdateWorkshiftRequest): Promise<WorkshiftRecord> {
+    const res = await this.fetchJson<WorkshiftResponse>(`/workshifts/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    })
+    return res.data
+  }
+
+  // Workshifts: delete
+  async deleteWorkshift(id: string): Promise<void> {
+    await this.fetchJson(`/workshifts/${id}`, { method: "DELETE" })
+  }
+
+  // Shift Assignments: assign technician to one or multiple shifts
+  async assignShifts(payload: AssignShiftsRequest): Promise<ShiftAssignmentRecord[]> {
+    const res = await this.fetchJson<ShiftAssignmentsListResponse>(`/shift-assignments/assign`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+    return res.data
+  }
+
+  // Shift Assignments: list by user
+  async getShiftAssignmentsByUser(systemUserId: string): Promise<AssignedShiftInfo[]> {
+    const res = await this.fetchJson<AssignedShiftsByUserResponse>(`/shift-assignments/user/${systemUserId}`, { method: "GET" })
+    return res.data
+  }
+
+  // Shift Assignments: list by shift
+  async getShiftAssignmentsByShift(shiftId: string): Promise<string[]> {
+    const res = await this.fetchJson<ShiftAssignmentsByShiftResponse>(`/shift-assignments/shift/${shiftId}`, { method: "GET" })
+    return res.data
+  }
+
+  // Shift Assignments: delete assignment
+  async deleteShiftAssignment(id: string): Promise<void> {
+    await this.fetchJson(`/shift-assignments/${id}`, { method: "DELETE" })
   }
 
   // Auto Parts: get all
@@ -1461,6 +1625,41 @@ export class ApiClient {
   async deleteServiceDetail(id: string): Promise<void> {
     await this.fetchJson(`/service-details/${id}`, { method: "DELETE" })
   }
+
+  // Payments: create payment request (e.g., for completed service record)
+  async createPayment(payload: CreatePaymentRequest): Promise<PaymentRecord> {
+    const res = await this.fetchJson<{ success: boolean; message?: string; data: { payment: PaymentRecord; paymentUrl?: string } }>(`/payments`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+    return res.data.payment
+  }
+
+  // Payments: list (Admin view only)
+  async getPayments(params?: { page?: number; limit?: number }): Promise<PaymentsListResponse> {
+    const url = new URL(this.buildUrl("/payments"))
+    if (params?.page) url.searchParams.set("page", String(params.page))
+    if (params?.limit) url.searchParams.set("limit", String(params.limit))
+    const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
+    if (!res.ok) throw new Error(await safeErrorMessage(res))
+    return (await res.json()) as PaymentsListResponse
+  }
+
+  // Payments: get by id
+  async getPaymentById(id: string): Promise<PaymentRecord> {
+    const res = await this.fetchJson<PaymentResponse>(`/payments/${id}`, { method: "GET" })
+    return res.data
+  }
+
+  // Payments: get external PayOS info by orderCode
+  async getPaymentInfoByOrderCode(orderCode: number | string): Promise<PaymentInfoResponse> {
+    return this.fetchJson<PaymentInfoResponse>(`/payments/info/${orderCode}`, { method: "GET" })
+  }
+
+  // Payments: cancel by orderCode
+  async cancelPayment(orderCode: number | string): Promise<{ success: boolean; message?: string; data?: any }> {
+    return this.fetchJson<{ success: boolean; message?: string; data?: any }>(`/payments/cancel/${orderCode}`, { method: "PUT", body: JSON.stringify({}) })
+  }
 }
 
 // Subscription types and APIs
@@ -1501,6 +1700,71 @@ export interface UpdateVehicleSubscriptionRequest {
   start_date?: string
   end_date?: string | null
   status?: SubscriptionStatus
+}
+
+
+// Payments
+export type PaymentStatus = "pending" | "paid" | "cancelled" | "failed" | "expired" | "refunded" | string
+
+export interface PaymentRecord {
+  _id: string
+  subscription_id?: string | VehicleSubscriptionRecord | null
+  service_record_id?: string | ServiceRecordRecord | null
+  appointment_id?: string | AppointmentRecord | null
+  customer_id?: string | { _id: string; customerName?: string; address?: string } | null
+  order_code: number
+  amount: number
+  description?: string
+  payment_type?: "subscription" | "service_record" | "appointment" | string
+  status: PaymentStatus
+  payment_url?: string
+  createdAt: string
+  updatedAt: string
+  __v?: number
+}
+
+export interface PaymentsListResponse {
+  success: boolean
+  data: {
+    payments: PaymentRecord[]
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
+
+export interface PaymentResponse {
+  success: boolean
+  data: PaymentRecord
+}
+
+export interface PaymentInfoResponse {
+  success: boolean
+  data: {
+    id: string
+    orderCode: number
+    amount: number
+    amountPaid: number
+    amountRemaining: number
+    status: string
+    createdAt: string
+    transactions: any[]
+    canceledAt: string | null
+    cancellationReason: string | null
+  }
+}
+
+export interface CreatePaymentRequest {
+  service_record_id?: string
+  subscription_id?: string
+  appointment_id?: string
+  customer_id?: string
+  amount: number
+  description?: string
+  payment_type?: "service_record" | "subscription" | "appointment" | string
+  returnUrl?: string
+  cancelUrl?: string
 }
 
 

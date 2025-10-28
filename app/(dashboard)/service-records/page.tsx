@@ -13,8 +13,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Spinner } from "@/components/ui/spinner"
 import { useToast } from "@/components/ui/use-toast"
 import { useIsAdmin } from "@/components/auth-provider"
-import { Search, Pencil, Trash2, ListTree } from "lucide-react"
+import { Search, Pencil, Trash2, ListTree, CreditCard } from "lucide-react"
 import { ServiceDetailsDialog } from "@/components/service-records/service-details-dialog"
+import { CreatePaymentDialog } from "@/components/payments/create-payment-dialog"
 
 const statusColors: Record<ServiceRecordStatus, string> = {
   pending: "bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20",
@@ -184,6 +185,16 @@ export default function ServiceRecordsPage() {
                                 </Button>
                               }
                             />
+                            {rec.status === 'completed' && (
+                              <CreatePaymentDialog
+                                record={rec}
+                                trigger={
+                                  <Button variant="ghost" size="icon" title="Tạo thanh toán">
+                                    <CreditCard className="h-4 w-4" />
+                                  </Button>
+                                }
+                              />
+                            )}
                             {isAdmin && (
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>

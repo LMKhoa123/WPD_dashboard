@@ -3,8 +3,6 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { useAuth } from "@/components/auth-provider"
@@ -16,13 +14,6 @@ export default function ProfilePage() {
   const { user } = useAuth()
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [isEditing, setIsEditing] = useState(false)
-
-  // Form state
-  const [name, setName] = useState("")
-  const [dateOfBirth, setDateOfBirth] = useState("")
-  const [certification, setCertification] = useState("")
 
   useEffect(() => {
     loadProfile()
@@ -34,51 +25,10 @@ export default function ProfilePage() {
       const api = getApiClient()
       const res = await api.getProfile()
       setProfile(res.data)
-      setName(res.data.name || "")
-      setDateOfBirth(res.data.dateOfBirth ? formatDateForInput(res.data.dateOfBirth) : "")
-      setCertification(res.data.certification || "")
     } catch (e: any) {
       toast({ title: "Lỗi tải profile", description: e?.message || "Failed to load profile", variant: "destructive" })
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault()
-    try {
-      setSaving(true)
-      const api = getApiClient()
-      const res = await api.updateProfile({
-        name: name.trim() || undefined,
-        dateOfBirth: dateOfBirth || null,
-        certification: certification.trim() || undefined,
-      })
-      setProfile(res.data)
-      setIsEditing(false)
-      toast({ title: "Cập nhật thành công", description: res.message })
-    } catch (e: any) {
-      toast({ title: "Cập nhật thất bại", description: e?.message || "Update failed", variant: "destructive" })
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleCancel = () => {
-    if (profile) {
-      setName(profile.name || "")
-      setDateOfBirth(profile.dateOfBirth ? formatDateForInput(profile.dateOfBirth) : "")
-      setCertification(profile.certification || "")
-    }
-    setIsEditing(false)
-  }
-
-  // Format ISO date to yyyy-MM-dd for input[type=date]
-  const formatDateForInput = (isoDate: string): string => {
-    try {
-      return isoDate.split("T")[0]
-    } catch {
-      return ""
     }
   }
 
@@ -163,32 +113,17 @@ export default function ProfilePage() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>Thông tin cá nhân</CardTitle>
-                <CardDescription>Cập nhật thông tin cá nhân của bạn</CardDescription>
+                <CardDescription>Thông tin được quản lý bởi Admin</CardDescription>
               </div>
-              {!isEditing && (
-                <Button onClick={() => setIsEditing(true)} variant="outline" size="sm">
-                  Chỉnh sửa
-                </Button>
-              )}
             </div>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSave} className="space-y-4">
+            <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Họ và tên</Label>
-                {isEditing ? (
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Nhập họ tên của bạn"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                ) : (
-                  <div className="rounded-md border border-input bg-muted/50 px-3 py-2 text-sm">
-                    {profile.name || <span className="text-muted-foreground">Chưa cập nhật</span>}
-                  </div>
-                )}
+                <div className="rounded-md border border-input bg-muted/50 px-3 py-2 text-sm">
+                  {profile.name || <span className="text-muted-foreground">Chưa cập nhật</span>}
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -196,18 +131,9 @@ export default function ProfilePage() {
                   <Calendar className="h-4 w-4" />
                   Ngày sinh
                 </Label>
-                {isEditing ? (
-                  <Input
-                    id="dateOfBirth"
-                    type="date"
-                    value={dateOfBirth}
-                    onChange={(e) => setDateOfBirth(e.target.value)}
-                  />
-                ) : (
-                  <div className="rounded-md border border-input bg-muted/50 px-3 py-2 text-sm">
-                    {formatDateForDisplay(profile.dateOfBirth)}
-                  </div>
-                )}
+                <div className="rounded-md border border-input bg-muted/50 px-3 py-2 text-sm">
+                  {formatDateForDisplay(profile.dateOfBirth)}
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -215,39 +141,11 @@ export default function ProfilePage() {
                   <Award className="h-4 w-4" />
                   Chứng chỉ
                 </Label>
-                {isEditing ? (
-                  <Input
-                    id="certification"
-                    type="text"
-                    placeholder="Ví dụ: EV Technician Level 2"
-                    value={certification}
-                    onChange={(e) => setCertification(e.target.value)}
-                  />
-                ) : (
-                  <div className="rounded-md border border-input bg-muted/50 px-3 py-2 text-sm">
-                    {profile.certification || <span className="text-muted-foreground">Chưa có chứng chỉ</span>}
-                  </div>
-                )}
-              </div>
-
-              {isEditing && (
-                <div className="flex gap-3 pt-4">
-                  <Button type="submit" disabled={saving}>
-                    {saving ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Đang lưu...
-                      </>
-                    ) : (
-                      "Lưu thay đổi"
-                    )}
-                  </Button>
-                  <Button type="button" variant="outline" onClick={handleCancel} disabled={saving}>
-                    Hủy
-                  </Button>
+                <div className="rounded-md border border-input bg-muted/50 px-3 py-2 text-sm">
+                  {profile.certification || <span className="text-muted-foreground">Chưa có chứng chỉ</span>}
                 </div>
-              )}
-            </form>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

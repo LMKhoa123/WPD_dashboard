@@ -60,7 +60,7 @@ export function AppointmentDialog({ appointment, trigger, onCreated, onUpdated }
             api.getSystemUsers({ limit: 100 }).then(r => r.data.systemUsers).catch(() => [] as SystemUserRecord[]),
             api.getCustomers({ limit: 200 }).then(r => r.data.customers).catch(() => [] as CustomerRecord[]),
           ])
-          setVehicles(vs)
+          setVehicles(Array.isArray(vs) ? vs : [])
           setCenters(cs)
           setStaff(ss)
           setCustomers(cus)

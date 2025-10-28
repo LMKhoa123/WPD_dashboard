@@ -33,6 +33,7 @@ export function VehicleSubscriptionDialog({ subscription, trigger, onCreated, on
   const [vehicleId, setVehicleId] = useState("")
   const [packageId, setPackageId] = useState("")
   const [startDate, setStartDate] = useState("")
+  const [endDate, setEndDate] = useState("")
   const [status, setStatus] = useState<string>("ACTIVE")
 
   const { toast } = useToast()
@@ -51,7 +52,7 @@ export function VehicleSubscriptionDialog({ subscription, trigger, onCreated, on
             api.getVehicles({ limit: 500 }).catch(() => [] as VehicleRecord[]),
             api.getServicePackages().catch(() => [] as ServicePackageRecord[]),
           ])
-          setVehicles(vs)
+          setVehicles(Array.isArray(vs) ? vs : [])
           setPackages(ps)
         } catch (e: any) {
           toast({ title: "Không tải được dữ liệu", description: e?.message || "Failed to load vehicles/packages", variant: "destructive" })
@@ -68,6 +69,7 @@ export function VehicleSubscriptionDialog({ subscription, trigger, onCreated, on
       setVehicleId(typeof subscription.vehicleId === 'string' ? subscription.vehicleId : subscription.vehicleId?._id || "")
       setPackageId(typeof subscription.package_id === 'string' ? subscription.package_id : subscription.package_id?._id || "")
       setStartDate(subscription.start_date?.slice(0, 10) || "")
+      setEndDate(subscription.end_date?.slice(0, 10) || "")
       setStatus(subscription.status || "ACTIVE")
     } else if (!open) {
       resetForm()
@@ -78,6 +80,7 @@ export function VehicleSubscriptionDialog({ subscription, trigger, onCreated, on
     setVehicleId("")
     setPackageId("")
     setStartDate("")
+    setEndDate("")
     setStatus("ACTIVE")
   }
 
@@ -91,6 +94,7 @@ export function VehicleSubscriptionDialog({ subscription, trigger, onCreated, on
           vehicleId,
           package_id: packageId,
           start_date: startDate,
+          end_date: endDate || null,
           status: status as any,
         }
         const updated = await api.updateVehicleSubscription(subscription._id, payload)
@@ -176,18 +180,23 @@ export function VehicleSubscriptionDialog({ subscription, trigger, onCreated, on
               <Input id="startDate" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
             </div>
             <div className="grid gap-2">
-              <Label>Status</Label>
-              <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ACTIVE">ACTIVE</SelectItem>
-                  <SelectItem value="EXPIRED">EXPIRED</SelectItem>
-                  <SelectItem value="CANCELLED">CANCELLED</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="endDate">End Date (optional)</Label>
+              <Input id="endDate" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
             </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Status</Label>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ACTIVE">ACTIVE</SelectItem>
+                <SelectItem value="EXPIRED">EXPIRED</SelectItem>
+                <SelectItem value="CANCELLED">CANCELLED</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
