@@ -21,8 +21,7 @@ import {
 import { Search, Pencil, Trash2, Plus, Eye } from "lucide-react"
 import { AdminOnly } from "@/components/role-guards"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { AdvancedScheduler } from "@/components/staff/advanced-scheduler"
-import ShiftScheduler from "@/components/staff/shift-scheduler"
+// Removed Scheduling and Shift (DnD Sidebar) features
 import CalendarShiftView from "@/components/staff/calendar-shift-view"
 import { PerformanceDashboard } from "@/components/staff/performance-dashboard"
 import { CertificationsManager } from "@/components/staff/certifications"
@@ -165,8 +164,6 @@ export default function StaffPage() {
         <TabsList>
           <TabsTrigger value="team">Team</TabsTrigger>
           <TabsTrigger value="calendar">Calendar</TabsTrigger>
-          <TabsTrigger value="schedule">Scheduling</TabsTrigger>
-          <TabsTrigger value="shift">Shift (DnD Sidebar)</TabsTrigger>
           <TabsTrigger value="workshifts">Workshifts</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="certs">Certifications</TabsTrigger>
@@ -283,13 +280,7 @@ export default function StaffPage() {
       </Card>
         </TabsContent>
 
-        <TabsContent value="schedule">
-          <AdvancedScheduler />
-        </TabsContent>
-
-        <TabsContent value="shift">
-          <ShiftScheduler />
-        </TabsContent>
+        {/* Scheduling and Shift (DnD Sidebar) removed */}
 
         <TabsContent value="workshifts">
           <WorkshiftsManager />
