@@ -24,9 +24,9 @@ import { useToast } from "@/components/ui/use-toast"
 import { useSocket } from "@/lib/useSocket"
 
 type Msg =
-  | { id: string; from: "me" | "them"; ts: number; type: "text"; text: string }
-  | { id: string; from: "me" | "them"; ts: number; type: "image"; caption?: string; src?: string }
-  | { id: string; from: "me" | "them"; ts: number; type: "file"; filename?: string; src?: string }
+  | { id: string; from: "me" | "them"; ts: number; type: "text"; text: string; optimistic?: boolean }
+  | { id: string; from: "me" | "them"; ts: number; type: "image"; caption?: string; src?: string; optimistic?: boolean }
+  | { id: string; from: "me" | "them"; ts: number; type: "file"; filename?: string; src?: string; optimistic?: boolean }
 
 function initials(name: string) {
   const parts = name.trim().split(" ")
@@ -195,17 +195,80 @@ export default function ChatDashboardPage() {
         const convId = msg.conversationId
         const mapped = mapSocketMessage(msg)
         if (!convId) return
-        // If currently viewing this conversation, append message
+
+        // Deduplicate: if this is a server echo of a message we optimistically appended,
+        // replace the optimistic entry instead of appending a duplicate. Matching is
+        // done by (from==='me', same type, same text/src for a short time window).
+        const addOrReplace = (prev: Record<string, Msg[]>) => {
+          const list = prev[convId] ?? []
+
+          // Only try to dedupe messages sent by this client (server message also has from === 'me')
+          if (mapped.from === 'me') {
+            const matchIdx = list.findIndex((m) => {
+              if (m.from !== 'me' || m.type !== mapped.type) return false
+
+              // text: match by exact text
+              if (mapped.type === 'text' && m.type === 'text') {
+                return m.text === mapped.text && Math.abs((m.ts || 0) - (mapped.ts || 0)) < 5000
+              }
+
+              // image/file: narrow safely and compare src/filename/caption with a time window
+              if (mapped.type === 'image' || mapped.type === 'file') {
+                const mm: any = m
+                const mappedAs: any = mapped
+                if (mm.src && mappedAs.src) {
+                  return (
+                    mm.src === mappedAs.src ||
+                    (Math.abs((mm.ts || 0) - (mappedAs.ts || 0)) < 5000 && ((mm.filename && mappedAs.filename && mm.filename === mappedAs.filename) || (mm.caption && mappedAs.caption && mm.caption === mappedAs.caption)))
+                  )
+                }
+                return false
+              }
+
+              return false
+            })
+
+            if (matchIdx !== -1) {
+              // Replace optimistic with server-provided message (keeps ordering)
+              const newList = [...list]
+              newList[matchIdx] = mapped
+              return { ...prev, [convId]: newList }
+            }
+
+            // If we didn't find an exact content match, try a fallback: replace the
+            // most recent optimistic message (if any). This covers cases where the
+            // backend transforms the content (e.g. sanitizes/trims or returns a
+            // different attachment URL) so exact matching fails.
+            const lastOptIdx = (() => {
+              for (let i = list.length - 1; i >= 0; i--) {
+                const it = list[i] as any
+                if (it.optimistic && it.from === 'me') return i
+              }
+              return -1
+            })()
+            if (lastOptIdx !== -1) {
+              // Only replace if within a sensible time window to avoid false positives
+              const optMsg: any = list[lastOptIdx]
+              if (Math.abs((optMsg.ts || 0) - (mapped.ts || 0)) < 20000) {
+                const newList = [...list]
+                newList[lastOptIdx] = mapped
+                return { ...prev, [convId]: newList }
+              }
+            }
+          }
+
+          // Default: append
+          return { ...prev, [convId]: [...list, mapped] }
+        }
+
+        setConversations((prev) => addOrReplace(prev))
+
+        // If currently viewing this conversation, auto-scroll if at bottom
         if (convId === selected) {
-          setConversations((prev) => ({ ...prev, [convId]: [...(prev[convId] ?? []), mapped] }))
-          // auto-scroll if at bottom
           setTimeout(() => {
             const el = scrollRef.current
             if (el) el.scrollTop = el.scrollHeight
           }, 20)
-        } else {
-          // message for other conversation: ensure we keep it in memory for later
-          setConversations((prev) => ({ ...prev, [convId]: [...(prev[convId] ?? []), mapped] }))
         }
       } catch (err) {
         console.warn("onMessageNew error", err)
@@ -276,7 +339,38 @@ export default function ChatDashboardPage() {
       } else if (hasText) {
         newMsgs.push({ id: crypto.randomUUID(), from: "me", ts: Date.now(), type: "text", text })
       }
-      setConversations((prev) => ({ ...prev, [selected]: [...(prev[selected] ?? []), ...newMsgs] }))
+
+      // Before appending optimistic messages, ensure we don't already have a matching server message
+      setConversations((prev) => {
+        const list = prev[selected] ?? []
+        const toAppend: Msg[] = []
+
+        for (const nm of newMsgs) {
+          const already = list.findIndex((m) => {
+            if (m.from !== 'me' || m.type !== nm.type) return false
+            if (nm.type === 'text' && m.type === 'text') {
+              return m.text === (nm as any).text && Math.abs((m.ts || 0) - (nm.ts || 0)) < 5000
+            }
+            // media: narrow and compare src/filename/caption
+            const mm: any = m
+            const nma: any = nm
+            if ((nm.type === 'image' || nm.type === 'file') && mm.src && nma.src) {
+              return (
+                mm.src === nma.src ||
+                (Math.abs((mm.ts || 0) - (nma.ts || 0)) < 5000 && ((mm.filename && nma.filename && mm.filename === nma.filename) || (mm.caption && nma.caption && mm.caption === nma.caption)))
+              )
+            }
+            return false
+          }) !== -1
+
+          if (!already) {
+            toAppend.push({ ...(nm as any), optimistic: true })
+          }
+        }
+
+        if (toAppend.length === 0) return prev
+        return { ...prev, [selected]: [...list, ...toAppend] }
+      })
       setComposer("")
       setAttachment(null)
       setTimeout(() => {
