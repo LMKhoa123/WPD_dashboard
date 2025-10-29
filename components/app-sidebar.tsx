@@ -144,11 +144,11 @@ const adminNav = [
     url: "/payments",
     icon: CreditCard,
   },
-  {
-    title: "Center Inventory",
-    url: "/center-auto-parts",
-    icon: Package,
-  },
+  // {
+  //   title: "Center Inventory",
+  //   url: "/center-auto-parts",
+  //   icon: Package,
+  // },
 ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
