@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Label } from "@/components/ui/label"
 import { Calendar as CalendarIcon, Clock, Plus, User, Pencil, Trash2 } from "lucide-react"
-import { getApiClient, type WorkshiftRecord, type UserAccount, type ShiftAssignmentRecord } from "@/lib/api"
+import { getApiClient, type WorkshiftRecord, type UserAccount, type SystemUserRecord } from "@/lib/api"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -70,6 +70,16 @@ interface ShiftAssignment {
   endTime: string
 }
 
+type RoleFilter = "ALL" | "TECHNICIAN" | "STAFF"
+
+type Member = {
+  systemUserId: string
+  userAccountId?: string
+  email?: string
+  name?: string
+  role: string // "STAFF" | "TECHNICIAN" | others
+}
+
 export function CalendarShiftView() {
   const { toast } = useToast()
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -77,8 +87,13 @@ export function CalendarShiftView() {
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear())
   const [workshifts, setWorkshifts] = useState<WorkshiftRecord[]>([])
   const [shiftAssignments, setShiftAssignments] = useState<ShiftAssignment[]>([])
-  const [technicians, setTechnicians] = useState<UserAccount[]>([])
+  const [members, setMembers] = useState<Member[]>([])
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>("ALL")
   const [loading, setLoading] = useState(false)
+  const filteredMembers = useMemo(() => {
+    if (roleFilter === "ALL") return members
+    return members.filter(m => m.role === roleFilter)
+  }, [members, roleFilter])
   
   // New Shift Modal state
   const [newShiftModalOpen, setNewShiftModalOpen] = useState(false)
@@ -101,9 +116,11 @@ export function CalendarShiftView() {
     try {
       setLoading(true)
       const api = getApiClient()
-      const [ws, techs] = await Promise.all([
+      // Load workshifts, system users (staff profiles) and user accounts for role mapping
+      const [ws, sysUsersResp, allUsers] = await Promise.all([
         api.getWorkshifts(),
-        api.getUsers({ role: "TECHNICIAN", page: 1, limit: 200 })
+        api.getSystemUsers({ limit: 500 }),
+        api.getUsers({ page: 1, limit: 1000 })
       ])
       
       // Filter for selected month
@@ -113,7 +130,34 @@ export function CalendarShiftView() {
       })
       
       setWorkshifts(filtered)
-      setTechnicians(techs)
+
+      const usersById = new Map(allUsers.map(u => [u._id, u]))
+      const sysUsers = sysUsersResp.data.systemUsers
+      const mappedMembers: Member[] = sysUsers.map((su) => {
+        let userAccountId: string | undefined
+        let email: string | undefined
+        let role: string = ""
+        if (typeof su.userId === "object") {
+          userAccountId = su.userId._id
+          email = su.userId.email
+          role = (su.userId as any).role || ""
+        } else if (typeof su.userId === "string") {
+          userAccountId = su.userId
+          const acc = usersById.get(su.userId)
+          email = acc?.email
+          role = acc?.role || ""
+        }
+        return {
+          systemUserId: su._id,
+          userAccountId,
+          email,
+          name: su.name,
+          role,
+        }
+      })
+      // Keep only Staff or Technician
+      const onlyRelevant = mappedMembers.filter(m => m.role === "TECHNICIAN" || m.role === "STAFF")
+      setMembers(onlyRelevant)
       
       // Load assignments for all workshifts
       const allAssignments: ShiftAssignment[] = []
@@ -121,14 +165,14 @@ export function CalendarShiftView() {
         try {
           const userIds = await api.getShiftAssignmentsByShift(ws.shift_id)
           userIds.forEach(userId => {
-            const user = techs.find(t => t._id === userId)
-            if (user) {
+            const member = onlyRelevant.find(m => m.systemUserId === userId)
+            if (member) {
               allAssignments.push({
                 _id: `${ws._id}-${userId}`,
                 system_user_id: userId,
                 shift_id: ws.shift_id,
-                userName: user.email?.split('@')[0] || 'Unknown',
-                userEmail: user.email || '',
+                userName: member.name || member.email?.split('@')[0] || 'Unknown',
+                userEmail: member.email || '',
                 date: ws.shift_date,
                 shiftType: getShiftType(ws.start_time, ws.end_time),
                 startTime: ws.start_time,
@@ -157,10 +201,13 @@ export function CalendarShiftView() {
     loadData()
   }, [loadData])
 
-  // Get assignments for a specific date
+  // Visible members based on role filter
+  const visibleUserIds = useMemo(() => new Set(filteredMembers.map(m => m.systemUserId)), [filteredMembers])
+
+  // Get assignments for a specific date (respect role filter)
   const getAssignmentsForDate = useCallback((dateStr: string) => {
-    return shiftAssignments.filter(a => a.date.startsWith(dateStr))
-  }, [shiftAssignments])
+    return shiftAssignments.filter(a => a.date.startsWith(dateStr) && visibleUserIds.has(a.system_user_id))
+  }, [shiftAssignments, visibleUserIds])
 
   // Generate calendar days
   const calendarDays = useMemo(() => {
@@ -212,9 +259,10 @@ export function CalendarShiftView() {
   // Recent assignments (last 5)
   const recentAssignments = useMemo(() => {
     return [...shiftAssignments]
+      .filter(a => visibleUserIds.has(a.system_user_id))
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 5)
-  }, [shiftAssignments])
+  }, [shiftAssignments, visibleUserIds])
 
   // Calculate attendance stats by day of week
   const attendanceStats = useMemo(() => {
@@ -231,6 +279,7 @@ export function CalendarShiftView() {
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
     
     shiftAssignments.forEach(a => {
+      if (!visibleUserIds.has(a.system_user_id)) return
       const date = new Date(a.date)
       const dayName = dayNames[date.getDay()] as keyof typeof stats
       
@@ -244,7 +293,7 @@ export function CalendarShiftView() {
     })
     
     return stats
-  }, [shiftAssignments])
+  }, [shiftAssignments, visibleUserIds])
 
   const maxAttendance = Math.max(
     ...Object.values(attendanceStats).flatMap(v => [v.morning, v.night]),
@@ -288,7 +337,7 @@ export function CalendarShiftView() {
       
       // Assign staff to shift
       await api.assignShifts({
-        system_user_id: selectedStaff[0], // Will loop for multiple
+        system_user_id: selectedStaff[0], // system user (staff) IDs
         shift_ids: [shiftId]
       })
       
@@ -460,6 +509,17 @@ export function CalendarShiftView() {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-800">Calendar</h1>
         <div className="flex items-center gap-3">
+          {/* Role filter */}
+          <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as RoleFilter)}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All members</SelectItem>
+              <SelectItem value="TECHNICIAN">Technicians</SelectItem>
+              <SelectItem value="STAFF">Staff</SelectItem>
+            </SelectContent>
+          </Select>
           <Select value={months[selectedMonth]} onValueChange={(v) => setSelectedMonth(months.indexOf(v))}>
             <SelectTrigger className="w-[140px]">
               <SelectValue />
@@ -839,24 +899,25 @@ export function CalendarShiftView() {
 
             {/* Staff Selection */}
             <div className="space-y-2">
-              <Label>Select Staff ({selectedStaff.length} selected)</Label>
+              <Label>Select Members ({selectedStaff.length} selected)</Label>
               <div className="border rounded-md p-3 max-h-[200px] overflow-y-auto space-y-2">
-                {technicians.map(tech => (
-                  <label key={tech._id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
+                {filteredMembers.map(user => (
+                  <label key={user.systemUserId} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
                     <input
                       type="checkbox"
-                      checked={selectedStaff.includes(tech._id)}
+                      checked={selectedStaff.includes(user.systemUserId)}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          setSelectedStaff([...selectedStaff, tech._id])
+                          setSelectedStaff([...selectedStaff, user.systemUserId])
                         } else {
-                          setSelectedStaff(selectedStaff.filter(id => id !== tech._id))
+                          setSelectedStaff(selectedStaff.filter(id => id !== user.systemUserId))
                         }
                       }}
                       className="rounded border-gray-300"
                     />
                     <User className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm">{tech.email?.split('@')[0] || tech._id}</span>
+                    <span className="text-sm">{user.name || user.email?.split('@')[0] || user.systemUserId}</span>
+                    <span className="ml-auto text-xs text-gray-500">{user.role}</span>
                   </label>
                 ))}
               </div>

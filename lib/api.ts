@@ -291,7 +291,7 @@ export interface UpdateCenterRequest {
 }
 
 // Appointments
-export type AppointmentStatus = "pending" | "confirmed" | "in-progress" | "completed" | "cancelled"
+export type AppointmentStatus = "pending" | "confirmed" | "in-progress" | "completed" | "cancelled" | "scheduled"
 
 export interface AppointmentRecord {
   _id: string

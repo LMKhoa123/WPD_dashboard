@@ -238,6 +238,7 @@ export function AppointmentDialog({ appointment, trigger, onCreated, onUpdated }
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="confirmed">Confirmed</SelectItem>
                   <SelectItem value="in-progress">In Progress</SelectItem>
