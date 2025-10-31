@@ -12,10 +12,12 @@ import { ServiceRecordDialog } from "@/components/service-records/service-record
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Spinner } from "@/components/ui/spinner"
 import { useToast } from "@/components/ui/use-toast"
-import { useIsAdmin } from "@/components/auth-provider"
-import { Search, Pencil, Trash2, ListTree, CreditCard } from "lucide-react"
+import { useAuth, useIsAdmin, useIsStaff } from "@/components/auth-provider"
+import { Search, Pencil, Trash2, ListTree, CreditCard, ClipboardCheck } from "lucide-react"
 import { ServiceDetailsDialog } from "@/components/service-records/service-details-dialog"
 import { CreatePaymentDialog } from "@/components/payments/create-payment-dialog"
+import { RecordChecklistsDialog } from "@/components/service-records/record-checklists-dialog"
+import { AdminStaffTechnicianOnly } from "@/components/role-guards"
 
 const statusColors: Record<ServiceRecordStatus, string> = {
   pending: "bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20",
@@ -31,6 +33,8 @@ export default function ServiceRecordsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<ServiceRecordStatus | "all">("all")
   const isAdmin = useIsAdmin()
+  const isStaff = useIsStaff()
+  const { user } = useAuth()
   const { toast } = useToast()
 
   const api = useMemo(() => getApiClient(), [])
@@ -39,13 +43,30 @@ export default function ServiceRecordsPage() {
     try {
       setLoading(true)
       const res = await api.getServiceRecords({ limit: 500 })
-      setRecords(res.data.records)
+      let data = res.data.records
+      // If technician, only show their own records
+      if (!isAdmin && !isStaff && user?.email) {
+        try {
+          const su = await api.getSystemUsers({ limit: 1000 })
+          const me = su.data.systemUsers.find((u) => {
+            const email = typeof u.userId === 'string' ? undefined : u.userId?.email
+            return email && email.toLowerCase() === user.email!.toLowerCase()
+          })
+          if (me?._id) {
+            data = data.filter((r) => {
+              const techId = typeof r.technician_id === 'string' ? r.technician_id : r.technician_id?._id
+              return techId === me._id
+            })
+          }
+        } catch {}
+      }
+      setRecords(data)
     } catch (e: any) {
       toast({ title: "Không tải được danh sách hồ sơ dịch vụ", description: e?.message || "Failed to load service records", variant: "destructive" })
     } finally {
       setLoading(false)
     }
-  }, [api, toast])
+  }, [api, isAdmin, isStaff, user?.email, toast])
 
   useEffect(() => {
     load()
@@ -80,13 +101,14 @@ export default function ServiceRecordsPage() {
   })
 
   return (
+    <AdminStaffTechnicianOnly>
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Service Records</h1>
           <p className="text-muted-foreground">Track and manage service work records</p>
         </div>
-        <ServiceRecordDialog onCreated={handleCreated} />
+  {(isAdmin || isStaff) && <ServiceRecordDialog onCreated={handleCreated} />}
       </div>
 
       <Card>
@@ -176,6 +198,14 @@ export default function ServiceRecordsPage() {
                                 </Button>
                               }
                             />
+                            <RecordChecklistsDialog
+                              recordId={rec._id}
+                              trigger={
+                                <Button variant="ghost" size="icon" title="Checklists">
+                                  <ClipboardCheck className="h-4 w-4" />
+                                </Button>
+                              }
+                            />
                             <ServiceRecordDialog
                               record={rec}
                               onUpdated={handleUpdated}
@@ -230,5 +260,6 @@ export default function ServiceRecordsPage() {
         </CardContent>
       </Card>
     </div>
+    </AdminStaffTechnicianOnly>
   )
 }

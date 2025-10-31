@@ -12,8 +12,11 @@ import { AppointmentDialog } from "@/components/appointments/appointment-dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Spinner } from "@/components/ui/spinner"
 import { useToast } from "@/components/ui/use-toast"
-import { useIsAdmin } from "@/components/auth-provider"
+import { useAuth, useIsAdmin, useIsStaff } from "@/components/auth-provider"
 import { getApiClient, type AppointmentRecord, type AppointmentStatus } from "@/lib/api"
+import { AdminStaffTechnicianOnly } from "@/components/role-guards"
+import { AssignStaffDialog } from "@/components/appointments/assign-staff-dialog"
+import { AssignTechnicianDialog } from "@/components/appointments/assign-technician-dialog"
 
 const statusColors: Record<AppointmentStatus, string> = {
   pending: "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20",
@@ -21,6 +24,7 @@ const statusColors: Record<AppointmentStatus, string> = {
   "in-progress": "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20",
   completed: "bg-green-500/10 text-green-500 hover:bg-green-500/20",
   cancelled: "bg-gray-500/10 text-gray-500 hover:bg-gray-500/20",
+  scheduled: "bg-purple-500/10 text-purple-500 hover:bg-purple-500/20",
 }
 
 export default function AppointmentsPage() {
@@ -30,6 +34,8 @@ export default function AppointmentsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<AppointmentStatus | "all">("all")
   const isAdmin = useIsAdmin()
+  const isStaff = useIsStaff()
+  const { user } = useAuth()
   const { toast } = useToast()
 
   const api = useMemo(() => getApiClient(), [])
@@ -37,14 +43,26 @@ export default function AppointmentsPage() {
   const load = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await api.getAppointments({ limit: 500 })
+      const params: { limit: number; technician_id?: string } = { limit: 500 }
+      // Technicians should only see their own appointments
+      if (!isAdmin && !isStaff) {
+        try {
+          const su = await api.getSystemUsers({ limit: 1000 })
+          const me = su.data.systemUsers.find((u) => {
+            const email = typeof u.userId === 'string' ? undefined : u.userId?.email
+            return email && user?.email && email.toLowerCase() === user.email.toLowerCase()
+          })
+          if (me?._id) params.technician_id = me._id
+        } catch {}
+      }
+      const res = await api.getAppointments(params)
       setAppointments(res.data.appointments)
     } catch (e: any) {
       toast({ title: "Không tải được danh sách lịch hẹn", description: e?.message || "Failed to load appointments", variant: "destructive" })
     } finally {
       setLoading(false)
     }
-  }, [api, toast])
+  }, [api, isAdmin, isStaff, user?.email, toast])
 
   useEffect(() => {
     load()
@@ -82,13 +100,14 @@ export default function AppointmentsPage() {
   })
 
   return (
+    <AdminStaffTechnicianOnly>
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Appointments</h1>
           <p className="text-muted-foreground">Manage service appointments and schedules</p>
         </div>
-        <AppointmentDialog onCreated={handleCreated} />
+        {isStaff && <AppointmentDialog onCreated={handleCreated} />}
       </div>
 
       <Card>
@@ -118,6 +137,7 @@ export default function AppointmentsPage() {
                 <SelectItem value="in-progress">In Progress</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
                 <SelectItem value="cancelled">Cancelled</SelectItem>
+                <SelectItem value="scheduled">Scheduled</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -133,7 +153,7 @@ export default function AppointmentsPage() {
                   <TableRow>
                     <TableHead>Vehicle</TableHead>
                     <TableHead>Service Center</TableHead>
-                    <TableHead>Technician</TableHead>
+                    <TableHead>Staff</TableHead>
                     <TableHead>Start Time</TableHead>
                     <TableHead>End Time</TableHead>
                     <TableHead>Status</TableHead>
@@ -168,16 +188,32 @@ export default function AppointmentsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <AppointmentDialog
-                            appointment={apt}
-                            onUpdated={handleUpdated}
-                            trigger={
-                              <Button variant="ghost" size="icon">
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            }
-                          />
-                          {isAdmin && (
+                          {(isAdmin || isStaff) && (
+                            <>
+                              <AppointmentDialog
+                                appointment={apt}
+                                onUpdated={handleUpdated}
+                                trigger={
+                                  <Button variant="ghost" size="icon" title="Edit appointment">
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                }
+                              />
+                              {/* Assign Staff */}
+                              <AssignStaffDialog
+                                appointmentId={apt._id}
+                                onAssigned={load}
+                                trigger={<Button variant="ghost" size="sm">Assign Staff</Button>}
+                              />
+                              {/* Assign Technician */}
+                              <AssignTechnicianDialog
+                                appointmentId={apt._id}
+                                onAssigned={load}
+                                trigger={<Button variant="ghost" size="sm">Assign Tech</Button>}
+                              />
+                            </>
+                          )}
+                          {(isAdmin || isStaff) && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="icon" disabled={deletingId === apt._id}>
@@ -211,5 +247,6 @@ export default function AppointmentsPage() {
         </CardContent>
       </Card>
     </div>
+    </AdminStaffTechnicianOnly>
   )
 }

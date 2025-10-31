@@ -1,6 +1,6 @@
 export type AppointmentStatus = "pending" | "confirmed" | "in-progress" | "completed" | "cancelled"
 
-export type UserRole = "Admin" | "Staff" | "Technician"
+export type UserRole = "Admin" | "Staff" | "Technician" | "Customer"
 
 export interface AuthUser {
   name: string

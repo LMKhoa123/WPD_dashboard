@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react"
 import { getApiClient, type PaymentRecord } from "@/lib/api"
-import { useRole } from "@/components/auth-provider"
+import { useIsAdmin, useIsStaff } from "@/components/auth-provider"
 import { useToast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -11,10 +11,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ExternalLink, Eye, RotateCcw } from "lucide-react"
 import { PaymentDetailDialog } from "@/components/payments/payment-detail-dialog"
+import { CreatePaymentManualDialog } from "@/components/payments/create-payment-manual-dialog"
 import { Spinner } from "@/components/ui/spinner"
 
 export default function PaymentsPage() {
-  const role = useRole()
+  const isAdmin = useIsAdmin()
+  const isStaff = useIsStaff()
   const { toast } = useToast()
   const api = useMemo(() => getApiClient(), [])
 
@@ -36,12 +38,12 @@ export default function PaymentsPage() {
 
   useEffect(() => { load() }, [load])
 
-  if (role !== "Admin") {
+  if (!isAdmin && !isStaff) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-muted-foreground">Access Denied</h2>
-          <p className="text-muted-foreground mt-2">Trang này chỉ dành cho Quản trị.</p>
+          <p className="text-muted-foreground mt-2">Trang này chỉ dành cho Quản trị hoặc Nhân viên.</p>
         </div>
       </div>
     )
@@ -82,11 +84,14 @@ export default function PaymentsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Payments</h1>
-          <p className="text-muted-foreground">Admin có thể xem và hủy giao dịch khi cần</p>
+          <p className="text-muted-foreground">Admin/Staff có thể xem và hủy giao dịch khi cần</p>
         </div>
-        <Button variant="outline" onClick={load}>
-          <RotateCcw className="h-4 w-4 mr-2" /> Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <CreatePaymentManualDialog onCreated={() => load()} />
+          <Button variant="outline" onClick={load}>
+            <RotateCcw className="h-4 w-4 mr-2" /> Refresh
+          </Button>
+        </div>
       </div>
 
       <Card>

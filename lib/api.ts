@@ -393,6 +393,50 @@ export interface UpdateServiceRecordRequest {
   status?: ServiceRecordStatus
 }
 
+// Record Checklists (items attached to a service record based on templates)
+export type RecordChecklistStatus = "pending" | "checked" | "ok" | "needs-replacement" | string
+
+export interface RecordChecklistItem {
+  _id: string
+  record_id: string | ServiceRecordRecord
+  checklist_id: string | ServiceChecklistRecord
+  status: RecordChecklistStatus
+  note?: string
+  createdAt: string
+  updatedAt: string
+  __v?: number
+}
+
+export interface RecordChecklistsListResponse {
+  success: boolean
+  data: RecordChecklistItem[]
+}
+
+export interface RecordChecklistsCreateResponse {
+  success: boolean
+  message?: string
+  data: RecordChecklistItem[]
+}
+
+export interface CreateRecordChecklistsRequest {
+  record_id: string
+  checklist_ids: string[]
+  status?: RecordChecklistStatus
+  note?: string
+}
+
+export interface CreateRecordChecklistRequest {
+  record_id: string
+  checklist_id: string
+  status?: RecordChecklistStatus
+  note?: string
+}
+
+export interface UpdateRecordChecklistRequest {
+  status?: RecordChecklistStatus
+  note?: string
+}
+
 // Service Checklist types (templates managed by Admin)
 export interface ServiceChecklistRecord {
   _id: string
@@ -1046,6 +1090,8 @@ export class ApiClient {
     await this.fetchJson(`/system-users/${systemUserId}`, { method: "DELETE" })
   }
 
+  // GET /vehicles (Admin, Staff)
+  // Returns a paginated list of vehicles from the backend. Currently only the array is returned to callers.
   async getVehicles(params?: { page?: number; limit?: number }): Promise<VehicleRecord[]> {
     const url = new URL(this.buildUrl("/vehicles"))
     if (params?.page) url.searchParams.set("page", String(params.page))
@@ -1056,7 +1102,9 @@ export class ApiClient {
     return data.data.vehicles
   }
 
-  // Create a new vehicle with multipart/form-data (supports image upload)
+  // POST /vehicles (Admin, Staff)
+  // Create a new vehicle for a customer. Accepts multipart/form-data (supports image upload).
+  // Form fields typically include: vehicleName, model, year, VIN, mileage, plateNumber, price, image, and optional customerId.
   async createVehicle(form: FormData): Promise<VehicleRecord> {
     await this.ensureFreshAccessToken()
     const doRequest = async () =>
@@ -1085,19 +1133,22 @@ export class ApiClient {
     return data.data
   }
 
+  // GET /vehicles/{id} (Admin, Staff)
   // Get vehicle details by ID
   async getVehicleById(vehicleId: string): Promise<VehicleRecord> {
     const res = await this.fetchJson<CreateVehicleResponse>(`/vehicles/${vehicleId}`, { method: "GET" })
     return res.data
   }
 
-  // Get vehicles by customer ID
+  // GET /vehicles/customer/{customerId} (Admin, Staff)
+  // Get all vehicles belonging to a specific customer
   async getVehiclesByCustomerId(customerId: string): Promise<VehicleRecord[]> {
     const res = await this.fetchJson<VehiclesByCustomerResponse>(`/vehicles/customer/${customerId}`, { method: "GET" })
     return res.data
   }
 
-  // Assign vehicle to staff (for staff role)
+  // POST /vehicles/assign-vehicle (Admin, Staff)
+  // Assign an existing vehicle to a customer found by phone number.
   async assignVehicle(vehicleId: string, phone: string): Promise<{ success: boolean; message?: string }> {
     const res = await this.fetchJson<{ success: boolean; message?: string; data?: any }>(`/vehicles/assign-vehicle`, {
       method: "POST",
@@ -1189,6 +1240,7 @@ export class ApiClient {
     return this.fetchJson<{ success: boolean }>(`/chat/${conversationId}/close`, { method: "POST", body: JSON.stringify({}) })
   }
 
+  // PATCH /vehicles/{id} (Admin, Staff)
   // Update a vehicle with multipart/form-data (supports image upload)
   async updateVehicle(vehicleId: string, form: FormData): Promise<VehicleRecord> {
     await this.ensureFreshAccessToken()
@@ -1218,6 +1270,7 @@ export class ApiClient {
     return data.data
   }
 
+  // DELETE /vehicles/{id} (Admin, Staff)
   // Delete a vehicle
   async deleteVehicle(vehicleId: string): Promise<void> {
     await this.fetchJson(`/vehicles/${vehicleId}`, { method: "DELETE" })
@@ -1344,10 +1397,13 @@ export class ApiClient {
   }
 
   // Appointments: list
-  async getAppointments(params?: { page?: number; limit?: number }): Promise<AppointmentsListResponse> {
+  async getAppointments(params?: { page?: number; limit?: number; technician_id?: string; staff_id?: string; status?: string }): Promise<AppointmentsListResponse> {
     const url = new URL(this.buildUrl("/appointments"))
     if (params?.page) url.searchParams.set("page", String(params.page))
     if (params?.limit) url.searchParams.set("limit", String(params.limit))
+    if (params?.technician_id) url.searchParams.set("technician_id", params.technician_id)
+    if (params?.staff_id) url.searchParams.set("staff_id", params.staff_id)
+    if (params?.status) url.searchParams.set("status", params.status)
     const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
     if (!res.ok) throw new Error(await safeErrorMessage(res))
     return (await res.json()) as AppointmentsListResponse
@@ -1380,6 +1436,23 @@ export class ApiClient {
   // Appointments: delete
   async deleteAppointment(id: string): Promise<void> {
     await this.fetchJson(`/appointments/${id}`, { method: "DELETE" })
+  }
+
+  // Appointments: assign staff (Admin/Staff)
+  async assignAppointmentStaff(id: string, staffId: string): Promise<AppointmentRecord> {
+    const res = await this.fetchJson<AppointmentResponse>(`/appointments/${id}/assign-staff`, {
+      method: "PUT",
+      body: JSON.stringify({ staffId }),
+    })
+    return res.data
+  }
+
+  // Appointments: assign technician (Admin/Staff)
+  async assignAppointmentTechnician(id: string, technician_id: string): Promise<{ success: boolean; data?: any; message?: string }> {
+    return this.fetchJson<{ success: boolean; data?: any; message?: string }>(`/appointments/${id}/assign-technician`, {
+      method: "POST",
+      body: JSON.stringify({ technician_id }),
+    })
   }
 
   // Service Records: list
@@ -1419,6 +1492,27 @@ export class ApiClient {
   // Service Records: delete
   async deleteServiceRecord(id: string): Promise<void> {
     await this.fetchJson(`/service-records/${id}`, { method: "DELETE" })
+  }
+
+  // Record Checklists: get by service record id (All roles)
+  async getRecordChecklistsByRecord(recordId: string): Promise<RecordChecklistsListResponse> {
+    const res = await this.fetchJson<RecordChecklistsListResponse>(`/record-checklists/by-record/${recordId}`, { method: "GET" })
+    return res
+  }
+
+  // Record Checklists: assign one or multiple templates to a service record (Staff, Technician)
+  async createRecordChecklists(payload: CreateRecordChecklistsRequest | CreateRecordChecklistRequest): Promise<RecordChecklistsCreateResponse> {
+    return this.fetchJson(`/record-checklists`, { method: "POST", body: JSON.stringify(payload) })
+  }
+
+  // Record Checklists: update a checklist item (Technician only typically)
+  async updateRecordChecklist(id: string, payload: UpdateRecordChecklistRequest): Promise<{ success: boolean; message?: string; data: RecordChecklistItem }> {
+    return this.fetchJson(`/record-checklists/${id}`, { method: "PUT", body: JSON.stringify(payload) })
+  }
+
+  // Record Checklists: delete a checklist item (Admin/Staff/Technician)
+  async deleteRecordChecklist(id: string): Promise<void> {
+    await this.fetchJson(`/record-checklists/${id}`, { method: "DELETE" })
   }
 
   // Service Checklists: get all
