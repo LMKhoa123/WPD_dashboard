@@ -10,7 +10,8 @@ import { ArrowLeft, Calendar, DollarSign, Gauge, Hash, MapPin, User, Car as CarI
 import { getApiClient, type VehicleRecord } from "@/lib/api"
 import { toast } from "@/components/ui/use-toast"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useIsAdmin } from "@/components/auth-provider"
+import { useIsAdmin, useIsStaff } from "@/components/auth-provider"
+import { AdminOrStaffOnly } from "@/components/role-guards"
 import { VehicleDialog } from "@/components/vehicles/vehicle-dialog"
 import {
   AlertDialog,
@@ -33,6 +34,7 @@ export default function VehicleDetailPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const isAdmin = useIsAdmin()
+  const isStaff = useIsStaff()
 
   useEffect(() => {
     const run = async () => {
@@ -128,6 +130,7 @@ export default function VehicleDetailPage() {
   }
 
   return (
+    <AdminOrStaffOnly>
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
@@ -144,7 +147,7 @@ export default function VehicleDetailPage() {
           <Badge variant="secondary" className="text-base px-4 py-2">
             {vehicle.model}
           </Badge>
-          {isAdmin && (
+          {(isAdmin || isStaff) && (
             <>
               <VehicleDialog
                 vehicle={vehicle}
@@ -336,5 +339,6 @@ export default function VehicleDetailPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </AdminOrStaffOnly>
   )
 }

@@ -10,6 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Spinner } from "@/components/ui/spinner"
 import { useToast } from "@/components/ui/use-toast"
 import { Eye } from "lucide-react"
+import { AdminOrStaffOnly } from "@/components/role-guards"
 
 export default function ServicePackagesPage() {
   const [packages, setPackages] = useState<ServicePackageRecord[]>([])
@@ -59,6 +60,7 @@ export default function ServicePackagesPage() {
   }
 
   return (
+    <AdminOrStaffOnly>
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Service Packages</h1>
@@ -128,5 +130,6 @@ export default function ServicePackagesPage() {
         </Table>
       )}
     </div>
+    </AdminOrStaffOnly>
   )
 }

@@ -9,12 +9,15 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Spinner } from "@/components/ui/spinner"
 import { useToast } from "@/components/ui/use-toast"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { AdminStaffTechnicianOnly } from "@/components/role-guards"
+import { useIsAdmin } from "@/components/auth-provider"
 
 export default function ServiceCentersPage() {
   const [centers, setCenters] = useState<CenterRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const { toast } = useToast()
+  const isAdmin = useIsAdmin()
 
   const api = useMemo(() => getApiClient(), [])
 
@@ -56,10 +59,11 @@ export default function ServiceCentersPage() {
   }
 
   return (
+    <AdminStaffTechnicianOnly>
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Service Centers</h1>
-        <CenterDialog onCreated={handleCreated} />
+        {isAdmin && <CenterDialog onCreated={handleCreated} />}
       </div>
 
       {loading ? (
@@ -93,27 +97,30 @@ export default function ServiceCentersPage() {
                 <TableCell>{ct.phone}</TableCell>
                 <TableCell>{new Date(ct.createdAt).toLocaleString()}</TableCell>
                 <TableCell className="text-right space-x-2">
-                  <CenterDialog center={ct} onUpdated={handleUpdated} trigger={<Button size="sm" variant="outline">Edit</Button>} />
-
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button size="sm" variant="destructive" disabled={deletingId === ct._id}>Delete</Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Xóa trung tâm dịch vụ?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Hành động này không thể hoàn tác. Trung tâm "{ct.name}" sẽ bị xóa vĩnh viễn.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDelete(ct._id)} disabled={deletingId === ct._id}>
-                          {deletingId === ct._id ? "Deleting..." : "Delete"}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  {isAdmin && (
+                    <>
+                      <CenterDialog center={ct} onUpdated={handleUpdated} trigger={<Button size="sm" variant="outline">Edit</Button>} />
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="sm" variant="destructive" disabled={deletingId === ct._id}>Delete</Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Xóa trung tâm dịch vụ?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Hành động này không thể hoàn tác. Trung tâm "{ct.name}" sẽ bị xóa vĩnh viễn.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(ct._id)} disabled={deletingId === ct._id}>
+                              {deletingId === ct._id ? "Deleting..." : "Delete"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
@@ -121,5 +128,6 @@ export default function ServiceCentersPage() {
         </Table>
       )}
     </div>
+    </AdminStaffTechnicianOnly>
   )
 }

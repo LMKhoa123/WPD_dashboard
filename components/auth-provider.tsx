@@ -29,8 +29,8 @@ function mapApiRoleToUi(role: string | undefined | null): UserRole {
     case "TECHNICIAN":
       return "Technician"
     default:
-      // Fallback to Staff for unknown roles
-      return "Staff"
+      // Explicitly treat unknowns as Customer; backend may send "CUSTOMER"
+      return "Customer"
   }
 }
 

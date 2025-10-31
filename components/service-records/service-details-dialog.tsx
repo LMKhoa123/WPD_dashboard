@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { getApiClient, type CenterAutoPartRecord, type ServiceDetailRecord, type CreateServiceDetailRequest, type UpdateServiceDetailRequest } from "@/lib/api"
 import { useToast } from "@/components/ui/use-toast"
 import { Pencil, Trash2, Plus } from "lucide-react"
+import { useIsAdmin, useIsStaff, useRole } from "@/components/auth-provider"
 
 export interface ServiceDetailsDialogProps {
   recordId: string
@@ -33,6 +34,11 @@ export function ServiceDetailsDialog({ recordId, trigger }: ServiceDetailsDialog
 
   const api = useMemo(() => getApiClient(), [])
   const { toast } = useToast()
+  const isAdmin = useIsAdmin()
+  const isStaff = useIsStaff()
+  const role = useRole()
+  const isTechnician = role === "Technician"
+  const canCreate = isStaff || isTechnician
 
   const resetForm = () => {
     setEditing(null)
@@ -138,6 +144,7 @@ export function ServiceDetailsDialog({ recordId, trigger }: ServiceDetailsDialog
           <DialogTitle>Service Details</DialogTitle>
         </DialogHeader>
 
+        {(canCreate || !!editing) && (
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -177,6 +184,7 @@ export function ServiceDetailsDialog({ recordId, trigger }: ServiceDetailsDialog
             <Button type="submit" disabled={saving}>{editing ? "Update" : "Add Detail"}</Button>
           </div>
         </form>
+        )}
 
         <div className="mt-6 rounded-md border">
           <Table>

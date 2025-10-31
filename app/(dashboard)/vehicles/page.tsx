@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Search, Pencil, Trash2, Plus, Car, Eye, UserPlus } from "lucide-react"
 import { useIsAdmin, useIsStaff } from "@/components/auth-provider"
+import { AdminOrStaffOnly } from "@/components/role-guards"
 import { getApiClient, type VehicleRecord } from "@/lib/api"
 import { toast } from "@/components/ui/use-toast"
 import { VehicleDialog } from "@/components/vehicles/vehicle-dialog"
@@ -112,13 +113,14 @@ export default function VehiclesPage() {
   }
 
   return (
+    <AdminOrStaffOnly>
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Vehicles</h1>
           <p className="text-muted-foreground">Manage vehicle registrations and information</p>
         </div>
-        {isAdmin && (
+        {(isAdmin || isStaff) && (
           <VehicleDialog
             trigger={
               <Button>
@@ -239,7 +241,7 @@ export default function VehiclesPage() {
                                 <Eye className="h-4 w-4" />
                               </Button>
                             </Link>
-                            {isStaff && (
+                            {(isAdmin || isStaff) && (
                               <AssignVehicleDialog
                                 vehicleId={v._id}
                                 vehicleName={v.vehicleName}
@@ -250,7 +252,7 @@ export default function VehiclesPage() {
                                 }
                               />
                             )}
-                            {isAdmin && (
+                            {(isAdmin || isStaff) && (
                               <>
                                 <VehicleDialog
                                   vehicle={v}
@@ -306,5 +308,6 @@ export default function VehiclesPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </AdminOrStaffOnly>
   )
 }

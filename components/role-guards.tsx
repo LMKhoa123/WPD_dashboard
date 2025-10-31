@@ -65,3 +65,19 @@ export function AdminOrStaffOnly({ children }: { children: React.ReactNode }) {
   if (!user || (user.role !== "Admin" && user.role !== "Staff")) return null
   return <>{children}</>
 }
+
+// Allow Admin, Staff, or Technician
+export function AdminStaffTechnicianOnly({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!loading && user && user.role !== "Admin" && user.role !== "Staff" && user.role !== "Technician") {
+      router.replace("/")
+    }
+  }, [user, loading, router])
+
+  if (loading) return null
+  if (!user || (user.role !== "Admin" && user.role !== "Staff" && user.role !== "Technician")) return null
+  return <>{children}</>
+}

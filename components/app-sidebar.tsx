@@ -30,8 +30,32 @@ const baseNav = [
 const technicianNav = [
   {
     title: "My Service Records",
-    url: "/technician/service-records",
+    url: "/service-records",
     icon: FileText,
+  },
+  {
+    title: "My Shifts",
+    url: "/technician/shifts",
+    icon: Calendar,
+  },
+  {
+    title: "Service Centers",
+    url: "/centers",
+    icon: MapPin,
+  },
+  {
+    title: "Center Inventory",
+    url: "/center-auto-parts",
+    icon: Package,
+  },
+]
+
+const customerNav = [
+  // Minimal customer navigation. Extend later with "My Subscriptions" when page exists
+  {
+    title: "Chat",
+    url: "/chat",
+    icon: MessageSquare,
   },
 ]
 
@@ -42,15 +66,20 @@ const staffNav = [
     icon: Calendar,
   },
   {
+    title: "Shift Calendar",
+    url: "/shift-assignments",
+    icon: Calendar,
+  },
+  {
     title: "Service Records",
     url: "/service-records",
     icon: FileText,
   },
-  {
-    title: "Service Checklists",
-    url: "/service-checklists",
-    icon: ClipboardCheck,
-  },
+  // {
+  //   title: "Service Checklists",
+  //   url: "/service-checklists",
+  //   icon: ClipboardCheck,
+  // },
   {
     title: "Customers",
     url: "/customers",
@@ -67,6 +96,26 @@ const staffNav = [
     icon: Package,
   },
   {
+    title: "Payments",
+    url: "/payments",
+    icon: CreditCard,
+  },
+  {
+    title: "Center Inventory",
+    url: "/center-auto-parts",
+    icon: Package,
+  },
+  { 
+    title: "Service Packages", 
+    url: "/service-packages", 
+    icon: Package 
+  },
+  { 
+    title: "Vehicle Subscriptions", 
+    url: "/vehicle-subscriptions", 
+    icon: Car 
+  },
+  {
     title: "Chat",
     url: "/chat",
     icon: MessageSquare,
@@ -77,6 +126,11 @@ const adminNav = [
   {
     title: "Appointments",
     url: "/appointments",
+    icon: Calendar,
+  },
+  {
+    title: "Shift Calendar",
+    url: "/shift-assignments",
     icon: Calendar,
   },
   {
@@ -125,6 +179,11 @@ const adminNav = [
     icon: Wrench 
   },
   { 
+    title: "Center Inventory", 
+    url: "/center-auto-parts", 
+    icon: Package, 
+  },
+  { 
     title: "Users", 
     url: "/users", 
     icon: Users 
@@ -158,6 +217,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const navItems = (() => {
     if (role === "Technician") {
       return [...baseNav, ...technicianNav]
+    } else if (role === "Customer") {
+      return [...baseNav, ...customerNav]
     } else if (role === "Staff") {
       return [...baseNav, ...staffNav]
     } else {
