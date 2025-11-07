@@ -24,17 +24,33 @@ export function CreatePaymentDialog({ record, trigger, onCreated }: Props) {
   const [description, setDescription] = useState<string>("Payment for service")
   const [creating, setCreating] = useState(false)
   const [created, setCreated] = useState<PaymentRecord | null>(null)
+  // Manual fallback when we cannot resolve customer from appointment
+  const [needCustomerId, setNeedCustomerId] = useState(false)
+  const [customerIdManual, setCustomerIdManual] = useState<string>("")
 
   // Auto-fill customer ID & URLs (hidden from user)
-  const getCustomerId = useCallback(() => {
+  // Try to resolve customer id from record -> appointment
+  const resolveCustomerId = useCallback(async (): Promise<string | undefined> => {
     try {
-      const apt: any = typeof record.appointment_id === 'object' ? record.appointment_id : null
-      const cust = apt && typeof apt.customer_id === 'object' ? apt.customer_id : null
-      return cust?._id
+      const aptRef: any = record.appointment_id
+      // If appointment embedded as object
+      if (aptRef && typeof aptRef === 'object') {
+        const cust = (aptRef as any).customer_id
+        if (typeof cust === 'string') return cust
+        if (cust && typeof cust === 'object' && cust._id) return cust._id as string
+      }
+      // If appointment is just an id string, fetch it
+      if (typeof aptRef === 'string') {
+        const ap = await api.getAppointmentById(aptRef)
+        const cust = (ap as any).customer_id
+        if (typeof cust === 'string') return cust
+        if (cust && typeof cust === 'object' && cust._id) return cust._id as string
+      }
     } catch {
-      return undefined
+      // ignore
     }
-  }, [record])
+    return undefined
+  }, [api, record.appointment_id])
 
   const getReturnUrl = useCallback(() => {
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
@@ -67,9 +83,18 @@ export function CreatePaymentDialog({ record, trigger, onCreated }: Props) {
     }
     try {
       setCreating(true)
+      const autoId = await resolveCustomerId()
+      const customerId = autoId || (customerIdManual.trim() || undefined)
+      if (!customerId) {
+        // Ask user to input manually
+        setNeedCustomerId(true)
+        toast({ title: "Thiếu thông tin khách hàng", description: "Vui lòng nhập Customer ID hoặc gắn lịch hẹn có khách hàng.", variant: "destructive" })
+        setCreating(false)
+        return
+      }
       const payment = await api.createPayment({
         service_record_id: record._id,
-        customer_id: getCustomerId(),
+        customer_id: customerId,
         amount,
         description,
         payment_type: "service_record",
@@ -125,6 +150,13 @@ export function CreatePaymentDialog({ record, trigger, onCreated }: Props) {
                 <Label>Mô tả *</Label>
                 <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ví dụ: Thanh toán dịch vụ bảo dưỡng" />
               </div>
+              {needCustomerId && (
+                <div className="grid gap-2">
+                  <Label>Customer ID *</Label>
+                  <Input value={customerIdManual} onChange={(e) => setCustomerIdManual(e.target.value)} placeholder="Nhập Customer ID khi không tự xác định được từ lịch hẹn" />
+                  <p className="text-xs text-muted-foreground">Hệ thống yêu cầu customer_id. Nếu record chưa gắn appointment có khách hàng, vui lòng nhập thủ công.</p>
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -75,6 +75,11 @@ const staffNav = [
     url: "/service-records",
     icon: FileText,
   },
+  {
+    title: "Status Board",
+    url: "/service-records/board",
+    icon: ClipboardCheck,
+  },
   // {
   //   title: "Service Checklists",
   //   url: "/service-checklists",
@@ -137,6 +142,11 @@ const adminNav = [
     title: "Service Records",
     url: "/service-records",
     icon: FileText,
+  },
+  {
+    title: "Status Board",
+    url: "/service-records/board",
+    icon: ClipboardCheck,
   },
   {
     title: "Service Checklists",

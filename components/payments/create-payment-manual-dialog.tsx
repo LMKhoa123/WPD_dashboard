@@ -26,6 +26,7 @@ export function CreatePaymentManualDialog({ trigger, onCreated }: Props) {
   const [description, setDescription] = useState<string>("")
   const [creating, setCreating] = useState(false)
   const [created, setCreated] = useState<PaymentRecord | null>(null)
+  const [customerIdInput, setCustomerIdInput] = useState<string>("")
 
   const getReturnUrl = () => {
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
@@ -50,7 +51,30 @@ export function CreatePaymentManualDialog({ trigger, onCreated }: Props) {
         returnUrl: getReturnUrl(),
         cancelUrl: getCancelUrl(),
       }
-      if (type === 'service_record') payload.service_record_id = refId
+      if (type === 'service_record') {
+        payload.service_record_id = refId
+        // Ensure customer_id is present: use input if provided, else try to resolve via service record -> appointment
+        if (customerIdInput) {
+          payload.customer_id = customerIdInput
+        } else {
+          try {
+            const rec = await api.getServiceRecordById(refId)
+            const aptRef: any = rec.appointment_id
+            if (aptRef && typeof aptRef === 'object') {
+              const cust = (aptRef as any).customer_id
+              if (typeof cust === 'string') payload.customer_id = cust
+              else if (cust && typeof cust === 'object' && cust._id) payload.customer_id = cust._id
+            } else if (typeof aptRef === 'string') {
+              const ap = await api.getAppointmentById(aptRef)
+              const cust = (ap as any).customer_id
+              if (typeof cust === 'string') payload.customer_id = cust
+              else if (cust && typeof cust === 'object' && cust._id) payload.customer_id = cust._id
+            }
+          } catch {
+            // ignore; backend will validate
+          }
+        }
+      }
       else payload.subscription_id = refId
       const payment = await api.createPayment(payload)
       setCreated(payment)
@@ -107,6 +131,12 @@ export function CreatePaymentManualDialog({ trigger, onCreated }: Props) {
                 <Label>{type === 'service_record' ? 'Service Record ID' : 'Subscription ID'} *</Label>
                 <Input value={refId} onChange={(e) => setRefId(e.target.value)} placeholder={type === 'service_record' ? 'e.g. 64f...' : 'e.g. 64f...'} />
               </div>
+              {type === 'service_record' && (
+                <div className="grid gap-2">
+                  <Label>Customer ID (tùy chọn)</Label>
+                  <Input value={customerIdInput} onChange={(e) => setCustomerIdInput(e.target.value)} placeholder="Nếu để trống, hệ thống sẽ cố suy ra từ Service Record" />
+                </div>
+              )}
               <div className="grid gap-2">
                 <Label>Số tiền (VND) *</Label>
                 <Input type="number" value={amount} onChange={(e) => setAmount(Number(e.target.value))} min={0} />

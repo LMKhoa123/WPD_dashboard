@@ -15,14 +15,14 @@ export default function DashboardPage() {
   const router = useRouter()
 
   useEffect(() => {
-    // Redirect technician to their own dashboard
-    if (user?.role === "Technician") {
-      router.replace("/technician")
-    }
+    // Redirect by role to tailored landing pages
+    if (user?.role === "Technician") router.replace("/technician")
+    else if (user?.role === "Staff") router.replace("/staff-home")
+    else if (user?.role === "Admin") router.replace("/admin")
   }, [user, router])
 
-  // If user is technician, show loading while redirecting
-  if (user?.role === "Technician") {
+  // Show nothing while redirecting to role home
+  if (user?.role === "Technician" || user?.role === "Staff" || user?.role === "Admin") {
     return null
   }
 
