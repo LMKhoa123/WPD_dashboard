@@ -10,6 +10,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Label } from "@/components/ui/label"
 import { Calendar as CalendarIcon, Clock, Plus, User, Pencil, Trash2 } from "lucide-react"
 import { getApiClient, type WorkshiftRecord, type UserAccount, type SystemUserRecord } from "@/lib/api"
+import { useWorkShifts } from "@/hooks/use-workshifts"
+import { useShiftAssignments } from "@/hooks/use-shift-assignments"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -85,10 +87,15 @@ export function CalendarShiftView() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth())
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear())
+  const [selectedCenterId, setSelectedCenterId] = useState<string>("all")
+  // Workshifts fetched via React Query (cached)
+  const centerFilter = selectedCenterId === "all" ? undefined : selectedCenterId
+  const { data: allWorkshifts, isLoading: workshiftLoading, isError: workshiftError } = useWorkShifts(centerFilter)
   const [workshifts, setWorkshifts] = useState<WorkshiftRecord[]>([])
   const [shiftAssignments, setShiftAssignments] = useState<ShiftAssignment[]>([])
   const [members, setMembers] = useState<Member[]>([])
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("ALL")
+  const [centers, setCenters] = useState<{ _id: string; name: string }[]>([])
   const [loading, setLoading] = useState(false)
   const filteredMembers = useMemo(() => {
     if (roleFilter === "ALL") return members
@@ -100,6 +107,11 @@ export function CalendarShiftView() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
   const [selectedShiftType, setSelectedShiftType] = useState<ShiftType>("morning")
   const [selectedStaff, setSelectedStaff] = useState<string[]>([])
+  const [selectedWorkshiftIds, setSelectedWorkshiftIds] = useState<string[]>([])
+  const [availableWorkshifts, setAvailableWorkshifts] = useState<WorkshiftRecord[]>([])
+  const [assignCenterId, setAssignCenterId] = useState<string>("")
+  const [staff, setStaff] = useState<SystemUserRecord[]>([])
+  const [technicians, setTechnicians] = useState<SystemUserRecord[]>([])
   const [saving, setSaving] = useState(false)
 
   // Edit Modal state
@@ -112,24 +124,23 @@ export function CalendarShiftView() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletingAssignment, setDeletingAssignment] = useState<ShiftAssignment | null>(null)
 
+  // Stable loader for centers & members (workshifts are fetched via React Query)
   const loadData = useCallback(async () => {
     try {
       setLoading(true)
       const api = getApiClient()
-      // Load workshifts, system users (staff profiles) and user accounts for role mapping
-      const [ws, sysUsersResp, allUsers] = await Promise.all([
-        api.getWorkshifts(),
-        api.getSystemUsers({ limit: 500 }),
+      // Load centers first
+      const centersRes = await api.getCenters({ limit: 100 })
+      setCenters(centersRes.data.centers)
+      
+      // Load system users (staff profiles) and user accounts for role mapping
+      const [sysUsersResp, allUsers] = await Promise.all([
+        api.getSystemUsers({ 
+          limit: 500,
+          centerId: centerFilter
+        }),
         api.getUsers({ page: 1, limit: 1000 })
       ])
-      
-      // Filter for selected month
-      const filtered = ws.filter(w => {
-        const date = new Date(w.shift_date)
-        return date.getMonth() === selectedMonth && date.getFullYear() === selectedYear
-      })
-      
-      setWorkshifts(filtered)
 
       const usersById = new Map(allUsers.map(u => [u._id, u]))
       const sysUsers = sysUsersResp.data.systemUsers
@@ -159,47 +170,107 @@ export function CalendarShiftView() {
       const onlyRelevant = mappedMembers.filter(m => m.role === "TECHNICIAN" || m.role === "STAFF")
       setMembers(onlyRelevant)
       
-      // Load assignments for all workshifts
-      const allAssignments: ShiftAssignment[] = []
-      for (const ws of filtered) {
-        try {
-          const userIds = await api.getShiftAssignmentsByShift(ws.shift_id)
-          userIds.forEach(userId => {
-            const member = onlyRelevant.find(m => m.systemUserId === userId)
-            if (member) {
-              allAssignments.push({
-                _id: `${ws._id}-${userId}`,
-                system_user_id: userId,
-                shift_id: ws.shift_id,
-                userName: member.name || member.email?.split('@')[0] || 'Unknown',
-                userEmail: member.email || '',
-                date: ws.shift_date,
-                shiftType: getShiftType(ws.start_time, ws.end_time),
-                startTime: ws.start_time,
-                endTime: ws.end_time
-              })
-            }
-          })
-        } catch (err) {
-          // Skip if no assignments
-        }
-      }
-      setShiftAssignments(allAssignments)
+      // Assignments are fetched and cached via React Query in a separate hook.
       
     } catch (err: any) {
-      toast({
-        title: "Lỗi tải dữ liệu",
-        description: err?.message || "Failed to load data",
-        variant: "destructive"
-      })
+      console.error('Load data error', err)
     } finally {
       setLoading(false)
     }
-  }, [selectedMonth, selectedYear, toast])
+  }, [centerFilter])
 
+  // Load available staff when center is selected (for assign dialog)
+  const loadAvailableStaff = useCallback(async (centerId: string) => {
+    try {
+      const api = getApiClient()
+      const [sysUsersResp, allUsers] = await Promise.all([
+        api.getSystemUsers({ limit: 500, centerId }),
+        api.getUsers({ page: 1, limit: 1000 })
+      ])
+
+      // getUsers returns UserAccount[] directly
+      const userRoleMap = new Map<string, string>()
+      allUsers.forEach(u => {
+        userRoleMap.set(u._id, u.role)
+      })
+
+      const systemUsers = sysUsersResp.data.systemUsers
+      const staffList = systemUsers.filter((su: SystemUserRecord) => {
+        const userId = typeof su.userId === 'string' ? su.userId : su.userId._id
+        const role = userRoleMap.get(userId)
+        return role === "STAFF"
+      })
+      const techList = systemUsers.filter((su: SystemUserRecord) => {
+        const userId = typeof su.userId === 'string' ? su.userId : su.userId._id
+        const role = userRoleMap.get(userId)
+        return role === "TECHNICIAN"
+      })
+
+      setStaff(staffList)
+      setTechnicians(techList)
+    } catch (err) {
+      console.error("Error loading staff for center:", err)
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải danh sách nhân viên",
+        variant: "destructive"
+      })
+    }
+  }, [toast])
+
+  // Refetch mapping data when month/year/center changes or workshifts updated
+  // Initial & dependency-based data load (debounced against rapid state changes)
+  // Run loadData only when filters change; guard against infinite loop by checking loading flag.
+  useEffect(() => { loadData() }, [loadData])
+
+  // Update filtered workshifts when underlying cache changes
   useEffect(() => {
-    loadData()
-  }, [loadData])
+    const relevant = (centerFilter
+      ? allWorkshifts.filter(w => w.center_id === centerFilter)
+      : allWorkshifts)
+    const filtered = relevant.filter(w => {
+      const date = new Date(w.shift_date)
+      return date.getMonth() === selectedMonth && date.getFullYear() === selectedYear
+    })
+    // Only update if changed (shallow compare by id + length)
+    const sameLength = filtered.length === workshifts.length
+    const sameIds = sameLength && filtered.every((w, i) => w._id === workshifts[i]?._id)
+    if (!sameLength || !sameIds) {
+      setWorkshifts(filtered)
+    }
+  }, [allWorkshifts, centerFilter, selectedMonth, selectedYear, workshifts])
+
+  // Cache and aggregate assignments for current month+center workshifts
+  const workshiftIds = useMemo(() => workshifts.map(w => w._id), [workshifts])
+  const { data: cachedAssignments = [] } = useShiftAssignments(workshiftIds)
+
+  // Derive shiftAssignments (component local shape) from cachedAssignments + members
+  useEffect(() => {
+    const mapped: ShiftAssignment[] = []
+    for (const ws of workshifts) {
+      const usersForShift = cachedAssignments.filter(a => a.workshiftId === ws._id)
+      usersForShift.forEach(a => {
+        const member = members.find(m => m.systemUserId === a.systemUserId)
+        if (member) {
+          mapped.push({
+            _id: `${ws._id}-${a.systemUserId}`,
+            system_user_id: a.systemUserId,
+            shift_id: ws._id,
+            userName: member.name || member.email?.split('@')[0] || 'Unknown',
+            userEmail: member.email || '',
+            date: ws.shift_date,
+            shiftType: getShiftType(ws.start_time, ws.end_time),
+            startTime: ws.start_time,
+            endTime: ws.end_time
+          })
+        }
+      })
+    }
+    // Shallow equality check to avoid loops
+    if (mapped.length !== shiftAssignments.length || mapped.some((m,i)=> m._id !== shiftAssignments[i]?._id)) {
+      setShiftAssignments(mapped)
+    }
+  }, [cachedAssignments, workshifts, members])
 
   // Visible members based on role filter
   const visibleUserIds = useMemo(() => new Set(filteredMembers.map(m => m.systemUserId)), [filteredMembers])
@@ -305,7 +376,25 @@ export function CalendarShiftView() {
     if (!selectedDate || selectedStaff.length === 0) {
       toast({
         title: "Validation Error",
-        description: "Please select date and at least one staff member",
+        description: "Vui lòng chọn ngày và ít nhất một nhân viên",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (!assignCenterId || assignCenterId === "all") {
+      toast({
+        title: "Validation Error",
+        description: "Vui lòng chọn một trung tâm cụ thể",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (selectedWorkshiftIds.length === 0) {
+      toast({
+        title: "Validation Error",
+        description: "Vui lòng chọn ít nhất một ca làm việc",
         variant: "destructive"
       })
       return
@@ -315,56 +404,32 @@ export function CalendarShiftView() {
       setSaving(true)
       const api = getApiClient()
       
-      // Format date
-      const dateStr = format(selectedDate, 'yyyy-MM-dd')
-      const timeRange = shiftTimeRanges[selectedShiftType]
-      
-      // Create workshift first
-      const shiftId = `shift-${dateStr}-${selectedShiftType}`
-      
-      try {
-        await api.createWorkshift({
-          shift_id: shiftId,
-          shift_date: dateStr,
-          start_time: timeRange.start,
-          end_time: timeRange.end,
-          status: "active",
-          center_id: "default"
-        })
-      } catch (err) {
-        // Workshift might already exist, continue
-      }
-      
-      // Assign staff to shift
-      await api.assignShifts({
-        system_user_id: selectedStaff[0], // system user (staff) IDs
-        shift_ids: [shiftId]
-      })
-      
-      // If multiple staff, assign them one by one
-      for (let i = 1; i < selectedStaff.length; i++) {
+      // Assign all selected staff to selected workshifts
+      for (const staffId of selectedStaff) {
         await api.assignShifts({
-          system_user_id: selectedStaff[i],
-          shift_ids: [shiftId]
+          system_user_id: staffId,
+          workshift_ids: selectedWorkshiftIds
         })
       }
       
       toast({
-        title: "Success",
-        description: `Assigned ${selectedStaff.length} staff to ${shiftLabels[selectedShiftType]} shift`
+        title: "Thành công",
+        description: `Đã phân công ${selectedStaff.length} nhân viên vào ${selectedWorkshiftIds.length} ca làm việc`
       })
       
       // Reset and reload
       setNewShiftModalOpen(false)
       setSelectedStaff([])
+      setSelectedWorkshiftIds([])
+      setAvailableWorkshifts([])
       setSelectedDate(new Date())
-      setSelectedShiftType("morning")
+      setAssignCenterId("")
       loadData()
       
     } catch (err: any) {
       toast({
-        title: "Error",
-        description: err?.message || "Failed to create shift assignment",
+        title: "Lỗi",
+        description: err?.message || "Không thể tạo phân công ca làm việc",
         variant: "destructive"
       })
     } finally {
@@ -376,7 +441,30 @@ export function CalendarShiftView() {
     setSelectedDate(new Date())
     setSelectedStaff([])
     setSelectedShiftType("morning")
+    setSelectedWorkshiftIds([])
+    setAvailableWorkshifts([])
+    setAssignCenterId(selectedCenterId !== "all" ? selectedCenterId : "")
     setNewShiftModalOpen(true)
+  }
+
+  // Load workshifts when center or date changes in dialog
+  const loadAvailableWorkshifts = async (centerId: string, date: Date) => {
+    if (!centerId) return
+    try {
+      const dateStr = format(date, 'yyyy-MM-dd')
+      // Explicitly call API for the selected center to ensure latest data
+      const api = getApiClient()
+      const list = await api.getWorkshifts({ center_id: centerId, limit: 500 })
+      const shiftsForDate = list.filter(ws => ws.shift_date.startsWith(dateStr))
+      setAvailableWorkshifts(shiftsForDate)
+    } catch (err: any) {
+      console.error('Failed loading workshifts for dialog', err)
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải danh sách ca làm việc",
+        variant: "destructive"
+      })
+    }
   }
 
   // Handle edit assignment
@@ -397,36 +485,32 @@ export function CalendarShiftView() {
       const dateStr = format(editDate, 'yyyy-MM-dd')
       const timeRange = shiftTimeRanges[editShiftType]
       
-      // Create new workshift with updated details
-      const newShiftId = `shift-${dateStr}-${editShiftType}`
-      
-      try {
-        await api.createWorkshift({
-          shift_id: newShiftId,
-          shift_date: dateStr,
-          start_time: timeRange.start,
-          end_time: timeRange.end,
-          status: "active",
-          center_id: "default"
-        })
-      } catch (err) {
-        // Shift might exist
-      }
-      
-      // Get all assignments for this user to find the real _id
-      const userAssignments = await api.getShiftAssignmentsByUser(editingAssignment.system_user_id)
-      const assignmentToDelete = userAssignments.find(a => 
-        a.shift_id === editingAssignment.shift_id
+      // Find existing workshift matching new details from cached list instead of creating
+      const candidate = allWorkshifts.find(s => 
+        s.shift_date.startsWith(dateStr) &&
+        s.start_time === timeRange.start &&
+        s.end_time === timeRange.end &&
+        (selectedCenterId === 'all' || s.center_id === selectedCenterId)
       )
-      
-      if (assignmentToDelete && assignmentToDelete._id) {
-        await api.deleteShiftAssignment(assignmentToDelete._id)
+      if (!candidate) {
+        toast({
+          title: 'Không tìm thấy ca làm việc',
+          description: 'Hãy tạo trước workshift tương ứng trước khi cập nhật.',
+          variant: 'destructive'
+        })
+        setSaving(false)
+        return
       }
+      const newWorkshiftId = candidate._id
+      
+      // Get all assignments for this user to find assignments to delete
+      // Fetch assignments for user (cache could be introduced later)
+      const userAssignments = await api.getShiftAssignmentsByUser(editingAssignment.system_user_id)
       
       // Create new assignment
       await api.assignShifts({
         system_user_id: editingAssignment.system_user_id,
-        shift_ids: [newShiftId]
+        workshift_ids: [newWorkshiftId]
       })
       
       toast({
@@ -464,8 +548,9 @@ export function CalendarShiftView() {
       
       // Get all assignments for this user to find the real _id
       const userAssignments = await api.getShiftAssignmentsByUser(deletingAssignment.system_user_id)
+      // Match by workshift _id (deletingAssignment.shift_id is actually workshift _id)
       const assignmentToDelete = userAssignments.find(a => 
-        a.shift_id === deletingAssignment.shift_id
+        a._id === deletingAssignment.shift_id
       )
       
       if (assignmentToDelete && assignmentToDelete._id) {
@@ -475,8 +560,8 @@ export function CalendarShiftView() {
       }
       
       toast({
-        title: "Success",
-        description: "Shift assignment deleted successfully"
+        title: "Thành công",
+        description: "Đã xóa phân công ca làm việc"
       })
       
       setDeleteDialogOpen(false)
@@ -509,6 +594,21 @@ export function CalendarShiftView() {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-800">Calendar</h1>
         <div className="flex items-center gap-3">
+          {/* Center filter */}
+          <Select value={selectedCenterId} onValueChange={setSelectedCenterId}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Tất cả trung tâm" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả trung tâm</SelectItem>
+              {centers.map((center) => (
+                <SelectItem key={center._id} value={center._id}>
+                  {center.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
           {/* Role filter */}
           <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as RoleFilter)}>
             <SelectTrigger className="w-[140px]">
@@ -550,18 +650,31 @@ export function CalendarShiftView() {
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-6 text-sm">
+      <div className="flex items-center gap-6 text-sm bg-white border rounded-lg p-3 shadow-sm">
+        <span className="font-semibold text-gray-700">Ca làm việc:</span>
         <div className="flex items-center gap-2">
           <span className="inline-block w-3 h-3 rounded bg-yellow-400" />
-          <span>Morning</span>
+          <span>Sáng (Morning)</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="inline-block w-3 h-3 rounded bg-orange-400" />
-          <span>Afternoon</span>
+          <span>Chiều (Afternoon)</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="inline-block w-3 h-3 rounded bg-purple-500" />
-          <span>Night</span>
+          <span>Tối (Night)</span>
+        </div>
+        <div className="ml-8 flex items-center gap-2">
+          <span className="inline-block w-4 h-4 rounded border border-yellow-400 bg-yellow-50" />
+          <span className="text-xs">Chỉ ca sáng</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="inline-block w-4 h-4 rounded border border-orange-400 bg-orange-50" />
+          <span className="text-xs">Chỉ ca chiều</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="inline-block w-4 h-4 rounded border border-purple-400 bg-purple-50" />
+          <span className="text-xs">Nhiều ca</span>
         </div>
       </div>
 
@@ -587,13 +700,31 @@ export function CalendarShiftView() {
                               selectedMonth === currentDate.getMonth() && 
                               selectedYear === currentDate.getFullYear()
                 
+                // Determine background color based on shift types
+                let bgColorClass = "bg-white"
+                if (day.isCurrentMonth && uniqueShiftTypes.length > 0) {
+                  if (uniqueShiftTypes.length > 1) {
+                    // Multiple shifts
+                    bgColorClass = "bg-purple-50 border-purple-200"
+                  } else if (uniqueShiftTypes[0] === "morning") {
+                    // Only morning shift
+                    bgColorClass = "bg-yellow-50 border-yellow-200"
+                  } else if (uniqueShiftTypes[0] === "evening") {
+                    // Only afternoon shift
+                    bgColorClass = "bg-orange-50 border-orange-200"
+                  } else {
+                    // Night shift
+                    bgColorClass = "bg-purple-50 border-purple-200"
+                  }
+                }
+                
                 return (
                   <Popover key={idx}>
                     <PopoverTrigger asChild>
                       <div
                         className={cn(
                           "aspect-square border rounded-lg p-2 flex flex-col cursor-pointer transition-all",
-                          day.isCurrentMonth ? "bg-white border-gray-200 hover:shadow-md hover:border-indigo-300" : "bg-gray-50 border-gray-100",
+                          day.isCurrentMonth ? `${bgColorClass} hover:shadow-md hover:border-indigo-300` : "bg-gray-50 border-gray-100",
                           isToday && "ring-2 ring-indigo-500 ring-offset-1"
                         )}
                       >
@@ -838,98 +969,289 @@ export function CalendarShiftView() {
 
       {/* New Shift Modal */}
       <Dialog open={newShiftModalOpen} onOpenChange={setNewShiftModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Create New Shift</DialogTitle>
+            <DialogTitle>Phân công ca làm việc</DialogTitle>
             <DialogDescription>
-              Assign staff members to a shift on a specific date
+              Chọn trung tâm, ngày và các ca làm việc, sau đó chọn nhân viên cần phân công
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 py-4">
-            {/* Date Picker */}
-            <div className="space-y-2">
-              <Label>Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !selectedDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <CalendarPicker
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            {/* Shift Type */}
-            <div className="space-y-2">
-              <Label>Shift Type</Label>
-              <Select value={selectedShiftType} onValueChange={(v) => setSelectedShiftType(v as ShiftType)}>
-                <SelectTrigger>
-                  <SelectValue />
+          <div className="space-y-6 py-4">
+            {/* Step 1: Center Selection */}
+            <div className="space-y-2 border-b pb-4">
+              <Label className="text-base font-semibold flex items-center gap-2">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm">1</span>
+                Chọn trung tâm
+              </Label>
+              <Select 
+                value={assignCenterId || undefined} 
+                onValueChange={(val) => {
+                  setAssignCenterId(val)
+                  // Load both workshifts and staff when center changes
+                  if (val) {
+                    loadAvailableStaff(val)
+                    if (selectedDate) {
+                      loadAvailableWorkshifts(val, selectedDate)
+                    }
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Chọn trung tâm..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {(Object.keys(shiftLabels) as ShiftType[]).map(type => (
-                    <SelectItem key={type} value={type}>
-                      <div className="flex items-center gap-2">
-                        <div className={cn("w-3 h-3 rounded-full", shiftColors[type])} />
-                        <span>{shiftLabels[type]}</span>
-                        <span className="text-xs text-gray-500">
-                          ({shiftTimeRanges[type].start} - {shiftTimeRanges[type].end})
-                        </span>
-                      </div>
+                  {centers.map((center) => (
+                    <SelectItem key={center._id} value={center._id}>
+                      {center.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Staff Selection */}
-            <div className="space-y-2">
-              <Label>Select Members ({selectedStaff.length} selected)</Label>
-              <div className="border rounded-md p-3 max-h-[200px] overflow-y-auto space-y-2">
-                {filteredMembers.map(user => (
-                  <label key={user.systemUserId} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
-                    <input
-                      type="checkbox"
-                      checked={selectedStaff.includes(user.systemUserId)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedStaff([...selectedStaff, user.systemUserId])
-                        } else {
-                          setSelectedStaff(selectedStaff.filter(id => id !== user.systemUserId))
+            {/* Step 2: Date & Workshifts Selection */}
+            <div className="space-y-4 border-b pb-4">
+              <Label className="text-base font-semibold flex items-center gap-2">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm">2</span>
+                Chọn ngày và ca làm việc
+              </Label>
+              
+              {/* Date Picker */}
+              <div className="space-y-2">
+                <Label className="text-sm">Ngày làm việc</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !selectedDate && "text-muted-foreground"
+                      )}
+                      disabled={!assignCenterId}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {selectedDate ? format(selectedDate, "PPP") : <span>Chọn ngày</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarPicker
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={(date) => {
+                        setSelectedDate(date)
+                        // Always refresh available workshifts when user changes date
+                        if (date && assignCenterId) {
+                          loadAvailableWorkshifts(assignCenterId, date)
                         }
                       }}
-                      className="rounded border-gray-300"
+                      initialFocus
                     />
-                    <User className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm">{user.name || user.email?.split('@')[0] || user.systemUserId}</span>
-                    <span className="ml-auto text-xs text-gray-500">{user.role}</span>
-                  </label>
-                ))}
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Workshifts Selection */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm">Ca làm việc ({selectedWorkshiftIds.length} đã chọn)</Label>
+                  {selectedWorkshiftIds.length > 0 && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setSelectedWorkshiftIds([])}
+                      className="h-7 text-xs"
+                    >
+                      Bỏ chọn tất cả
+                    </Button>
+                  )}
+                </div>
+                
+                {!assignCenterId || !selectedDate ? (
+                  <div className="border rounded-lg p-8 text-center text-muted-foreground">
+                    Vui lòng chọn trung tâm và ngày trước
+                  </div>
+                ) : availableWorkshifts.length === 0 ? (
+                  <div className="border rounded-lg p-8 text-center text-muted-foreground">
+                    Không có ca làm việc nào cho ngày này
+                  </div>
+                ) : (
+                  <div className="border rounded-lg p-4 max-h-[200px] overflow-y-auto space-y-2">
+                    {availableWorkshifts.map(ws => {
+                      const shiftType = getShiftType(ws.start_time, ws.end_time)
+                      return (
+                        <label 
+                          key={ws._id} 
+                          className={cn(
+                            "flex items-center gap-3 cursor-pointer p-3 rounded-lg transition-colors border",
+                            selectedWorkshiftIds.includes(ws._id) 
+                              ? "bg-primary/10 border-primary" 
+                              : "hover:bg-accent border-transparent"
+                          )}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedWorkshiftIds.includes(ws._id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedWorkshiftIds([...selectedWorkshiftIds, ws._id])
+                              } else {
+                                setSelectedWorkshiftIds(selectedWorkshiftIds.filter(id => id !== ws._id))
+                              }
+                            }}
+                            className="rounded border-gray-300 h-4 w-4"
+                          />
+                          <div className={cn("w-3 h-3 rounded-full", shiftColors[shiftType])} />
+                          <div className="flex-1">
+                            <div className="font-medium text-sm">
+                              {shiftLabels[shiftType]}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {ws.start_time} - {ws.end_time}
+                            </div>
+                          </div>
+                          <Badge variant={ws.status === "active" ? "default" : "secondary"}>
+                            {ws.status}
+                          </Badge>
+                        </label>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Step 3: Staff & Technician Selection */}
+            <div className="space-y-4">
+              <Label className="text-base font-semibold flex items-center gap-2">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm">3</span>
+                Chọn nhân viên ({selectedStaff.length} đã chọn)
+              </Label>
+              
+              {selectedStaff.length > 0 && (
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setSelectedStaff([])}
+                  className="h-7 text-xs"
+                >
+                  Bỏ chọn tất cả
+                </Button>
+              )}
+              
+              <div className="grid grid-cols-2 gap-4">
+                {/* Staff Section */}
+                <div className="border rounded-lg p-4 space-y-3">
+                  <div className="flex items-center gap-2 pb-2 border-b">
+                    <User className="w-4 h-4 text-blue-600" />
+                    <h4 className="font-semibold text-sm">Nhân viên (Staff)</h4>
+                    <Badge variant="secondary" className="ml-auto">
+                      {staff.length}
+                    </Badge>
+                  </div>
+                  <div className="max-h-[250px] overflow-y-auto space-y-2">
+                    {staff.length === 0 ? (
+                      <p className="text-sm text-gray-500 text-center py-4">Không có nhân viên</p>
+                    ) : (
+                      staff.map(user => (
+                        <label 
+                          key={user._id} 
+                          className={cn(
+                            "flex items-center gap-2 cursor-pointer p-2 rounded transition-colors",
+                            selectedStaff.includes(user._id) 
+                              ? "bg-blue-50 border border-blue-200" 
+                              : "hover:bg-gray-50 border border-transparent"
+                          )}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedStaff.includes(user._id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedStaff([...selectedStaff, user._id])
+                              } else {
+                                setSelectedStaff(selectedStaff.filter(id => id !== user._id))
+                              }
+                            }}
+                            className="rounded border-gray-300"
+                          />
+                          <User className="w-4 h-4 text-gray-400" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium truncate">
+                              {user.name || (typeof user.userId === 'object' ? user.userId.email?.split('@')[0] : user._id)}
+                            </div>
+                            {typeof user.userId === 'object' && user.userId.email && (
+                              <div className="text-xs text-gray-500 truncate">{user.userId.email}</div>
+                            )}
+                          </div>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Technician Section */}
+                <div className="border rounded-lg p-4 space-y-3">
+                  <div className="flex items-center gap-2 pb-2 border-b">
+                    <User className="w-4 h-4 text-orange-600" />
+                    <h4 className="font-semibold text-sm">Kỹ thuật viên (Technician)</h4>
+                    <Badge variant="secondary" className="ml-auto">
+                      {technicians.length}
+                    </Badge>
+                  </div>
+                  <div className="max-h-[250px] overflow-y-auto space-y-2">
+                    {technicians.length === 0 ? (
+                      <p className="text-sm text-gray-500 text-center py-4">Không có kỹ thuật viên</p>
+                    ) : (
+                      technicians.map(user => (
+                        <label 
+                          key={user._id} 
+                          className={cn(
+                            "flex items-center gap-2 cursor-pointer p-2 rounded transition-colors",
+                            selectedStaff.includes(user._id) 
+                              ? "bg-orange-50 border border-orange-200" 
+                              : "hover:bg-gray-50 border border-transparent"
+                          )}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedStaff.includes(user._id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedStaff([...selectedStaff, user._id])
+                              } else {
+                                setSelectedStaff(selectedStaff.filter(id => id !== user._id))
+                              }
+                            }}
+                            className="rounded border-gray-300"
+                          />
+                          <User className="w-4 h-4 text-gray-400" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium truncate">
+                              {user.name || (typeof user.userId === 'object' ? user.userId.email?.split('@')[0] : user._id)}
+                            </div>
+                            {typeof user.userId === 'object' && user.userId.email && (
+                              <div className="text-xs text-gray-500 truncate">{user.userId.email}</div>
+                            )}
+                          </div>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setNewShiftModalOpen(false)}>
-              Cancel
+            <Button variant="outline" onClick={() => setNewShiftModalOpen(false)} disabled={saving}>
+              Hủy
             </Button>
-            <Button onClick={handleCreateShift} disabled={saving || selectedStaff.length === 0}>
-              {saving ? "Creating..." : "Create Shift"}
+            <Button 
+              onClick={handleCreateShift} 
+              disabled={saving || selectedStaff.length === 0 || selectedWorkshiftIds.length === 0}
+            >
+              {saving ? "Đang phân công..." : `Phân công ${selectedStaff.length} người vào ${selectedWorkshiftIds.length} ca`}
             </Button>
           </DialogFooter>
         </DialogContent>

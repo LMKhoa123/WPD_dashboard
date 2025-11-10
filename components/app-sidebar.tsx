@@ -71,6 +71,11 @@ const staffNav = [
     icon: Calendar,
   },
   {
+    title: "Workshifts",
+    url: "/workshifts",
+    icon: Calendar,
+  },
+  {
     title: "Service Records",
     url: "/service-records",
     icon: FileText,
@@ -136,6 +141,11 @@ const adminNav = [
   {
     title: "Shift Calendar",
     url: "/shift-assignments",
+    icon: Calendar,
+  },
+  {
+    title: "Ca làm việc",
+    url: "/workshifts",
     icon: Calendar,
   },
   {

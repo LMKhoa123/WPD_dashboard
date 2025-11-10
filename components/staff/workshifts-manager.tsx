@@ -18,6 +18,8 @@ export default function WorkshiftsManager() {
   const [centers, setCenters] = useState<CenterRecord[]>([])
   const [search, setSearch] = useState("")
   const [centerFilter, setCenterFilter] = useState<string>("all")
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(20)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<WorkshiftRecord | null>(null)
 
@@ -28,7 +30,7 @@ export default function WorkshiftsManager() {
     try {
       const api = getApiClient()
       const [ws, cs] = await Promise.all([
-        api.getWorkshifts(),
+        api.getWorkshifts({ center_id: centerFilter !== "all" ? centerFilter : undefined, page, limit }),
         api.getCenters({ page: 1, limit: 200 }),
       ])
       setWorkshifts(ws)
@@ -38,7 +40,7 @@ export default function WorkshiftsManager() {
     } finally {
       setLoading(false)
     }
-  }, [toast])
+  }, [toast, centerFilter, page, limit])
 
   useEffect(() => { load() }, [load])
 
@@ -78,6 +80,16 @@ export default function WorkshiftsManager() {
             <SelectContent>
               <SelectItem value="all">Tất cả trung tâm</SelectItem>
               {centers.map(c => <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={String(limit)} onValueChange={(v) => { setPage(1); setLimit(parseInt(v, 10) || 20) }}>
+            <SelectTrigger className="w-28">
+              <SelectValue placeholder="Số dòng" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">10 / trang</SelectItem>
+              <SelectItem value="20">20 / trang</SelectItem>
+              <SelectItem value="50">50 / trang</SelectItem>
             </SelectContent>
           </Select>
           <Button onClick={onCreate}>Tạo ca</Button>
@@ -128,6 +140,15 @@ export default function WorkshiftsManager() {
             </TableBody>
           </Table>
         )}
+        {!loading && (
+          <div className="flex items-center justify-between mt-4">
+            <div className="text-xs text-muted-foreground">Trang {page} · Hiển thị {filtered.length} mục</div>
+            <div className="space-x-2">
+              <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Trước</Button>
+              <Button variant="outline" size="sm" disabled={workshifts.length < limit} onClick={() => setPage(p => p + 1)}>Sau</Button>
+            </div>
+          </div>
+        )}
       </CardContent>
 
       <WorkshiftDialog
@@ -135,6 +156,7 @@ export default function WorkshiftsManager() {
         onOpenChange={setDialogOpen}
         workshift={editing}
         onSuccess={load}
+        centers={centers}
       />
     </Card>
   )

@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
 import { getApiClient, type SystemUserRecord } from "@/lib/api"
+import { useAuth } from "@/components/auth-provider"
 
 interface AssignTechnicianDialogProps {
   appointmentId: string
@@ -21,22 +22,15 @@ export function AssignTechnicianDialog({ appointmentId, trigger, onAssigned }: A
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
   const api = useMemo(() => getApiClient(), [])
+  const { user } = useAuth()
 
   useEffect(() => {
     if (!open) return
     const run = async () => {
       try {
         setLoading(true)
-        const res = await api.getSystemUsers({ limit: 200 })
-        // Filter to possible technician by name or by lack of ADMIN/STAFF marker (backend typing may not expose TECHNICIAN)
-        const list = res.data.systemUsers.filter(s => {
-          const u: any = s.userId
-          // Treat non-admin/staff or names containing tech-like keywords as candidates; fallback to all when unknown
-          if (typeof u === 'object') {
-            if (u.role === 'ADMIN' || u.role === 'STAFF') return false
-          }
-          return true
-        })
+        const res = await api.getSystemUsers({ limit: 200, centerId: user?.centerId ?? undefined, role: 'TECHNICIAN' })
+        const list = res.data.systemUsers
         setTechList(list)
       } catch (e: any) {
         toast({ title: "Không tải được danh sách kỹ thuật viên", description: e?.message || "Failed to load technicians", variant: "destructive" })
@@ -80,9 +74,12 @@ export function AssignTechnicianDialog({ appointmentId, trigger, onAssigned }: A
                 <SelectValue placeholder={loading ? "Loading technicians..." : "Chọn kỹ thuật viên"} />
               </SelectTrigger>
               <SelectContent>
-                {techList.map(s => (
-                  <SelectItem key={s._id} value={s._id}>{s.name}</SelectItem>
-                ))}
+                {techList.map(s => {
+                  const label = s.name || (typeof s.userId === 'object' ? (s.userId.email || s.userId?.phone) : s._id)
+                  return (
+                    <SelectItem key={s._id} value={s._id}>{label}</SelectItem>
+                  )
+                })}
               </SelectContent>
             </Select>
           </div>

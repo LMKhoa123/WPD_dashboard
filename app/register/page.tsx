@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/components/auth-provider"
+import { getApiClient, type CenterRecord } from "@/lib/api"
 import Link from "next/link"
 
 export default function RegisterPage() {
@@ -16,17 +17,33 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [role, setRole] = useState<"Admin" | "Staff" | "Technician">("Admin")
+  const [centers, setCenters] = useState<CenterRecord[]>([])
+  const [centerId, setCenterId] = useState<string>("")
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (user) router.replace("/")
   }, [user, router])
 
+  // Load centers for selection (admin action)
+  useEffect(() => {
+    const loadCenters = async () => {
+      try {
+        const api = getApiClient()
+        const res = await api.getCenters({ page: 1, limit: 100 })
+        setCenters(res.data.centers)
+      } catch (e) {
+        // ignore; UI will show empty options
+      }
+    }
+    loadCenters()
+  }, [])
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     try {
-      await register(email, password, role)
+  await register(email, password, role, centerId)
       router.replace("/login")
     } finally {
       setLoading(false)
@@ -60,6 +77,21 @@ export default function RegisterPage() {
                   <SelectItem value="Admin">Admin</SelectItem>
                   <SelectItem value="Staff">Staff</SelectItem>
                   <SelectItem value="Technician">Technician</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="center">Service Center</Label>
+              <Select value={centerId} onValueChange={(v) => setCenterId(v)}>
+                <SelectTrigger id="center">
+                  <SelectValue placeholder="Select service center" />
+                </SelectTrigger>
+                <SelectContent>
+                  {centers.map((c) => (
+                    <SelectItem key={c._id} value={c._id}>
+                      {c.name} — {c.address}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

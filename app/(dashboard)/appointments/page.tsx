@@ -1,13 +1,14 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Pencil, Trash2 } from "lucide-react"
+import { Search, Pencil, Trash2, Eye } from "lucide-react"
 import { AppointmentDialog } from "@/components/appointments/appointment-dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Spinner } from "@/components/ui/spinner"
@@ -33,6 +34,7 @@ export default function AppointmentsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<AppointmentStatus | "all">("all")
+  const router = useRouter()
   const isAdmin = useIsAdmin()
   const isStaff = useIsStaff()
   const { user } = useAuth()
@@ -43,7 +45,9 @@ export default function AppointmentsPage() {
   const load = useCallback(async () => {
     try {
       setLoading(true)
-      const params: { limit: number; technician_id?: string } = { limit: 500 }
+      const params: { limit: number; technician_id?: string; centerId?: string } = { limit: 500 }
+      const centerId = user?.centerId ?? null
+      if (centerId) params.centerId = centerId
       // Technicians should only see their own appointments
       if (!isAdmin && !isStaff) {
         try {
@@ -62,7 +66,7 @@ export default function AppointmentsPage() {
     } finally {
       setLoading(false)
     }
-  }, [api, isAdmin, isStaff, user?.email, toast])
+  }, [api, isAdmin, isStaff, user?.email, user?.centerId, toast])
 
   useEffect(() => {
     load()
@@ -153,7 +157,7 @@ export default function AppointmentsPage() {
                   <TableRow>
                     <TableHead>Vehicle</TableHead>
                     <TableHead>Service Center</TableHead>
-                    <TableHead>Staff</TableHead>
+                    <TableHead>Technician</TableHead>
                     <TableHead>Start Time</TableHead>
                     <TableHead>End Time</TableHead>
                     <TableHead>Status</TableHead>
@@ -161,7 +165,19 @@ export default function AppointmentsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredAppointments.map((apt) => (
+                  {filteredAppointments.map((apt) => {
+                    // Extract slot info if available
+                    const slotInfo = apt.slot_id && typeof apt.slot_id === 'object' 
+                      ? apt.slot_id 
+                      : null
+                    const startDisplay = slotInfo 
+                      ? `${new Date(slotInfo.slot_date).toLocaleDateString()} ${slotInfo.start_time}`
+                      : apt.startTime ? new Date(apt.startTime).toLocaleString() : "—"
+                    const endDisplay = slotInfo 
+                      ? slotInfo.end_time
+                      : apt.endTime ? new Date(apt.endTime).toLocaleString() : "—"
+                    
+                    return (
                     <TableRow key={apt._id}>
                       <TableCell className="font-medium">
                         {typeof apt.vehicle_id === 'string' ? apt.vehicle_id : `${apt.vehicle_id?.vehicleName} • ${apt.vehicle_id?.plateNumber}`}
@@ -170,13 +186,15 @@ export default function AppointmentsPage() {
                         {typeof apt.center_id === 'string' ? apt.center_id : apt.center_id?.name}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {typeof apt.staffId === 'string' ? apt.staffId : apt.staffId?.name || apt.staffId?.email}
+                        {typeof apt.staffId === 'string'
+                          ? apt.staffId
+                          : apt.staffId?.name || (apt.staffId as any)?.email || "—"}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {new Date(apt.startTime).toLocaleString()}
+                        {startDisplay}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {new Date(apt.endTime).toLocaleString()}
+                        {endDisplay}
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -188,6 +206,14 @@ export default function AppointmentsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            title="Xem chi tiết"
+                            onClick={() => router.push(`/appointments/${apt._id}`)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
                           {(isAdmin || isStaff) && (
                             <>
                               <AppointmentDialog
@@ -205,12 +231,14 @@ export default function AppointmentsPage() {
                                 onAssigned={load}
                                 trigger={<Button variant="ghost" size="sm">Assign Staff</Button>}
                               />
-                              {/* Assign Technician */}
-                              <AssignTechnicianDialog
-                                appointmentId={apt._id}
-                                onAssigned={load}
-                                trigger={<Button variant="ghost" size="sm">Assign Tech</Button>}
-                              />
+                              {/* Assign Technician only when not assigned */}
+                              {!apt.staffId && (
+                                <AssignTechnicianDialog
+                                  appointmentId={apt._id}
+                                  onAssigned={load}
+                                  trigger={<Button variant="ghost" size="sm">Assign Tech</Button>}
+                                />
+                              )}
                             </>
                           )}
                           {(isAdmin || isStaff) && (
@@ -239,7 +267,8 @@ export default function AppointmentsPage() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    )
+                  })}
                 </TableBody>
               </Table>
             </div>
