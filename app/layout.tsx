@@ -8,6 +8,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/components/auth-provider"
 import { Toaster } from "@/components/ui/toaster"
+import { QueryProvider } from "@/components/query-provider"
 
 export const metadata: Metadata = {
   title: "EV Service Center Management",
@@ -25,7 +26,9 @@ export default function RootLayout({
       <body className={`font-sans ${GeistSans.variable} p-8  ${GeistMono.variable} antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <AuthProvider>
-            <Suspense fallback={null}>{children}</Suspense>
+            <QueryProvider>
+              <Suspense fallback={null}>{children}</Suspense>
+            </QueryProvider>
           </AuthProvider>
         </ThemeProvider>
         <Toaster />

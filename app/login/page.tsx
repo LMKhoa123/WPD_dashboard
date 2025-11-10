@@ -13,7 +13,7 @@ import { useAuth } from "@/components/auth-provider"
 
 export default function LoginPage() {
   const router = useRouter()
-  const [email, setEmail] = useState("")
+  const [identifier, setIdentifier] = useState("")
   const [password, setPassword] = useState("")
   const { loginWithCredentials, user } = useAuth()
 
@@ -24,7 +24,7 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    await loginWithCredentials(email, password)
+  await loginWithCredentials(identifier, password)
     const url = new URL(window.location.href)
     const next = url.searchParams.get("next")
     router.push(next || "/")
@@ -45,13 +45,13 @@ export default function LoginPage() {
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="identifier">Email </Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="admin@evservice.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="identifier"
+                type="text"
+                placeholder="Enter your email "
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 required
               />
             </div>

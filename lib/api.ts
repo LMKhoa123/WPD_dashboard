@@ -1,7 +1,13 @@
 
 export type ApiRole = "ADMIN" | "STAFF" | "TECHNICIAN" | string
 
+// New login request supports a generic identifier (email or phone)
 export interface LoginRequest {
+  identifier: string
+  password: string
+}
+// Legacy shape kept for backward compatibility where some code may still pass email
+export interface LegacyLoginRequest {
   email: string
   password: string
 }
@@ -21,7 +27,7 @@ export interface RegisterRequest {
   email: string
   password: string
   role: ApiRole
-  centerId?: string
+  centerId: string
 }
 
 export interface RegisterResponse {
@@ -53,6 +59,7 @@ export interface ProfileData {
   dateOfBirth: string | null
   certification: string
   isOnline: boolean
+  centerId: string | null
   createdAt: string
   updatedAt: string
   __v: number
@@ -136,11 +143,12 @@ export interface CustomersListResponse {
 // System users (staff/admin profiles)
 export interface SystemUserRecord {
   _id: string
-  userId: string | { _id: string; email: string; role: "ADMIN" | "STAFF"; phone?: string }
+  userId: string | { _id: string; email: string; role: "ADMIN" | "STAFF" | "TECHNICIAN"; phone?: string }
   name: string
   dateOfBirth: string | null
   certification: string
   isOnline: boolean
+  centerId?: string
   certificates?: Array<{
     _id: string
     name: string
@@ -299,8 +307,9 @@ export interface AppointmentRecord {
   customer_id: string | null | { _id: string; customerName?: string }
   vehicle_id: string | { _id: string; vehicleName?: string; model?: string; mileage?: number; plateNumber?: string }
   center_id: string | { _id: string; name?: string; address?: string; phone?: string }
-  startTime: string
-  endTime: string
+  slot_id?: string | SlotRecord
+  startTime?: string
+  endTime?: string
   status: AppointmentStatus
   createdAt: string
   updatedAt: string
@@ -333,11 +342,42 @@ export interface CreateAppointmentRequest {
   status: AppointmentStatus
 }
 
+// New slot-based creation request (preferred): use slot_id from center's slots
+export interface CreateAppointmentRequestV2 {
+  staffId: string
+  customer_id?: string | null
+  vehicle_id: string
+  center_id: string
+  slot_id: string
+  status: AppointmentStatus
+}
+
+// Slot types
+export interface SlotRecord {
+  _id: string
+  center_id: string | { _id: string; name?: string }
+  start_time: string
+  end_time: string
+  slot_date: string
+  capacity: number
+  booked_count: number
+  status: string
+  createdAt?: string
+  updatedAt?: string
+  __v?: number
+}
+
+export interface SlotsListResponse {
+  success: boolean
+  data: SlotRecord[]
+}
+
 export interface UpdateAppointmentRequest {
   staffId?: string
   customer_id?: string | null
   vehicle_id?: string
   center_id?: string
+  slot_id?: string
   startTime?: string
   endTime?: string
   status?: AppointmentStatus
@@ -507,6 +547,15 @@ export interface CreateWorkshiftRequest {
   center_id: string
 }
 
+// Bulk create workshifts (new endpoint contract supporting multiple dates)
+export interface CreateWorkshiftsBulkRequest {
+  shift_dates: string[] // array of YYYY-MM-DD
+  start_time: string // HH:mm
+  end_time: string   // HH:mm
+  status: WorkshiftStatus
+  center_id: string
+}
+
 export interface UpdateWorkshiftRequest {
   shift_id?: string
   shift_date?: string // YYYY-MM-DD
@@ -519,7 +568,7 @@ export interface UpdateWorkshiftRequest {
 // Shift Assignments
 export interface ShiftAssignmentRecord {
   _id: string
-  shift_id: string | WorkshiftRecord
+  workshift_id: string | WorkshiftRecord
   system_user_id: string | SystemUserRecord
   createdAt?: string
   updatedAt?: string
@@ -528,7 +577,7 @@ export interface ShiftAssignmentRecord {
 
 export interface AssignShiftsRequest {
   system_user_id: string
-  shift_ids: string[]
+  workshift_ids: string[]
 }
 
 export interface ShiftAssignmentsListResponse {
@@ -536,7 +585,7 @@ export interface ShiftAssignmentsListResponse {
   data: ShiftAssignmentRecord[]
 }
 
-// GET /shift-assignments/shift/{shift_id} returns array of system_user_id strings
+// GET /shift-assignments/shift/{workshift_id} returns array of system_user_id strings
 export interface ShiftAssignmentsByShiftResponse {
   success: boolean
   data: string[]
@@ -545,7 +594,6 @@ export interface ShiftAssignmentsByShiftResponse {
 // GET /shift-assignments/user/{system_user_id} returns assigned shift infos (flattened workshift fields)
 export interface AssignedShiftInfo {
   _id: string
-  shift_id: string
   shift_date: string
   start_time: string
   end_time: string
@@ -878,13 +926,24 @@ export class ApiClient {
     }
   }
 
-  async login(payload: LoginRequest): Promise<LoginResponse> {
-    // Use rawFetch for login (no auth required)
-    const res = await rawFetch(this.buildUrl("/auth/login"), {
+  async login(payload: LoginRequest | LegacyLoginRequest): Promise<LoginResponse> {
+    // Normalize payload to new identifier-based format
+    const normalized: LoginRequest = "identifier" in payload
+      ? payload
+      : { identifier: payload.email, password: payload.password }
+
+    // Try new endpoint first
+    const attempt = async (path: string) => rawFetch(this.buildUrl(path), {
       method: "POST",
-      body: JSON.stringify(payload),
+      body: JSON.stringify(normalized),
       headers: { "Content-Type": "application/json", accept: "application/json" },
     })
+
+    // let res = await attempt("/auth/login")
+    // // If new endpoint not found or method not allowed, fallback to legacy endpoint
+    // if (res.status === 404 || res.status === 405) {
+      let res = await attempt("/auth/login-by-password")
+    // }
 
     if (!res.ok) {
       const msg = await safeErrorMessage(res)
@@ -903,18 +962,32 @@ export class ApiClient {
   }
 
   async register(payload: RegisterRequest): Promise<RegisterResponse> {
-    // Use rawFetch for register (no auth required)
-    const res = await rawFetch(this.buildUrl("/auth/register"), {
+    // Admin creates staff/admin/technician accounts; requires auth token
+    const attempt = async (path: string) => rawFetch(this.buildUrl(path), {
       method: "POST",
       body: JSON.stringify(payload),
-      headers: { "Content-Type": "application/json", accept: "application/json" },
+      headers: { "Content-Type": "application/json", accept: "application/json", ...this.authHeader() },
     })
+
+    let res = await attempt("/auth/register-staff")
+    if (res.status === 401) {
+      try {
+        await this.refreshToken()
+        res = await attempt("/auth/register-staff")
+      } catch {
+        this.handleUnauthorized()
+        throw new Error("Unauthorized")
+      }
+    }
+    // backward compatibility fallback
+    if (res.status === 404 || res.status === 405) {
+      res = await attempt("/auth/register")
+    }
 
     if (!res.ok) {
       const msg = await safeErrorMessage(res)
       throw new Error(msg)
     }
-
     return (await res.json()) as RegisterResponse
   }
 
@@ -1054,10 +1127,12 @@ export class ApiClient {
     await this.fetchJson(`/customers/${customerId}`, { method: "DELETE" })
   }
 
-  async getSystemUsers(params?: { page?: number; limit?: number }): Promise<SystemUsersListResponse> {
+  async getSystemUsers(params?: { page?: number; limit?: number; centerId?: string; role?: string }): Promise<SystemUsersListResponse> {
     const url = new URL(this.buildUrl("/system-users"))
     if (params?.page) url.searchParams.set("page", String(params.page))
     if (params?.limit) url.searchParams.set("limit", String(params.limit))
+    if (params?.centerId) url.searchParams.set("centerId", params.centerId)
+    if (params?.role) url.searchParams.set("role", params.role)
     const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
     if (!res.ok) throw new Error(await safeErrorMessage(res))
     return (await res.json()) as SystemUsersListResponse
@@ -1397,13 +1472,14 @@ export class ApiClient {
   }
 
   // Appointments: list
-  async getAppointments(params?: { page?: number; limit?: number; technician_id?: string; staff_id?: string; status?: string }): Promise<AppointmentsListResponse> {
+  async getAppointments(params?: { page?: number; limit?: number; technician_id?: string; staff_id?: string; status?: string; centerId?: string }): Promise<AppointmentsListResponse> {
     const url = new URL(this.buildUrl("/appointments"))
     if (params?.page) url.searchParams.set("page", String(params.page))
     if (params?.limit) url.searchParams.set("limit", String(params.limit))
     if (params?.technician_id) url.searchParams.set("technician_id", params.technician_id)
     if (params?.staff_id) url.searchParams.set("staff_id", params.staff_id)
     if (params?.status) url.searchParams.set("status", params.status)
+    if (params?.centerId) url.searchParams.set("centerId", params.centerId)
     const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
     if (!res.ok) throw new Error(await safeErrorMessage(res))
     return (await res.json()) as AppointmentsListResponse
@@ -1416,10 +1492,16 @@ export class ApiClient {
   }
 
   // Appointments: create
-  async createAppointment(payload: CreateAppointmentRequest): Promise<AppointmentRecord> {
+  async createAppointment(payload: CreateAppointmentRequest | CreateAppointmentRequestV2): Promise<AppointmentRecord> {
+    // If using slot-based payload, make sure legacy time fields are not sent
+    const body: any = { ...payload }
+    if ("slot_id" in body) {
+      delete body.startTime
+      delete body.endTime
+    }
     const res = await this.fetchJson<AppointmentResponse>(`/appointments`, {
       method: "POST",
-      body: JSON.stringify(payload),
+      body: JSON.stringify(body),
     })
     return res.data
   }
@@ -1430,6 +1512,11 @@ export class ApiClient {
       method: "PUT",
       body: JSON.stringify(payload),
     })
+    return res.data
+  }
+
+  async getSlots(centerId: string): Promise<SlotRecord[]> {
+    const res = await this.fetchJson<SlotsListResponse>(`/slots?centerId=${centerId}`, { method: "GET" })
     return res.data
   }
 
@@ -1448,11 +1535,18 @@ export class ApiClient {
   }
 
   // Appointments: assign technician (Admin/Staff)
-  async assignAppointmentTechnician(id: string, technician_id: string): Promise<{ success: boolean; data?: any; message?: string }> {
-    return this.fetchJson<{ success: boolean; data?: any; message?: string }>(`/appointments/${id}/assign-technician`, {
-      method: "POST",
-      body: JSON.stringify({ technician_id }),
+  async assignAppointmentTechnician(id: string, staffOrTechId: string): Promise<{ success: boolean; data?: any; message?: string }> {
+    // New contract: PUT with { staffId }
+    const attempt = async (method: string, body: any) => this.fetchJson<{ success: boolean; data?: any; message?: string }>(`/appointments/${id}/assign-technician`, {
+      method,
+      body: JSON.stringify(body),
     })
+    try {
+      return await attempt("PUT", { staffId: staffOrTechId })
+    } catch (e: any) {
+      // Fallback legacy POST with technician_id
+      return attempt("POST", { technician_id: staffOrTechId })
+    }
   }
 
   // Service Records: list
@@ -1547,8 +1641,15 @@ export class ApiClient {
   }
 
   // Workshifts: list
-  async getWorkshifts(): Promise<WorkshiftRecord[]> {
-    const res = await this.fetchJson<WorkshiftsListResponse>(`/workshifts`, { method: "GET" })
+  async getWorkshifts(params?: { center_id?: string; page?: number; limit?: number }): Promise<WorkshiftRecord[]> {
+    let path = "/workshifts"
+    const queryParams = new URLSearchParams()
+    if (params?.center_id) queryParams.set("center_id", params.center_id)
+    if (params?.page) queryParams.set("page", String(params.page))
+    if (params?.limit) queryParams.set("limit", String(params.limit))
+    const qs = queryParams.toString()
+    if (qs) path += `?${qs}`
+    const res = await this.fetchJson<WorkshiftsListResponse>(path, { method: "GET" })
     return res.data
   }
 
@@ -1559,8 +1660,18 @@ export class ApiClient {
   }
 
   // Workshifts: create
+  // Create a single workshift (legacy)
   async createWorkshift(payload: CreateWorkshiftRequest): Promise<WorkshiftRecord> {
     const res = await this.fetchJson<WorkshiftResponse>(`/workshifts`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+    return res.data
+  }
+
+  // Bulk create workshifts by date range (new)
+  async createWorkshiftsBulk(payload: CreateWorkshiftsBulkRequest): Promise<WorkshiftRecord[]> {
+    const res = await this.fetchJson<WorkshiftsListResponse>(`/workshifts`, {
       method: "POST",
       body: JSON.stringify(payload),
     })
@@ -1597,8 +1708,8 @@ export class ApiClient {
   }
 
   // Shift Assignments: list by shift
-  async getShiftAssignmentsByShift(shiftId: string): Promise<string[]> {
-    const res = await this.fetchJson<ShiftAssignmentsByShiftResponse>(`/shift-assignments/shift/${shiftId}`, { method: "GET" })
+  async getShiftAssignmentsByShift(workshiftId: string): Promise<string[]> {
+    const res = await this.fetchJson<ShiftAssignmentsByShiftResponse>(`/shift-assignments/shift/${workshiftId}`, { method: "GET" })
     return res.data
   }
 

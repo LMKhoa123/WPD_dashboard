@@ -198,7 +198,7 @@ export default function StaffPage() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Phone</TableHead>
+                  {/* <TableHead>Phone</TableHead> */}
                   <TableHead>Role</TableHead>
                   <TableHead>Certificates</TableHead>
                   <TableHead>Status</TableHead>
@@ -229,7 +229,7 @@ export default function StaffPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{account?.email || "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">{account?.phone || "—"}</TableCell>
+                    {/* <TableCell className="text-muted-foreground">{account?.phone || "—"}</TableCell> */}
                     <TableCell>
                       <Badge variant="secondary" className={getRoleColor(role)}>
                         {role}

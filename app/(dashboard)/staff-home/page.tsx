@@ -5,8 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Calendar, Users, Car, Package, ClipboardCheck, FileText, CreditCard, MessageSquare, Timer } from "lucide-react"
 import { AdminOrStaffOnly } from "@/components/role-guards"
+import { MyShiftsCalendar } from "@/components/shift-assignments/my-shifts-calendar"
+import { useProfile } from "@/hooks/use-profile"
 
 export default function StaffHomePage() {
+  const { profile } = useProfile()
+
   const Section = ({ title, desc, children }: { title: string; desc?: string; children: React.ReactNode }) => (
     <Card>
       <CardHeader>
@@ -40,6 +44,11 @@ export default function StaffHomePage() {
           <h1 className="text-3xl font-bold">Staff Home</h1>
           <p className="text-muted-foreground">Flow thao tác hàng ngày cho nhân viên tiếp nhận.</p>
         </div>
+
+        {/* My Shifts Calendar - Only show if profile is loaded */}
+        {profile?._id && (
+          <MyShiftsCalendar systemUserId={profile._id} />
+        )}
 
         <Section title="1) Tiếp nhận & đặt lịch" desc="Tạo lịch hẹn, nhận yêu cầu đặt lịch">
           <Tile href="/appointments" icon={Calendar} label="Appointments" />

@@ -4,8 +4,9 @@ export type UserRole = "Admin" | "Staff" | "Technician" | "Customer"
 
 export interface AuthUser {
   name: string
-  email: string
+  email: string // stores email or phone identifier used at login
   role: UserRole
+  centerId?: string | null // null for Admin (global scope), string for staff/technician bound to a center
 }
 
 export interface Customer {
