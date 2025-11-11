@@ -1,6 +1,6 @@
 "use client"
 
-import { Bell, Search } from "lucide-react"
+import { Bell, Search, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -15,11 +15,38 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { useAuth } from "@/components/auth-provider"
+import { useEffect, useState } from "react"
+import { getApiClient } from "@/lib/api"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 
 export function AppHeader() {
   const { user, logout } = useAuth()
+  const [centerName, setCenterName] = useState<string>("")
+  const [centerLoading, setCenterLoading] = useState(false)
+
+  useEffect(() => {
+    const loadCenter = async () => {
+      if (!user) return
+      // Only fetch for staff / technician roles with a centerId
+      const roleLower = user.role?.toLowerCase()
+      if ((roleLower === "staff" || roleLower === "technician") && (user as any).centerId) {
+        try {
+          setCenterLoading(true)
+          const api = getApiClient()
+          const center = await api.getCenterById((user as any).centerId as string)
+          setCenterName(center?.name || "")
+        } catch (e) {
+          setCenterName("")
+        } finally {
+          setCenterLoading(false)
+        }
+      } else {
+        setCenterName("")
+      }
+    }
+    loadCenter()
+  }, [user])
   const router = useRouter()
 
   const handleLogout = () => {
@@ -45,10 +72,23 @@ export function AppHeader() {
 
       <div className="flex items-center gap-2">
         <ThemeToggle />
-        <Button variant="ghost" size="icon" className="relative">
+        {(user?.role === "Staff" || user?.role === "Technician") && (
+          <div className="hidden md:flex items-center gap-1 px-2 py-1 rounded-md bg-muted text-xs font-medium max-w-[160px]" title={centerName || "Chưa có trung tâm"}>
+            <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+            {centerLoading ? (
+              <span className="italic text-muted-foreground">Đang tải...</span>
+            ) : centerName ? (
+              <span className="truncate">{centerName}</span>
+            ) : (
+              <span className="text-muted-foreground">Chưa có trung tâm</span>
+            )}
+          </div>
+        )}
+        
+        {/* <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
           <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-accent" />
-        </Button>
+        </Button> */}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -64,7 +104,7 @@ export function AppHeader() {
               </Avatar>
               <div className="hidden md:flex flex-col items-start text-sm">
                 <span className="font-medium">{user?.name || "Guest"}</span>
-                <span className="text-xs text-muted-foreground">{user?.role === "Admin" ? "Administrator" : "Staff"}</span>
+                <span className="text-xs text-muted-foreground">Role: {user?.role === "Admin" ? "Administrator" : "Staff"}</span>
               </div>
             </Button>
           </DropdownMenuTrigger>
@@ -74,7 +114,7 @@ export function AppHeader() {
             <DropdownMenuItem asChild>
               <Link href="/profile">Profile</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
+            {/* <DropdownMenuItem>Settings</DropdownMenuItem> */}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-destructive">Logout</DropdownMenuItem>
           </DropdownMenuContent>
