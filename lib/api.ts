@@ -372,6 +372,39 @@ export interface SlotsListResponse {
   data: SlotRecord[]
 }
 
+export interface SlotStaffTechnicianResponse {
+  success: boolean
+  data: {
+    slot: {
+      id: string
+      center_id: string
+      date: string
+      startTime: string
+      endTime: string
+      capacity: number
+      totalAppointments: number
+    }
+    staff: Array<{
+      id: string
+      name: string
+      email: string
+      phone: string
+      assigned: boolean
+      shiftId: string
+      shiftTime: string
+    }>
+    technician: Array<{
+      id: string
+      name: string
+      email: string
+      phone: string
+      assigned: boolean
+      shiftId: string
+      shiftTime: string
+    }>
+  }
+}
+
 export interface GenerateSlotsRequest {
   center_ids: string[]
   dates: string[] // array of YYYY-MM-DD
@@ -1585,6 +1618,11 @@ export class ApiClient {
   async getSlots(centerId: string): Promise<SlotRecord[]> {
     const res = await this.fetchJson<SlotsListResponse>(`/slots?center_id=${centerId}`, { method: "GET" })
     return res.data
+  }
+
+  async getSlotStaffTechnician(slotId: string): Promise<SlotStaffTechnicianResponse> {
+    const res = await this.fetchJson<SlotStaffTechnicianResponse>(`/slots/${slotId}/staff-and-technician`, { method: "GET" })
+    return res
   }
 
   async generateSlots(payload: GenerateSlotsRequest): Promise<GenerateSlotsResponse> {

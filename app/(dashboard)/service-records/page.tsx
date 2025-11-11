@@ -207,7 +207,7 @@ export default function ServiceRecordsPage() {
                                 </Button>
                               }
                             />
-                            <ServiceRecordDialog
+                            {/* <ServiceRecordDialog
                               record={rec}
                               onUpdated={handleUpdated}
                               trigger={
@@ -215,7 +215,7 @@ export default function ServiceRecordsPage() {
                                   <Pencil className="h-4 w-4" />
                                 </Button>
                               }
-                            />
+                            /> */}
                             {rec.status === 'completed' && (
                               <CreatePaymentDialog
                                 record={rec}

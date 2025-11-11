@@ -11,7 +11,6 @@ import { useToast } from "@/hooks/use-toast"
 import { getApiClient, type CenterRecord, type WorkshiftRecord } from "@/lib/api"
 import { WorkshiftDialog } from "./workshift-dialog"
 import { GenerateSlotsDialog } from "./generate-slots-dialog"
-import { CalendarClock } from "lucide-react"
 
 export default function WorkshiftsManager() {
   const { toast } = useToast()
@@ -95,10 +94,7 @@ export default function WorkshiftsManager() {
               <SelectItem value="50">50 / trang</SelectItem>
             </SelectContent>
           </Select>
-          <Button onClick={() => setGenerateSlotsOpen(true)} variant="secondary">
-            <CalendarClock className="mr-2 h-4 w-4" />
-            Generate Slots
-          </Button>
+          
           <Button onClick={onCreate}>Tạo ca</Button>
         </div>
       </CardHeader>
