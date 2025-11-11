@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
+import { formatDate } from "@/lib/utils"
 
 export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -159,7 +160,7 @@ export default function UsersPage() {
                           <TableCell>
                             <Badge variant="secondary">{mapRole(u.role)}</Badge>
                           </TableCell>
-                          <TableCell className="text-muted-foreground">{new Date(u.createdAt).toLocaleDateString()}</TableCell>
+                          <TableCell className="text-muted-foreground">{formatDate(u.createdAt)}</TableCell>
                           <TableCell className="text-right space-x-2">
                             <Button size="sm" variant="outline" onClick={() => openEditDialog(u)}>
                               Edit

@@ -18,6 +18,7 @@ import { getApiClient, type AppointmentRecord, type AppointmentStatus } from "@/
 import { AdminStaffTechnicianOnly } from "@/components/role-guards"
 import { AssignStaffDialog } from "@/components/appointments/assign-staff-dialog"
 import { AssignTechnicianDialog } from "@/components/appointments/assign-technician-dialog"
+import { formatDateTime, formatDate } from "@/lib/utils"
 
 const statusColors: Record<AppointmentStatus, string> = {
   pending: "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20",
@@ -171,11 +172,11 @@ export default function AppointmentsPage() {
                       ? apt.slot_id 
                       : null
                     const startDisplay = slotInfo 
-                      ? `${new Date(slotInfo.slot_date).toLocaleDateString()} ${slotInfo.start_time}`
-                      : apt.startTime ? new Date(apt.startTime).toLocaleString() : "—"
+                      ? `${formatDate(slotInfo.slot_date)} ${slotInfo.start_time}`
+                      : apt.startTime ? formatDateTime(apt.startTime) : "—"
                     const endDisplay = slotInfo 
                       ? slotInfo.end_time
-                      : apt.endTime ? new Date(apt.endTime).toLocaleString() : "—"
+                      : apt.endTime ? formatDateTime(apt.endTime) : "—"
                     
                     return (
                     <TableRow key={apt._id}>
@@ -228,6 +229,7 @@ export default function AppointmentsPage() {
                               {/* Assign Staff */}
                               <AssignStaffDialog
                                 appointmentId={apt._id}
+                                centerId={apt.center_id}
                                 onAssigned={load}
                                 trigger={<Button variant="ghost" size="sm">Assign Staff</Button>}
                               />

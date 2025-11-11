@@ -55,6 +55,9 @@ export default function CenterAutoPartsPage() {
 	useEffect(() => { load() }, [load])
 
 	const filtered = items.filter(it => {
+		// Null check để tránh lỗi khi center_id hoặc part_id là null
+		if (!it.center_id || !it.part_id) return false
+		
 		const c = typeof it.center_id === 'string' ? it.center_id : it.center_id._id
 		const p = typeof it.part_id === 'string' ? it.part_id : it.part_id._id
 		const centerOk = centerFilter === 'all' || c === centerFilter
@@ -139,8 +142,8 @@ export default function CenterAutoPartsPage() {
 								</TableHeader>
 								<TableBody>
 									{filtered.map((it) => {
-										const centerName = typeof it.center_id === 'string' ? it.center_id : (it.center_id.name || "")
-										const partName = typeof it.part_id === 'string' ? it.part_id : (it.part_id.name || "")
+										const centerName = typeof it.center_id === 'string' ? it.center_id : (it.center_id?.name || "—")
+										const partName = typeof it.part_id === 'string' ? it.part_id : (it.part_id?.name || "—")
 										return (
 											<TableRow key={it._id}>
 												<TableCell className="font-medium">{centerName}</TableCell>

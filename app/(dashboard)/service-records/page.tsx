@@ -18,6 +18,7 @@ import { ServiceDetailsDialog } from "@/components/service-records/service-detai
 import { CreatePaymentDialog } from "@/components/payments/create-payment-dialog"
 import { RecordChecklistsDialog } from "@/components/service-records/record-checklists-dialog"
 import { AdminStaffTechnicianOnly } from "@/components/role-guards"
+import { formatDateTime } from "@/lib/utils"
 
 const statusColors: Record<ServiceRecordStatus, string> = {
   pending: "bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20",
@@ -172,10 +173,10 @@ export default function ServiceRecordsPage() {
                           {typeof rec.technician_id === 'string' ? rec.technician_id : rec.technician_id?.name || rec.technician_id?.email}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {rec.start_time && rec.start_time !== "" ? new Date(rec.start_time).toLocaleString() : "---"}
+                          {rec.start_time && rec.start_time !== "" ? formatDateTime(rec.start_time) : "---"}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {rec.end_time && rec.end_time !== "" ? new Date(rec.end_time).toLocaleString() : "---"}
+                          {rec.end_time && rec.end_time !== "" ? formatDateTime(rec.end_time) : "---"}
                         </TableCell>
                         <TableCell className="max-w-[300px] truncate" title={rec.description}>
                           {rec.description}

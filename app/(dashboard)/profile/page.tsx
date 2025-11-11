@@ -9,6 +9,7 @@ import { useAuth } from "@/components/auth-provider"
 import { getApiClient, type ProfileData } from "@/lib/api"
 import { toast } from "@/components/ui/use-toast"
 import { Calendar, Mail, Shield, Award, Loader2 } from "lucide-react"
+import { formatDateFull, formatDateTime } from "@/lib/utils"
 
 export default function ProfilePage() {
   const { user } = useAuth()
@@ -36,8 +37,7 @@ export default function ProfilePage() {
   const formatDateForDisplay = (isoDate: string | null): string => {
     if (!isoDate) return "Chưa cập nhật"
     try {
-      const d = new Date(isoDate)
-      return d.toLocaleDateString("vi-VN", { year: "numeric", month: "long", day: "numeric" })
+      return formatDateFull(isoDate)
     } catch {
       return "Không hợp lệ"
     }
@@ -164,23 +164,11 @@ export default function ProfilePage() {
           </p>
           <p>
             <strong>Ngày tạo:</strong>{" "}
-            {new Date(profile.createdAt).toLocaleString("vi-VN", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+            {formatDateTime(profile.createdAt)}
           </p>
           <p>
             <strong>Cập nhật lần cuối:</strong>{" "}
-            {new Date(profile.updatedAt).toLocaleString("vi-VN", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+            {formatDateTime(profile.updatedAt)}
           </p>
         </CardContent>
       </Card>
