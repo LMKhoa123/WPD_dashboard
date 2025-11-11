@@ -53,15 +53,18 @@ export function SuggestPartsDialog({ checklistItemId, currentSuggested, trigger,
           part_name: typeof item.part_id === 'string' ? item.part_id : item.part_id.name,
         }))
         setParts(transformedParts)
-        // Initialize selected based on current suggested
-        const initial: Record<string, boolean> = {}
-        const initialQty: PartQuantity = {}
+        // Initialize selected and quantities based on current suggested
+        // Use center auto part id (_id). If there are duplicates, they represent quantity.
+        const counts: PartQuantity = {}
         currentSuggested.forEach((id) => {
-          initial[id] = true
-          initialQty[id] = 1 // Default quantity is 1
+          counts[id] = (counts[id] || 0) + 1
         })
-        setSelected(initial)
-        setQuantities(initialQty)
+        const initialSelected: Record<string, boolean> = {}
+        Object.keys(counts).forEach((id) => {
+          initialSelected[id] = true
+        })
+        setSelected(initialSelected)
+        setQuantities(counts)
       } catch (e: any) {
         toast({ title: "Không tải được danh sách linh kiện", description: e?.message || "Failed to load parts", variant: "destructive" })
       } finally {
@@ -87,53 +90,59 @@ export function SuggestPartsDialog({ checklistItemId, currentSuggested, trigger,
     })
   }
 
-  const updateQuantity = (partId: string, delta: number) => {
-    // partId here is the AutoPart ID; find the corresponding center-part item
-    const part = parts.find(
-      (p) => (typeof p.part_id === 'string' ? p.part_id : p.part_id._id) === partId
-    )
+  const updateQuantity = (centerPartId: string, delta: number) => {
+    // centerPartId is the CenterAutoPart record _id
+    const part = parts.find((p) => p._id === centerPartId)
     if (!part) return
 
     setQuantities((prev) => {
-      const current = prev[partId] || 1
+      const current = prev[centerPartId] || 1
       const newQty = Math.max(1, current + delta)
       const maxQty = part.quantity // Max available quantity from stock
-      return { ...prev, [partId]: Math.min(newQty, maxQty) }
+      return { ...prev, [centerPartId]: Math.min(newQty, maxQty) }
     })
   }
 
-  const setQuantity = (partId: string, value: string) => {
-    // partId here is the AutoPart ID; find the corresponding center-part item
-    const part = parts.find(
-      (p) => (typeof p.part_id === 'string' ? p.part_id : p.part_id._id) === partId
-    )
+  const setQuantity = (centerPartId: string, value: string) => {
+    // centerPartId is the CenterAutoPart record _id
+    const part = parts.find((p) => p._id === centerPartId)
     if (!part) return
 
     const num = parseInt(value)
     const maxQty = part.quantity
     if (!isNaN(num) && num >= 1 && num <= maxQty) {
-      setQuantities((prev) => ({ ...prev, [partId]: num }))
+      setQuantities((prev) => ({ ...prev, [centerPartId]: num }))
     }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Calculate which parts to add and which to remove
-    const newSelected = Object.keys(selected).filter((k) => selected[k])
-
-    // Build suggest_add with quantities: repeat part ID by quantity
-    const suggest_add: string[] = []
-    newSelected.forEach((partId) => {
-      if (!currentSuggested.includes(partId)) {
-        const qty = quantities[partId] || 1
-        for (let i = 0; i < qty; i++) {
-          suggest_add.push(partId)
-        }
+    // Calculate diffs by quantity between currentSuggested and the new selection
+    const countsOld: Record<string, number> = {}
+    currentSuggested.forEach((id) => {
+      countsOld[id] = (countsOld[id] || 0) + 1
+    })
+    const countsNew: Record<string, number> = {}
+    Object.keys(selected).forEach((id) => {
+      if (selected[id]) {
+        countsNew[id] = quantities[id] || 1
       }
     })
 
-    const suggest_remove = currentSuggested.filter((id) => !newSelected.includes(id))
+    const allIds = new Set<string>([...Object.keys(countsOld), ...Object.keys(countsNew)])
+    const suggest_add: string[] = []
+    const suggest_remove: string[] = []
+    allIds.forEach((id) => {
+      const oldCount = countsOld[id] || 0
+      const newCount = countsNew[id] || 0
+      const delta = newCount - oldCount
+      if (delta > 0) {
+        for (let i = 0; i < delta; i++) suggest_add.push(id)
+      } else if (delta < 0) {
+        for (let i = 0; i < -delta; i++) suggest_remove.push(id)
+      }
+    })
 
     // If no changes, just close
     if (suggest_add.length === 0 && suggest_remove.length === 0) {
@@ -191,7 +200,8 @@ export function SuggestPartsDialog({ checklistItemId, currentSuggested, trigger,
               ) : (
                 <div className="space-y-3">
                   {filteredParts.map((part) => {
-                    const partId = typeof part.part_id === 'string' ? part.part_id : part.part_id._id
+                    // Use center auto part id for selection and submission
+                    const partId = part._id
                     const partName = typeof part.part_id === 'string' ? part.part_id : part.part_id.name
                     const sellingPrice = typeof part.part_id === 'string' ? 0 : part.part_id.selling_price
                     const maxQty = part.quantity
