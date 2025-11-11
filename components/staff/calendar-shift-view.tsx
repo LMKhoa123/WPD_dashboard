@@ -30,21 +30,21 @@ import { cn } from "@/lib/utils"
 type ShiftType = "morning" | "evening" | "night"
 
 const shiftColors: Record<ShiftType, string> = {
-  "morning": "bg-yellow-400",
-  "evening": "bg-orange-400",
-  "night": "bg-purple-500"
+  "morning": "bg-amber-400",
+  "evening": "bg-blue-400",
+  "night": "bg-purple-400"
 }
 
 const shiftLabels: Record<ShiftType, string> = {
-  "morning": "Morning",
-  "evening": "Afternoon",
-  "night": "Night"
+  "morning": "Ca sáng",
+  "evening": "Ca chiều",
+  "night": "Ca tối"
 }
 
 const shiftTimeRanges: Record<ShiftType, { start: string; end: string }> = {
-  "morning": { start: "07:00", end: "12:00" },
-  "evening": { start: "13:00", end: "17:00" },
-  "night": { start: "18:00", end: "20:00" }
+  "morning": { start: "07:00", end: "13:00" },
+  "evening": { start: "13:00", end: "18:00" },
+  "night": { start: "18:00", end: "23:00" }
 }
 
 function getShiftType(startTime: string, endTime: string): ShiftType {
@@ -661,7 +661,7 @@ export function CalendarShiftView() {
           <span>Chiều (Afternoon)</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="inline-block w-3 h-3 rounded bg-purple-500" />
+          <span className="inline-block w-3 h-3 rounded bg-purple-400" />
           <span>Tối (Night)</span>
         </div>
         <div className="ml-8 flex items-center gap-2">
@@ -910,7 +910,7 @@ export function CalendarShiftView() {
                     <span>Morning</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <div className="w-3 h-3 rounded bg-purple-500" />
+                    <div className="w-3 h-3 rounded bg-purple-400" />
                     <span>Night</span>
                   </div>
                 </div>
@@ -940,7 +940,7 @@ export function CalendarShiftView() {
                       <div className="flex-1 w-full flex flex-col justify-end gap-1">
                         {counts.night > 0 && (
                           <div 
-                            className="w-full bg-purple-500 rounded-t transition-all"
+                            className="w-full bg-purple-400 rounded-t transition-all"
                             style={{ height: `${(counts.night / maxAttendance) * 100}%` }}
                             title={`Night: ${counts.night}`}
                           />

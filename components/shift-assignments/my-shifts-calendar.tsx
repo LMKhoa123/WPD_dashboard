@@ -13,6 +13,46 @@ interface MyShiftsCalendarProps {
   systemUserId: string
 }
 
+// Color logic based on shift time
+function getShiftTimeColor(startTime: string): { bg: string; border: string; text: string; badge: string } {
+  const hour = parseInt(startTime.split(":")[0] || "0", 10)
+  
+  // Morning shift (7:00 - 13:00)
+  if (hour >= 7 && hour < 13) {
+    return {
+      bg: "bg-amber-50 dark:bg-amber-950/20",
+      border: "border-amber-200 dark:border-amber-800",
+      text: "text-amber-900 dark:text-amber-100",
+      badge: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100"
+    }
+  }
+  
+  // Afternoon shift (13:00 - 18:00)
+  if (hour >= 13 && hour < 18) {
+    return {
+      bg: "bg-blue-50 dark:bg-blue-950/20",
+      border: "border-blue-200 dark:border-blue-800",
+      text: "text-blue-900 dark:text-blue-100",
+      badge: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100"
+    }
+  }
+  
+  // Night shift (18:00+)
+  return {
+    bg: "bg-purple-50 dark:bg-purple-950/20",
+    border: "border-purple-200 dark:border-purple-800",
+    text: "text-purple-900 dark:text-purple-100",
+    badge: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100"
+  }
+}
+
+function getShiftTypeBadge(startTime: string): { label: string; variant: string } {
+  const hour = parseInt(startTime.split(":")[0] || "0", 10)
+  if (hour >= 7 && hour < 13) return { label: "Ca sáng", variant: "amber" }
+  if (hour >= 13 && hour < 18) return { label: "Ca chiều", variant: "blue" }
+  return { label: "Ca tối", variant: "purple" }
+}
+
 export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
   const [shifts, setShifts] = useState<AssignedShiftInfo[]>([])
   const [loading, setLoading] = useState(true)
@@ -93,6 +133,20 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
             <Calendar className="h-5 w-5" />
             Lịch làm việc của tôi
           </CardTitle>
+          <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 rounded-full bg-amber-400"></div>
+              <span>Ca sáng (7:00-13:00)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 rounded-full bg-blue-400"></div>
+              <span>Ca chiều (13:00-18:00)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 rounded-full bg-purple-400"></div>
+              <span>Ca tối (18:00+)</span>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {shifts.length === 0 ? (
@@ -156,18 +210,25 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
                       </div>
                       {dayShifts.length > 0 ? (
                         <div className="space-y-2">
-                          {dayShifts.map((shift) => (
-                            <div
-                              key={shift._id}
-                              className="bg-accent/50 p-2 rounded text-xs space-y-1"
-                            >
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                <span>{formatShiftTime(shift)}</span>
+                          {dayShifts.map((shift) => {
+                            const colors = getShiftTimeColor(shift.start_time)
+                            const shiftType = getShiftTypeBadge(shift.start_time)
+                            
+                            return (
+                              <div
+                                key={shift._id}
+                                className={`p-2 rounded-md border-l-4 text-xs space-y-1 transition-all hover:shadow-md ${colors.bg} ${colors.border}`}
+                              >
+                                <div className={`flex items-center gap-1 ${colors.text}`}>
+                                  <Clock className="h-3 w-3" />
+                                  <span className="font-medium">{formatShiftTime(shift)}</span>
+                                </div>
+                                <div className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium ${colors.badge}`}>
+                                  {shiftType.label}
+                                </div>
                               </div>
-                              {getStatusBadge(shift.status)}
-                            </div>
-                          ))}
+                            )
+                          })}
                         </div>
                       ) : (
                         <div className="text-xs text-muted-foreground text-center py-2">
@@ -185,28 +246,38 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
                   Tất cả ca làm việc ({shifts.length})
                 </h3>
                 <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                  {shifts.map((shift) => (
-                    <div
-                      key={shift._id}
-                      className="border rounded-lg p-3 hover:bg-accent/50 transition-colors"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1 flex-1">
-                          <div className="font-medium flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            {format(parseISO(shift.shift_date), "EEEE, dd/MM/yyyy", {
-                              locale: vi,
-                            })}
-                          </div>
-                          <div className="text-sm text-muted-foreground flex items-center gap-2">
-                            <Clock className="h-3 w-3" />
-                            {formatShiftTime(shift)}
+                  {shifts
+                    .sort((a, b) => new Date(a.shift_date).getTime() - new Date(b.shift_date).getTime())
+                    .map((shift) => {
+                      const colors = getShiftTimeColor(shift.start_time)
+                      const shiftType = getShiftTypeBadge(shift.start_time)
+                      
+                      return (
+                        <div
+                          key={shift._id}
+                          className={`rounded-lg border-l-4 p-3 transition-all hover:shadow-md ${colors.bg} ${colors.border}`}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="space-y-1 flex-1">
+                              <div className="font-medium flex items-center gap-2">
+                                <Calendar className="h-4 w-4" />
+                                {format(parseISO(shift.shift_date), "EEEE, dd/MM/yyyy", {
+                                  locale: vi,
+                                })}
+                              </div>
+                              <div className={`text-sm flex items-center gap-2 ${colors.text}`}>
+                                <Clock className="h-4 w-4" />
+                                {formatShiftTime(shift)}
+                              </div>
+                              <div className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${colors.badge}`}>
+                                {shiftType.label}
+                              </div>
+                            </div>
+                            {getStatusBadge(shift.status)}
                           </div>
                         </div>
-                        {getStatusBadge(shift.status)}
-                      </div>
-                    </div>
-                  ))}
+                      )
+                    })}
                 </div>
               </div>
             </div>

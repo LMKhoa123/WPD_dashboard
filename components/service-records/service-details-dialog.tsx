@@ -37,8 +37,8 @@ export function ServiceDetailsDialog({ recordId, trigger }: ServiceDetailsDialog
   const isAdmin = useIsAdmin()
   const isStaff = useIsStaff()
   const role = useRole()
-  const isTechnician = role === "Technician"
-  const canCreate = isStaff || isTechnician
+  // CHỈ STAFF được tạo Detail để chốt linh kiện đã sử dụng
+  const canCreate = isStaff
 
   const resetForm = () => {
     setEditing(null)
@@ -141,7 +141,7 @@ export function ServiceDetailsDialog({ recordId, trigger }: ServiceDetailsDialog
       </DialogTrigger>
       <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Service Details</DialogTitle>
+          <DialogTitle>Service Details (Staff chốt đơn)</DialogTitle>
         </DialogHeader>
 
         {(canCreate || !!editing) && (

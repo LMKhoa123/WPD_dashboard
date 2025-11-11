@@ -28,6 +28,7 @@ export function AutoPartDialog({
   const [name, setName] = useState("")
   const [costPrice, setCostPrice] = useState("")
   const [sellingPrice, setSellingPrice] = useState("")
+  const [warrantyTime, setWarrantyTime] = useState("") // Thời gian bảo hành (ngày)
 
   const isEditMode = !!autoPart
 
@@ -36,6 +37,7 @@ export function AutoPartDialog({
       setName(autoPart.name || "")
       setCostPrice(String(autoPart.cost_price || 0))
       setSellingPrice(String(autoPart.selling_price || 0))
+      setWarrantyTime(String(autoPart.warranty_time || 0))
     } else if (!open) {
       resetForm()
     }
@@ -45,6 +47,7 @@ export function AutoPartDialog({
     setName("")
     setCostPrice("")
     setSellingPrice("")
+    setWarrantyTime("")
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -57,6 +60,7 @@ export function AutoPartDialog({
         name,
         cost_price: Number(costPrice),
         selling_price: Number(sellingPrice),
+        warranty_time: Number(warrantyTime),
       }
 
       if (isEditMode && autoPart) {
@@ -132,6 +136,19 @@ export function AutoPartDialog({
                 required
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="warrantyTime">Warranty Time (days) *</Label>
+            <Input
+              id="warrantyTime"
+              type="number"
+              min="0"
+              value={warrantyTime}
+              onChange={(e) => setWarrantyTime(e.target.value)}
+              placeholder="e.g., 365 for 1 year"
+              required
+            />
           </div>
 
           <div className="flex justify-end gap-2 pt-4">

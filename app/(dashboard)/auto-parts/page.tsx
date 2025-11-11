@@ -165,6 +165,7 @@ export default function AutoPartsPage() {
                   <TableHead>Part Name</TableHead>
                   <TableHead className="text-right">Cost Price</TableHead>
                   <TableHead className="text-right">Selling Price</TableHead>
+                  <TableHead className="text-right">Warranty (days)</TableHead>
                   <TableHead>Created At</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -175,6 +176,9 @@ export default function AutoPartsPage() {
                     <TableCell className="font-medium">{part.name}</TableCell>
                     <TableCell className="text-right">${part.cost_price.toFixed(2)}</TableCell>
                     <TableCell className="text-right">${part.selling_price.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant="secondary">{part.warranty_time} days</Badge>
+                    </TableCell>
                     <TableCell>{new Date(part.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">

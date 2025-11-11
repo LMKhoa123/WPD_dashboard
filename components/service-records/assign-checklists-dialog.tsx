@@ -48,7 +48,8 @@ export function AssignChecklistsDialog({ recordId, trigger, onAssigned }: Assign
     if (ids.length === 0) return
     try {
       setSubmitting(true)
-      await api.createRecordChecklists({ record_id: recordId, checklist_ids: ids, status: "pending", note })
+      // When first creating, suggest should be empty array
+      await api.createRecordChecklists({ record_id: recordId, checklist_ids: ids, status: "pending", note, suggest: [] })
       toast({ title: "Đã gán checklist" })
       setOpen(false)
       setSelected({})

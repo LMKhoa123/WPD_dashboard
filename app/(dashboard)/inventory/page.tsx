@@ -8,8 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getApiClient, type CenterAutoPartRecord, type CenterRecord, type AutoPartRecord } from "@/lib/api"
-import { Search, Pencil, Trash2, Plus, AlertTriangle } from "lucide-react"
-import { AiSuggestionDialog } from "@/components/inventory/ai-suggestion-dialog"
+import { Search, Pencil, Trash2, Plus, AlertTriangle, Sparkles } from "lucide-react"
+import { ForecastResultsDialog } from "@/components/inventory/forecast-results-dialog"
 import { cn } from "@/lib/utils"
 import { useIsAdmin } from "@/components/auth-provider"
 import { useToast } from "@/hooks/use-toast"
@@ -138,7 +138,14 @@ export default function InventoryPage() {
           <p className="text-muted-foreground">Manage auto parts and supplies</p>
         </div>
         <div className="flex gap-2">
-          <AiSuggestionDialog />
+          <ForecastResultsDialog 
+            trigger={
+              <Button variant="outline">
+                <Sparkles className="mr-2 h-4 w-4" />
+                AI Suggestion
+              </Button>
+            }
+          />
           {isAdmin && (
             <Button onClick={openCreate}>
               <Plus className="mr-2 h-4 w-4" />
