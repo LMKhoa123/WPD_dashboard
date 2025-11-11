@@ -88,7 +88,7 @@ export function AppointmentDialog({ appointment, trigger, onCreated, onUpdated }
       try {
         const s = await api.getSlots(centerId)
         setSlots(s)
-      } catch {}
+      } catch { }
     }
     run()
   }, [open, centerId, api])
@@ -122,13 +122,13 @@ export function AppointmentDialog({ appointment, trigger, onCreated, onUpdated }
         try {
           const all = await api.getVehicles({ limit: 500 })
           setVehicles(all)
-        } catch {}
+        } catch { }
         return
       }
       try {
         const vs = await api.getVehiclesByCustomerId(customerId)
         setVehicles(vs)
-      } catch {}
+      } catch { }
     }
     run()
   }, [open, customerId, api])
@@ -140,7 +140,7 @@ export function AppointmentDialog({ appointment, trigger, onCreated, onUpdated }
       setCenterId(typeof appointment.center_id === 'string' ? appointment.center_id : appointment.center_id?._id || "")
       setCustomerId(typeof appointment.customer_id === 'string' ? appointment.customer_id : (appointment.customer_id as any)?._id || "")
       // If slot-based, extract slot_id
-      const slotIdValue = appointment.slot_id 
+      const slotIdValue = appointment.slot_id
         ? (typeof appointment.slot_id === 'string' ? appointment.slot_id : appointment.slot_id._id)
         : ""
       setSlotId(slotIdValue)
@@ -161,7 +161,7 @@ export function AppointmentDialog({ appointment, trigger, onCreated, onUpdated }
     setStartTime("")
     setEndTime("")
     setSlotId("")
-  setStatus("pending")
+    setStatus("pending")
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -270,20 +270,6 @@ export function AppointmentDialog({ appointment, trigger, onCreated, onUpdated }
                 <SelectContent>
                   {vehicles.map(v => (
                     <SelectItem key={v._id} value={v._id}>{v.vehicleName} • {v.model} • {v.plateNumber}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid gap-2">
-              <Label>Staff/Technician</Label>
-              <Select value={staffId} onValueChange={setStaffId}>
-                <SelectTrigger>
-                  <SelectValue placeholder={loadingLists ? "Loading staff..." : "Select staff"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {staff.map(s => (
-                    <SelectItem key={s._id} value={s._id}>{s.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

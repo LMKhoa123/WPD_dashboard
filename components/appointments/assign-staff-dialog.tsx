@@ -3,23 +3,29 @@
 import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/components/ui/use-toast"
-import { getApiClient, type SystemUserRecord } from "@/lib/api"
+import { getApiClient } from "@/lib/api"
 
 interface AssignStaffDialogProps {
   appointmentId: string
   centerId?: string | { _id: string; name?: string; address?: string; phone?: string }
+  slotId?: string
   trigger: React.ReactNode
   onAssigned?: () => void
 }
 
-export function AssignStaffDialog({ appointmentId, centerId, trigger, onAssigned }: AssignStaffDialogProps) {
+type StaffOption = { id: string; label: string; assigned?: boolean; shiftTime?: string }
+
+export function AssignStaffDialog({ appointmentId, centerId, slotId, trigger, onAssigned }: AssignStaffDialogProps) {
   const [open, setOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [staffId, setStaffId] = useState("")
-  const [staffList, setStaffList] = useState<SystemUserRecord[]>([])
+  const [staffList, setStaffList] = useState<StaffOption[]>([])
   const [loading, setLoading] = useState(false)
+  const [search, setSearch] = useState("")
+  const [slotMeta, setSlotMeta] = useState<{ date: string; startTime: string; endTime: string; capacity: number; totalAppointments: number } | null>(null)
   const { toast } = useToast()
   const api = useMemo(() => getApiClient(), [])
 
@@ -28,16 +34,34 @@ export function AssignStaffDialog({ appointmentId, centerId, trigger, onAssigned
     const run = async () => {
       try {
         setLoading(true)
-        // Get centerId string
-        const centerIdStr = typeof centerId === 'string' ? centerId : centerId?._id
-        
-        // Call API with centerId and role=STAFF filter
-        const res = await api.getSystemUsers({ 
-          limit: 200, 
-          centerId: centerIdStr,
-          role: 'STAFF'
-        })
-        setStaffList(res.data.systemUsers)
+        // Prefer slot-specific availability if slotId is provided
+        if (slotId) {
+          const res = await api.getSlotStaffAndTechnician(slotId)
+          setSlotMeta({
+            date: res.data.slot.date,
+            startTime: res.data.slot.startTime,
+            endTime: res.data.slot.endTime,
+            capacity: res.data.slot.capacity,
+            totalAppointments: res.data.slot.totalAppointments,
+          })
+          const opts: StaffOption[] = (res.data.staff || []).map(s => ({
+            id: s.id,
+            label: s.name || s.email || s.phone || s.id,
+            assigned: !!s.assigned,
+            shiftTime: s.shiftTime,
+          }))
+          setStaffList(opts)
+        } else {
+          // Fallback: list staff by center
+          const centerIdStr = typeof centerId === 'string' ? centerId : centerId?._id
+          const res = await api.getSystemUsers({ limit: 200, centerId: centerIdStr, role: 'STAFF' })
+          const opts: StaffOption[] = res.data.systemUsers.map(s => ({
+            id: s._id,
+            label: s.name || (typeof s.userId === 'object' ? (s.userId.email || s.userId.phone || s._id) : s._id),
+            assigned: false,
+          }))
+          setStaffList(opts)
+        }
       } catch (e: any) {
         toast({ title: "Không tải được danh sách nhân viên", description: e?.message || "Failed to load staff", variant: "destructive" })
       } finally {
@@ -45,14 +69,15 @@ export function AssignStaffDialog({ appointmentId, centerId, trigger, onAssigned
       }
     }
     run()
-  }, [open, api, toast, centerId])
+  }, [open, api, toast, centerId, slotId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!staffId) return
     try {
       setSubmitting(true)
-      await api.assignAppointmentStaff(appointmentId, staffId)
+      const res = await api.assignAppointmentStaff(appointmentId, staffId)
+      console.log(res)
       toast({ title: "Đã gán nhân viên phụ trách" })
       setOpen(false)
       setStaffId("")
@@ -67,23 +92,55 @@ export function AssignStaffDialog({ appointmentId, centerId, trigger, onAssigned
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-[560px] w-[calc(100%-2rem)] p-4">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Gán nhân viên phụ trách</DialogTitle>
             <DialogDescription>Chọn một nhân viên (Staff) để phụ trách lịch hẹn này.</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <Select value={staffId} onValueChange={setStaffId}>
-              <SelectTrigger>
-                <SelectValue placeholder={loading ? "Loading staff..." : "Chọn nhân viên"} />
-              </SelectTrigger>
-              <SelectContent>
-                {staffList.map(s => (
-                  <SelectItem key={s._id} value={s._id}>{s.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid gap-3 py-3">
+            {slotMeta && (
+              <div className="rounded border p-2 bg-muted/40 flex items-center justify-between text-sm">
+                <div>
+                  <div className="font-medium">{slotMeta.date}</div>
+                  <div className="text-muted-foreground">{slotMeta.startTime} - {slotMeta.endTime}</div>
+                </div>
+                <Badge variant="outline">{slotMeta.totalAppointments}/{slotMeta.capacity} đặt</Badge>
+              </div>
+            )}
+            <Input placeholder={loading ? "Đang tải..." : "Tìm theo tên / email / phone"} value={search} onChange={(e) => setSearch(e.target.value)} />
+            <div className="max-h-60 overflow-auto rounded border divide-y">
+              {staffList
+                .filter(s => !search || s.label.toLowerCase().includes(search.toLowerCase()))
+                .map(s => {
+                  const selected = staffId === s.id
+                  return (
+                    <button
+                      type="button"
+                      key={s.id}
+                      disabled={s.assigned}
+                      onClick={() => setStaffId(s.id)}
+                      className={`w-full text-left p-2 hover:bg-muted/60 focus:outline-none ${s.assigned ? 'opacity-60' : ''} ${selected ? 'ring-2 ring-primary' : ''}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium">{s.label}</div>
+                          {s.shiftTime && (
+                            <div className="text-xs text-muted-foreground">Ca: {s.shiftTime}</div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {s.assigned && <Badge variant="secondary">đã đc assigned</Badge>}
+                          {selected && <Badge>Đã chọn</Badge>}
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+              {(!loading && staffList.length === 0) && (
+                <div className="p-3 text-sm text-muted-foreground">Không có nhân viên phù hợp.</div>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={submitting}>Hủy</Button>

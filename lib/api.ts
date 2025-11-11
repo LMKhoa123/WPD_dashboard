@@ -390,6 +390,34 @@ export interface GenerateSlotsResponse {
   }
 }
 
+// Slot Staff & Technician availability for a slot
+export interface SlotUserAvailability {
+  id: string
+  name: string
+  email: string
+  phone: string
+  assigned: boolean
+  shiftId?: string
+  shiftTime?: string
+}
+
+export interface SlotStaffAndTechnicianResponse {
+  success: boolean
+  data: {
+    slot: {
+      id: string
+      center_id: string
+      date: string
+      startTime: string
+      endTime: string
+      capacity: number
+      totalAppointments: number
+    }
+    staff: SlotUserAvailability[]
+    technician: SlotUserAvailability[]
+  }
+}
+
 export interface UpdateAppointmentRequest {
   staffId?: string
   customer_id?: string | null
@@ -1009,7 +1037,7 @@ export class ApiClient {
     // let res = await attempt("/auth/login")
     // // If new endpoint not found or method not allowed, fallback to legacy endpoint
     // if (res.status === 404 || res.status === 405) {
-      let res = await attempt("/auth/login-by-password")
+    let res = await attempt("/auth/login-by-password")
     // }
 
     if (!res.ok) {
@@ -1595,6 +1623,11 @@ export class ApiClient {
     return res
   }
 
+  // Slots: fetch staff and technician availability for a slot
+  async getSlotStaffAndTechnician(slotId: string): Promise<SlotStaffAndTechnicianResponse> {
+    return this.fetchJson<SlotStaffAndTechnicianResponse>(`/slots/${slotId}/staff-and-technician`, { method: "GET" })
+  }
+
   // Appointments: delete
   async deleteAppointment(id: string): Promise<void> {
     await this.fetchJson(`/appointments/${id}`, { method: "DELETE" })
@@ -1632,6 +1665,31 @@ export class ApiClient {
     const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
     if (!res.ok) throw new Error(await safeErrorMessage(res))
     return (await res.json()) as ServiceRecordsListResponse
+  }
+
+  // Service Records: list by appointment id (helper)
+  async getServiceRecordsByAppointmentId(appointmentId: string): Promise<ServiceRecordRecord[]> {
+    // Try common query param names. Primary: appointment_id; Fallback: id
+    const tryFetch = async (paramName: string) => {
+      const url = new URL(this.buildUrl("/service-records"))
+      url.searchParams.set(paramName, appointmentId)
+      const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
+      if (!res.ok) throw new Error(await safeErrorMessage(res))
+      const data = (await res.json()) as ServiceRecordsListResponse
+      return data.data.records || []
+    }
+    try {
+      const records = await tryFetch("appointment_id")
+      return records
+    } catch {
+      try {
+        const records = await tryFetch("id")
+        return records
+      } catch (e) {
+        // propagate last error
+        throw e
+      }
+    }
   }
 
   // Service Records: get by id
