@@ -13,6 +13,7 @@ import { getApiClient, type AppointmentRecord, type AppointmentStatus, type Syst
 import { AppointmentDialog } from "@/components/appointments/appointment-dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { useIsAdmin, useIsStaff } from "@/components/auth-provider"
+import AppointmentServiceRecords from "@/components/appointments/appointment-service-records"
 
 const statusColors: Record<AppointmentStatus, string> = {
   pending: "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20",
@@ -36,6 +37,7 @@ export default function AppointmentDetailPage() {
   const [deleting, setDeleting] = useState(false)
   const [staffDetails, setStaffDetails] = useState<SystemUserRecord | null>(null)
   const [loadingStaff, setLoadingStaff] = useState(false)
+  // moved technicians & record logic to AppointmentServiceRecords component
 
   const appointmentId = params.id as string
 
@@ -45,7 +47,7 @@ export default function AppointmentDetailPage() {
         setLoading(true)
         const data = await api.getAppointmentById(appointmentId)
         setAppointment(data)
-        
+
         // If staffId is string, fetch full details
         if (data.staffId && typeof data.staffId === 'string') {
           setLoadingStaff(true)
@@ -58,11 +60,13 @@ export default function AppointmentDetailPage() {
             setLoadingStaff(false)
           }
         }
+
+        // Technicians & record checklists are handled by child component now
       } catch (e: any) {
-        toast({ 
-          title: "Không thể tải thông tin lịch hẹn", 
-          description: e?.message || "Failed to load appointment", 
-          variant: "destructive" 
+        toast({
+          title: "Không thể tải thông tin lịch hẹn",
+          description: e?.message || "Failed to load appointment",
+          variant: "destructive"
         })
       } finally {
         setLoading(false)
@@ -79,10 +83,10 @@ export default function AppointmentDetailPage() {
       toast({ title: "Đã xóa lịch hẹn thành công" })
       router.push("/appointments")
     } catch (e: any) {
-      toast({ 
-        title: "Không thể xóa lịch hẹn", 
-        description: e?.message || "Failed to delete appointment", 
-        variant: "destructive" 
+      toast({
+        title: "Không thể xóa lịch hẹn",
+        description: e?.message || "Failed to delete appointment",
+        variant: "destructive"
       })
     } finally {
       setDeleting(false)
@@ -121,23 +125,23 @@ export default function AppointmentDetailPage() {
   const center = typeof appointment.center_id === 'object' ? appointment.center_id : null
   // Use fetched staff details if staffId was string, otherwise use populated object
   const staff = typeof appointment.staffId === 'object' ? appointment.staffId : staffDetails
-  
+
   // Type guard for full SystemUserRecord
   const isFullStaff = (s: any): s is SystemUserRecord => {
     return s && 'userId' in s && 'isOnline' in s
   }
 
-  const appointmentDate = slot 
+  const appointmentDate = slot
     ? new Date(slot.slot_date).toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-    : appointment.startTime 
-    ? new Date(appointment.startTime).toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-    : "—"
+    : appointment.startTime
+      ? new Date(appointment.startTime).toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+      : "—"
 
   const timeRange = slot
     ? `${slot.start_time} - ${slot.end_time}`
     : appointment.startTime && appointment.endTime
-    ? `${new Date(appointment.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} - ${new Date(appointment.endTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`
-    : "—"
+      ? `${new Date(appointment.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} - ${new Date(appointment.endTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`
+      : "—"
 
   return (
     <div className="space-y-6">
@@ -263,9 +267,9 @@ export default function AppointmentDetailPage() {
                 </div>
                 {(center as any).image && (
                   <div className="mt-2">
-                    <img 
-                      src={(center as any).image} 
-                      alt={center.name} 
+                    <img
+                      src={(center as any).image}
+                      alt={center.name}
                       className="w-full h-32 object-cover rounded-md"
                     />
                   </div>
@@ -310,9 +314,9 @@ export default function AppointmentDetailPage() {
                 )}
                 {(vehicle as any).image && (
                   <div className="mt-2">
-                    <img 
-                      src={(vehicle as any).image} 
-                      alt={vehicle.vehicleName} 
+                    <img
+                      src={(vehicle as any).image}
+                      alt={vehicle.vehicleName}
                       className="w-full h-40 object-cover rounded-md"
                     />
                   </div>
@@ -459,6 +463,11 @@ export default function AppointmentDetailPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Service Records + Technicians + Checklists */}
+        <div className="md:col-span-2">
+          <AppointmentServiceRecords appointmentId={appointmentId} />
+        </div>
       </div>
     </div>
   )

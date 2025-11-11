@@ -11,7 +11,15 @@ export interface LegacyLoginRequest {
   email: string
   password: string
 }
-
+export interface NotificationItem {
+  id: string
+  type: string
+  title: string
+  message: string
+  meta?: any
+  createdAt: string
+  read?: boolean
+}
 export interface LoginResponse {
   success: boolean
   message: string
@@ -423,6 +431,34 @@ export interface GenerateSlotsResponse {
   }
 }
 
+// Slot Staff & Technician availability for a slot
+export interface SlotUserAvailability {
+  id: string
+  name: string
+  email: string
+  phone: string
+  assigned: boolean
+  shiftId?: string
+  shiftTime?: string
+}
+
+export interface SlotStaffAndTechnicianResponse {
+  success: boolean
+  data: {
+    slot: {
+      id: string
+      center_id: string
+      date: string
+      startTime: string
+      endTime: string
+      capacity: number
+      totalAppointments: number
+    }
+    staff: SlotUserAvailability[]
+    technician: SlotUserAvailability[]
+  }
+}
+
 export interface UpdateAppointmentRequest {
   staffId?: string
   customer_id?: string | null
@@ -754,6 +790,10 @@ export interface ForecastResultItem {
 export interface ForecastInfoResponse {
   success: boolean
   results: ForecastResultItem[]
+  total?: number
+  page?: number
+  limit?: number
+  totalPages?: number
 }
 
 // Center Auto Parts (Inventory per center per part)
@@ -1042,7 +1082,7 @@ export class ApiClient {
     // let res = await attempt("/auth/login")
     // // If new endpoint not found or method not allowed, fallback to legacy endpoint
     // if (res.status === 404 || res.status === 405) {
-      let res = await attempt("/auth/login-by-password")
+    let res = await attempt("/auth/login-by-password")
     // }
 
     if (!res.ok) {
@@ -1633,6 +1673,11 @@ export class ApiClient {
     return res
   }
 
+  // Slots: fetch staff and technician availability for a slot
+  async getSlotStaffAndTechnician(slotId: string): Promise<SlotStaffAndTechnicianResponse> {
+    return this.fetchJson<SlotStaffAndTechnicianResponse>(`/slots/${slotId}/staff-and-technician`, { method: "GET" })
+  }
+
   // Appointments: delete
   async deleteAppointment(id: string): Promise<void> {
     await this.fetchJson(`/appointments/${id}`, { method: "DELETE" })
@@ -1670,6 +1715,31 @@ export class ApiClient {
     const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
     if (!res.ok) throw new Error(await safeErrorMessage(res))
     return (await res.json()) as ServiceRecordsListResponse
+  }
+
+  // Service Records: list by appointment id (helper)
+  async getServiceRecordsByAppointmentId(appointmentId: string): Promise<ServiceRecordRecord[]> {
+    // Try common query param names. Primary: appointment_id; Fallback: id
+    const tryFetch = async (paramName: string) => {
+      const url = new URL(this.buildUrl("/service-records"))
+      url.searchParams.set(paramName, appointmentId)
+      const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
+      if (!res.ok) throw new Error(await safeErrorMessage(res))
+      const data = (await res.json()) as ServiceRecordsListResponse
+      return data.data.records || []
+    }
+    try {
+      const records = await tryFetch("appointment_id")
+      return records
+    } catch {
+      try {
+        const records = await tryFetch("id")
+        return records
+      } catch (e) {
+        // propagate last error
+        throw e
+      }
+    }
   }
 
   // Service Records: get by id
@@ -1872,6 +1942,18 @@ export class ApiClient {
     return this.fetchJson(`/forecast/info/${centerId}`, { method: "GET" })
   }
 
+  // Forecast: get latest forecast for a specific part at a center
+  async getForecastByCenterPart(centerId: string, partId: string, options: { limit?: number; page?: number } = {}): Promise<ForecastInfoResponse> {
+    const { limit = 1, page } = options
+    const url = new URL(this.buildUrl(`/forecast/info/${centerId}`))
+    url.searchParams.set("part_id", partId)
+    if (limit) url.searchParams.set("limit", String(limit))
+    if (page) url.searchParams.set("page", String(page))
+    const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
+    if (!res.ok) throw new Error(await safeErrorMessage(res))
+    return (await res.json()) as ForecastInfoResponse
+  }
+
   // Center Auto Parts: list
   async getCenterAutoParts(params?: { page?: number; limit?: number; center_id?: string; part_id?: string }): Promise<CenterAutoPartsListResponse> {
     const url = new URL(this.buildUrl("/center-auto-parts"))
@@ -1955,12 +2037,12 @@ export class ApiClient {
   }
 
   // Payments: create payment request (e.g., for completed service record)
-  async createPayment(payload: CreatePaymentRequest): Promise<PaymentRecord> {
+  async createPayment(payload: CreatePaymentRequest): Promise<{ payment: PaymentRecord; paymentUrl?: string }> {
     const res = await this.fetchJson<{ success: boolean; message?: string; data: { payment: PaymentRecord; paymentUrl?: string } }>(`/payments`, {
       method: "POST",
       body: JSON.stringify(payload),
     })
-    return res.data.payment
+    return { payment: res.data.payment, paymentUrl: (res as any).data?.paymentUrl }
   }
 
   // Payments: list (Admin view only)
@@ -1988,6 +2070,7 @@ export class ApiClient {
   async cancelPayment(orderCode: number | string): Promise<{ success: boolean; message?: string; data?: any }> {
     return this.fetchJson<{ success: boolean; message?: string; data?: any }>(`/payments/cancel/${orderCode}`, { method: "PUT", body: JSON.stringify({}) })
   }
+  // getNotifications removed: notifications now delivered only via websocket events
 }
 
 // Subscription types and APIs

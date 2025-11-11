@@ -11,7 +11,8 @@ import { useToast } from "@/hooks/use-toast"
 import { useIsAdmin, useIsStaff } from "@/components/auth-provider"
 import { AdminStaffTechnicianOnly } from "@/components/role-guards"
 import { CenterAutoPartDialog } from "@/components/center-auto-parts/center-auto-part-dialog"
-import { Pencil, Plus, Trash2, Search } from "lucide-react"
+import { ForecastInfoDialog } from "@/components/center-auto-parts/forecast-info-dialog"
+import { Pencil, Plus, Trash2, Search, LineChart } from "lucide-react"
 
 export default function CenterAutoPartsPage() {
 	const { toast } = useToast()
@@ -31,6 +32,11 @@ export default function CenterAutoPartsPage() {
 
 	const [dialogOpen, setDialogOpen] = useState(false)
 	const [selected, setSelected] = useState<CenterAutoPartRecord | null>(null)
+
+	// Forecast dialog state
+	const [forecastOpen, setForecastOpen] = useState(false)
+	const [forecastCenterId, setForecastCenterId] = useState<string | null>(null)
+	const [forecastPartId, setForecastPartId] = useState<string | null>(null)
 
 	const [deletingId, setDeletingId] = useState<string | null>(null)
 
@@ -57,7 +63,7 @@ export default function CenterAutoPartsPage() {
 	const filtered = items.filter(it => {
 		// Null check để tránh lỗi khi center_id hoặc part_id là null
 		if (!it.center_id || !it.part_id) return false
-		
+
 		const c = typeof it.center_id === 'string' ? it.center_id : it.center_id._id
 		const p = typeof it.part_id === 'string' ? it.part_id : it.part_id._id
 		const centerOk = centerFilter === 'all' || c === centerFilter
@@ -83,6 +89,19 @@ export default function CenterAutoPartsPage() {
 		} finally {
 			setDeletingId(null)
 		}
+	}
+
+	const openForecast = (rec: CenterAutoPartRecord) => {
+		// Normalize IDs from possible populated objects
+		const c = typeof rec.center_id === 'string' ? rec.center_id : rec.center_id?._id
+		const p = typeof rec.part_id === 'string' ? rec.part_id : rec.part_id?._id
+		if (!c || !p) {
+			toast({ title: "Thiếu dữ liệu", description: "Không xác định được Center ID hoặc Part ID", variant: "destructive" })
+			return
+		}
+		setForecastCenterId(c)
+		setForecastPartId(p)
+		setForecastOpen(true)
 	}
 
 	const canManage = isAdmin || isStaff
@@ -157,6 +176,9 @@ export default function CenterAutoPartsPage() {
 													<div className="flex justify-end gap-2">
 														{canManage && (
 															<>
+																<Button title="View forecast" variant="ghost" size="sm" onClick={() => openForecast(it)}>
+																	<LineChart className="h-4 w-4" />
+																</Button>
 																<Button variant="ghost" size="sm" onClick={() => openEdit(it)}><Pencil className="h-4 w-4" /></Button>
 																<Button variant="ghost" size="sm" onClick={() => handleDelete(it._id)} disabled={deletingId === it._id}><Trash2 className="h-4 w-4 text-destructive" /></Button>
 															</>
@@ -173,6 +195,7 @@ export default function CenterAutoPartsPage() {
 				</Card>
 
 				<CenterAutoPartDialog open={dialogOpen} onOpenChange={setDialogOpen} record={selected} onSuccess={load} />
+				<ForecastInfoDialog open={forecastOpen} onOpenChange={setForecastOpen} centerId={forecastCenterId} partId={forecastPartId} />
 			</div>
 		</AdminStaffTechnicianOnly>
 	)
