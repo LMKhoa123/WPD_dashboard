@@ -59,7 +59,7 @@ export default function ServiceRecordsPage() {
               return techId === me._id
             })
           }
-        } catch {}
+        } catch { }
       }
       setRecords(data)
     } catch (e: any) {
@@ -103,164 +103,154 @@ export default function ServiceRecordsPage() {
 
   return (
     <AdminStaffTechnicianOnly>
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Service Records</h1>
-          <p className="text-muted-foreground">Track and manage service work records</p>
-        </div>
-  {(isAdmin || isStaff) && <ServiceRecordDialog onCreated={handleCreated} />}
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>All Service Records</CardTitle>
-          <CardDescription>View and manage all service work records</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search by technician or description..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as ServiceRecordStatus | "all")}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="in-progress">In Progress</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Service Records</h1>
+            <p className="text-muted-foreground">Track and manage service work records</p>
           </div>
+          {(isAdmin || isStaff) && <ServiceRecordDialog onCreated={handleCreated} />}
+        </div>
 
-          {loading ? (
-            <div className="flex items-center gap-2 text-muted-foreground"><Spinner /> Loading...</div>
-          ) : filteredRecords.length === 0 ? (
-            <div className="text-muted-foreground">Chưa có hồ sơ dịch vụ nào.</div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Appointment</TableHead>
-                    <TableHead>Technician</TableHead>
-                    <TableHead>Start Time</TableHead>
-                    <TableHead>End Time</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredRecords.map((rec) => {
-                    const apt = typeof rec.appointment_id === 'object' && rec.appointment_id ? rec.appointment_id : null
-                    const vehicleName = apt && typeof apt.vehicle_id === 'object' ? apt.vehicle_id?.vehicleName : ""
-                    return (
-                      <TableRow key={rec._id}>
-                        <TableCell className="font-medium">
-                          {apt ? `${vehicleName || "N/A"}` : "None"}
-                        </TableCell>
-                        <TableCell>
-                          {typeof rec.technician_id === 'string' ? rec.technician_id : rec.technician_id?.name || rec.technician_id?.email}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {rec.start_time && rec.start_time !== "" ? formatDateTime(rec.start_time) : "---"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {rec.end_time && rec.end_time !== "" ? formatDateTime(rec.end_time) : "---"}
-                        </TableCell>
-                        <TableCell className="max-w-[300px] truncate" title={rec.description}>
-                          {rec.description}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="secondary"
-                            className={statusColors[rec.status as ServiceRecordStatus] || statusColors.pending}
-                          >
-                            {rec.status.replace("-", " ")}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <ServiceDetailsDialog
-                              recordId={rec._id}
-                              trigger={
-                                <Button variant="ghost" size="icon" title="Details">
-                                  <ListTree className="h-4 w-4" />
-                                </Button>
-                              }
-                            />
-                            <RecordChecklistsDialog
-                              recordId={rec._id}
-                              trigger={
-                                <Button variant="ghost" size="icon" title="Checklists">
-                                  <ClipboardCheck className="h-4 w-4" />
-                                </Button>
-                              }
-                            />
-                            {/* <ServiceRecordDialog
-                              record={rec}
-                              onUpdated={handleUpdated}
-                              trigger={
-                                <Button variant="ghost" size="icon">
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                              }
-                            /> */}
-                            {rec.status === 'completed' && (
-                              <CreatePaymentDialog
-                                record={rec}
+        <Card>
+          <CardHeader>
+            <CardTitle>All Service Records</CardTitle>
+            <CardDescription>View and manage all service work records</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-4 mb-6">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search by technician or description..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as ServiceRecordStatus | "all")}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="in-progress">In Progress</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {loading ? (
+              <div className="flex items-center gap-2 text-muted-foreground"><Spinner /> Loading...</div>
+            ) : filteredRecords.length === 0 ? (
+              <div className="text-muted-foreground">Chưa có hồ sơ dịch vụ nào.</div>
+            ) : (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Appointment</TableHead>
+                      <TableHead>Technician</TableHead>
+                      <TableHead>Start Time</TableHead>
+                      <TableHead>End Time</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredRecords.map((rec) => {
+                      const apt = typeof rec.appointment_id === 'object' && rec.appointment_id ? rec.appointment_id : null
+                      const vehicleName = apt && typeof apt.vehicle_id === 'object' ? apt.vehicle_id?.vehicleName : ""
+                      return (
+                        <TableRow key={rec._id}>
+                          <TableCell className="font-medium">
+                            {apt ? `${vehicleName || "N/A"}` : "None"}
+                          </TableCell>
+                          <TableCell>
+                            {typeof rec.technician_id === 'string' ? rec.technician_id : rec.technician_id?.name || rec.technician_id?.email}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {rec.start_time && rec.start_time !== "" ? formatDateTime(rec.start_time) : "---"}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {rec.end_time && rec.end_time !== "" ? formatDateTime(rec.end_time) : "---"}
+                          </TableCell>
+                          <TableCell className="max-w-[300px] truncate" title={rec.description}>
+                            {rec.description}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="secondary"
+                              className={statusColors[rec.status as ServiceRecordStatus] || statusColors.pending}
+                            >
+                              {rec.status.replace("-", " ")}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <ServiceDetailsDialog
+                                recordId={rec._id}
                                 trigger={
-                                  <Button variant="ghost" size="icon" title="Tạo thanh toán">
-                                    <CreditCard className="h-4 w-4" />
+                                  <Button variant="ghost" size="icon" title="Details">
+                                    <ListTree className="h-4 w-4" />
                                   </Button>
                                 }
                               />
-                            )}
-                            {isAdmin && (
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon" disabled={deletingId === rec._id}>
-                                    <Trash2 className="h-4 w-4" />
+                              <RecordChecklistsDialog
+                                recordId={rec._id}
+                                trigger={
+                                  <Button variant="ghost" size="icon" title="Checklists">
+                                    <ClipboardCheck className="h-4 w-4" />
                                   </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Xóa hồ sơ dịch vụ?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Hành động này không thể hoàn tác. Hồ sơ sẽ bị xóa vĩnh viễn.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDelete(rec._id)} disabled={deletingId === rec._id}>
-                                      {deletingId === rec._id ? "Deleting..." : "Delete"}
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                                }
+                              />
+                              <ServiceRecordDialog
+                                record={rec}
+                                onUpdated={handleUpdated}
+                                trigger={
+                                  <Button variant="ghost" size="icon" title="Edit">
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                }
+                              />
+                              {isAdmin && (
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" disabled={deletingId === rec._id}>
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Xóa hồ sơ dịch vụ?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Hành động này không thể hoàn tác. Hồ sơ sẽ bị xóa vĩnh viễn.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleDelete(rec._id)} disabled={deletingId === rec._id}>
+                                        {deletingId === rec._id ? "Deleting..." : "Delete"}
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </AdminStaffTechnicianOnly>
   )
 }

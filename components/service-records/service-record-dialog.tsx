@@ -159,39 +159,39 @@ export function ServiceRecordDialog({ record, trigger, onCreated, onUpdated }: S
 
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label>Appointment (Optional)</Label>
-              <Select value={appointmentId} onValueChange={setAppointmentId}>
-                <SelectTrigger>
-                  <SelectValue placeholder={loadingLists ? "Loading appointments..." : "Select appointment (optional)"} />
+              <Label>{isEditMode ? "Appointment (Read-only)" : "Appointment (Optional)"}</Label>
+              <Select value={appointmentId} onValueChange={setAppointmentId} disabled={isEditMode}>
+                <SelectTrigger disabled={isEditMode}>
+                  <SelectValue placeholder={loadingLists ? "Loading appointments..." : (isEditMode ? "Appointment" : "Select appointment (optional)")} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>
                   {appointments.map(a => {
                     const vehicleName = typeof a.vehicle_id === 'string' ? a.vehicle_id : a.vehicle_id?.vehicleName || ""
                     const centerName = typeof a.center_id === 'string' ? a.center_id : a.center_id?.name || ""
+                    const appointmentDate = a.startTime ? new Date(a.startTime).toLocaleDateString() : ""
                     return (
                       <SelectItem key={a._id} value={a._id}>
-                        {vehicleName} • {centerName} • {new Date(a.startTime).toLocaleDateString()}
+                        {vehicleName} • {centerName}{appointmentDate ? ` • ${appointmentDate}` : ""}
                       </SelectItem>
                     )
                   })}
                 </SelectContent>
               </Select>
+              {isEditMode && appointmentId && appointmentId !== 'none' && (
+                <p className="text-sm text-muted-foreground">
+                  {(() => {
+                    const a = appointments.find(x => x._id === appointmentId)
+                    if (!a) return null
+                    const vehicleName = typeof a.vehicle_id === 'string' ? a.vehicle_id : a.vehicle_id?.vehicleName || ""
+                    const centerName = typeof a.center_id === 'string' ? a.center_id : a.center_id?.name || ""
+                    const appointmentDate = a.startTime ? new Date(a.startTime).toLocaleString() : ""
+                    return `${vehicleName} • ${centerName}${appointmentDate ? ` • ${appointmentDate}` : ""}`
+                  })()}
+                </p>
+              )}
             </div>
 
-            <div className="grid gap-2">
-              <Label>Technician</Label>
-              <Select value={technicianId} onValueChange={setTechnicianId}>
-                <SelectTrigger>
-                  <SelectValue placeholder={loadingLists ? "Loading technicians..." : "Select technician"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {technicians.map(t => (
-                    <SelectItem key={t._id} value={t._id}>{t.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">

@@ -1534,6 +1534,19 @@ export class ApiClient {
     return res.data
   }
 
+  // Vehicle Subscriptions: get active subscription package by service record id (for discounts)
+  async getActiveSubscriptionPackageByServiceRecord(serviceRecordId: string): Promise<SubscriptionPackageInfo | null> {
+    try {
+      const res = await this.fetchJson<SubscriptionPackageByRecordResponse>(`/vehicle-subscriptions/service-record/${serviceRecordId}/package`, { method: "GET" })
+      const data = res.data
+      if (!data) return null
+      return Array.isArray(data) ? (data[0] ?? null) : data
+    } catch (e) {
+      // Swallow 404 or other errors & just return null so UI can continue without discount
+      return null
+    }
+  }
+
   // Service Centers: list
   async getCenters(params?: { page?: number; limit?: number }): Promise<CentersListResponse> {
     const url = new URL(this.buildUrl("/centers"))
@@ -2045,11 +2058,24 @@ export class ApiClient {
     return { payment: res.data.payment, paymentUrl: (res as any).data?.paymentUrl }
   }
 
-  // Payments: list (Admin view only)
-  async getPayments(params?: { page?: number; limit?: number }): Promise<PaymentsListResponse> {
+  // Payments: list (supports filters)
+  async getPayments(params?: {
+    page?: number
+    limit?: number
+    status?: string
+    customer_id?: string
+    service_record_id?: string
+    subscription_id?: string
+    payment_type?: string
+  }): Promise<PaymentsListResponse> {
     const url = new URL(this.buildUrl("/payments"))
     if (params?.page) url.searchParams.set("page", String(params.page))
     if (params?.limit) url.searchParams.set("limit", String(params.limit))
+    if (params?.status) url.searchParams.set("status", params.status)
+    if (params?.customer_id) url.searchParams.set("customer_id", params.customer_id)
+    if (params?.service_record_id) url.searchParams.set("service_record_id", params.service_record_id)
+    if (params?.subscription_id) url.searchParams.set("subscription_id", params.subscription_id)
+    if (params?.payment_type) url.searchParams.set("payment_type", params.payment_type)
     const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
     if (!res.ok) throw new Error(await safeErrorMessage(res))
     return (await res.json()) as PaymentsListResponse
@@ -2111,6 +2137,26 @@ export interface UpdateVehicleSubscriptionRequest {
   start_date?: string
   end_date?: string | null
   status?: SubscriptionStatus
+}
+
+// Subscription package info returned when querying by service record
+export interface SubscriptionPackageInfo {
+  _id: string
+  name: string
+  description?: string
+  price?: number
+  duration?: number
+  km_interval?: number
+  service_interval_days?: number
+  discount_percent?: number
+  createdAt?: string
+  updatedAt?: string
+  __v?: number
+}
+
+export interface SubscriptionPackageByRecordResponse {
+  success: boolean
+  data: SubscriptionPackageInfo | SubscriptionPackageInfo[]
 }
 
 
