@@ -11,7 +11,15 @@ export interface LegacyLoginRequest {
   email: string
   password: string
 }
-
+export interface NotificationItem {
+  id: string
+  type: string
+  title: string
+  message: string
+  meta?: any
+  createdAt: string
+  read?: boolean
+}
 export interface LoginResponse {
   success: boolean
   message: string
@@ -749,6 +757,10 @@ export interface ForecastResultItem {
 export interface ForecastInfoResponse {
   success: boolean
   results: ForecastResultItem[]
+  total?: number
+  page?: number
+  limit?: number
+  totalPages?: number
 }
 
 // Center Auto Parts (Inventory per center per part)
@@ -1892,6 +1904,18 @@ export class ApiClient {
     return this.fetchJson(`/forecast/info/${centerId}`, { method: "GET" })
   }
 
+  // Forecast: get latest forecast for a specific part at a center
+  async getForecastByCenterPart(centerId: string, partId: string, options: { limit?: number; page?: number } = {}): Promise<ForecastInfoResponse> {
+    const { limit = 1, page } = options
+    const url = new URL(this.buildUrl(`/forecast/info/${centerId}`))
+    url.searchParams.set("part_id", partId)
+    if (limit) url.searchParams.set("limit", String(limit))
+    if (page) url.searchParams.set("page", String(page))
+    const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
+    if (!res.ok) throw new Error(await safeErrorMessage(res))
+    return (await res.json()) as ForecastInfoResponse
+  }
+
   // Center Auto Parts: list
   async getCenterAutoParts(params?: { page?: number; limit?: number; center_id?: string; part_id?: string }): Promise<CenterAutoPartsListResponse> {
     const url = new URL(this.buildUrl("/center-auto-parts"))
@@ -2008,6 +2032,7 @@ export class ApiClient {
   async cancelPayment(orderCode: number | string): Promise<{ success: boolean; message?: string; data?: any }> {
     return this.fetchJson<{ success: boolean; message?: string; data?: any }>(`/payments/cancel/${orderCode}`, { method: "PUT", body: JSON.stringify({}) })
   }
+  // getNotifications removed: notifications now delivered only via websocket events
 }
 
 // Subscription types and APIs

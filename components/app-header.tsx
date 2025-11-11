@@ -15,12 +15,43 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { useAuth } from "@/components/auth-provider"
+import { useEffect, useState } from "react"
+import { useSocket } from "@/lib/useSocket"
+import { formatDateTime } from "@/lib/utils"
+// Notifications are socket-only; no REST fetch needed
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 
 export function AppHeader() {
   const { user, logout } = useAuth()
   const router = useRouter()
+  const { on } = useSocket()
+  const [open, setOpen] = useState(false)
+  const [notifications, setNotifications] = useState<Array<{ id: string; type: string; title: string; message: string; meta?: any; createdAt: string }>>([])
+  const unreadCount = notifications.length
+
+  // No initial REST fetch; notifications come from websocket events only
+
+  // Socket listeners
+  useEffect(() => {
+    const handleNotification = (data: any) => {
+      console.log('📢 Notification received:', data)
+      setNotifications(prev => [{
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        type: data?.type || 'notification',
+        title: data?.title || 'Thông báo',
+        message: data?.message || '',
+        meta: data?.meta,
+        createdAt: new Date().toISOString()
+      }, ...prev].slice(0, 50))
+    }
+
+    on('notification:new', handleNotification)
+
+    return () => {
+      // Cleanup handled by socket.io internally
+    }
+  }, [on])
 
   const handleLogout = () => {
     logout()
@@ -45,10 +76,37 @@ export function AppHeader() {
 
       <div className="flex items-center gap-2">
         <ThemeToggle />
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-accent" />
-        </Button>
+        <DropdownMenu open={open} onOpenChange={setOpen}>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
+              <Bell className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0 -right-0 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-medium text-accent-foreground">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
+            <DropdownMenuLabel>Thông báo</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {notifications.length === 0 && (
+              <div className="px-3 py-2 text-sm text-muted-foreground">Không có thông báo</div>
+            )}
+            {notifications.map(n => (
+              <DropdownMenuItem key={n.id} className="flex flex-col items-start gap-1 whitespace-normal">
+                <div className="flex w-full justify-between text-xs font-medium">
+                  <span>{n.title}</span>
+                  <span className="text-muted-foreground">{formatDateTime(n.createdAt)}</span>
+                </div>
+                <div className="text-xs text-muted-foreground">{n.message}</div>
+                {n.meta?.part_id && (
+                  <div className="text-[10px] text-muted-foreground/70">Part: {n.meta.part_id}</div>
+                )}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

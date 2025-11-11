@@ -158,16 +158,8 @@ export function CenterAutoPartDialog({ open, onOpenChange, record, onSuccess }: 
                 <Label htmlFor="min">Min Stock</Label>
                 <Input id="min" type="number" min="0" value={minStock} onChange={(e) => setMinStock(e.target.value)} required />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="rec">Recommended Min</Label>
-                <Input id="rec" type="number" min="0" value={recommendedMinStock} onChange={(e) => setRecommendedMinStock(e.target.value)} required />
-              </div>
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="forecast">Last Forecast Date</Label>
-              <Input id="forecast" type="datetime-local" value={lastForecastDate} onChange={(e) => setLastForecastDate(e.target.value)} />
-            </div>
           </div>
 
           <DialogFooter>
