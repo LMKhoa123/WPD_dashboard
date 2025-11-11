@@ -169,9 +169,10 @@ export function ServiceRecordDialog({ record, trigger, onCreated, onUpdated }: S
                   {appointments.map(a => {
                     const vehicleName = typeof a.vehicle_id === 'string' ? a.vehicle_id : a.vehicle_id?.vehicleName || ""
                     const centerName = typeof a.center_id === 'string' ? a.center_id : a.center_id?.name || ""
+                    const appointmentDate = a.startTime ? new Date(a.startTime).toLocaleDateString() : ""
                     return (
                       <SelectItem key={a._id} value={a._id}>
-                        {vehicleName} • {centerName} • {new Date(a.startTime).toLocaleDateString()}
+                        {vehicleName} • {centerName}{appointmentDate ? ` • ${appointmentDate}` : ""}
                       </SelectItem>
                     )
                   })}
@@ -179,19 +180,6 @@ export function ServiceRecordDialog({ record, trigger, onCreated, onUpdated }: S
               </Select>
             </div>
 
-            <div className="grid gap-2">
-              <Label>Technician</Label>
-              <Select value={technicianId} onValueChange={setTechnicianId}>
-                <SelectTrigger>
-                  <SelectValue placeholder={loadingLists ? "Loading technicians..." : "Select technician"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {technicians.map(t => (
-                    <SelectItem key={t._id} value={t._id}>{t.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">

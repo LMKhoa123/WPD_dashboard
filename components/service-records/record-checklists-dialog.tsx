@@ -28,6 +28,7 @@ export function RecordChecklistsDialog({ recordId, trigger }: RecordChecklistsDi
   const [loading, setLoading] = useState(false)
   const [savingId, setSavingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [centerId, setCenterId] = useState<string>("")
   const { toast } = useToast()
   const api = useMemo(() => getApiClient(), [])
   const isAdmin = useIsAdmin()
@@ -41,8 +42,27 @@ export function RecordChecklistsDialog({ recordId, trigger }: RecordChecklistsDi
     const run = async () => {
       try {
         setLoading(true)
+        // Get checklists for the record
         const res = await api.getRecordChecklistsByRecord(recordId)
         setItems(res.data)
+
+        // Get service record to extract center_id from appointment
+        try {
+          const recordRes = await api.getServiceRecordById(recordId)
+          if (recordRes?.appointment_id) {
+            const apptId = typeof recordRes.appointment_id === 'string'
+              ? recordRes.appointment_id
+              : recordRes.appointment_id?._id
+
+            if (apptId) {
+              const appt = await api.getAppointmentById(apptId)
+              const cid = typeof appt.center_id === 'string' ? appt.center_id : appt.center_id?._id
+              if (cid) setCenterId(cid)
+            }
+          }
+        } catch {
+          // If can't get appointment, will load all center parts
+        }
       } catch (e: any) {
         toast({ title: "Không tải được checklist", description: e?.message || "Failed to load", variant: "destructive" })
       } finally {
@@ -100,7 +120,7 @@ export function RecordChecklistsDialog({ recordId, trigger }: RecordChecklistsDi
                 recordId={recordId}
                 onAssigned={() => {
                   // reload
-                  api.getRecordChecklistsByRecord(recordId).then((res) => setItems(res.data)).catch(()=>{})
+                  api.getRecordChecklistsByRecord(recordId).then((res) => setItems(res.data)).catch(() => { })
                 }}
                 trigger={
                   <Button size="sm" variant="secondary">
@@ -110,7 +130,7 @@ export function RecordChecklistsDialog({ recordId, trigger }: RecordChecklistsDi
               />
             )}
           </div>
-          
+
           {/* View all suggested parts button - Staff cần xem để tạo Detail */}
           {isStaff && items.length > 0 && (
             <AllSuggestedPartsDialog
@@ -147,7 +167,7 @@ export function RecordChecklistsDialog({ recordId, trigger }: RecordChecklistsDi
                         </SelectTrigger>
                         <SelectContent>
                           {statusOptions.map((s) => (
-                            <SelectItem key={s} value={s}>{s.replace("-"," ")}</SelectItem>
+                            <SelectItem key={s} value={s}>{s.replace("-", " ")}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -167,7 +187,7 @@ export function RecordChecklistsDialog({ recordId, trigger }: RecordChecklistsDi
                       )}
                     </div>
                   </div>
-                  
+
                   {/* Suggested Parts Section - CHỈ TECHNICIAN được đề xuất */}
                   {isTechnician && (
                     <div className="pt-2 border-t">
@@ -183,9 +203,10 @@ export function RecordChecklistsDialog({ recordId, trigger }: RecordChecklistsDi
                         <SuggestPartsDialog
                           checklistItemId={it._id}
                           currentSuggested={it.suggest || []}
+                          centerId={centerId}
                           onSaved={() => {
                             // Reload items
-                            api.getRecordChecklistsByRecord(recordId).then((res) => setItems(res.data)).catch(()=>{})
+                            api.getRecordChecklistsByRecord(recordId).then((res) => setItems(res.data)).catch(() => { })
                           }}
                           trigger={
                             <Button size="sm" variant="outline">
