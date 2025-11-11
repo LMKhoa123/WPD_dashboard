@@ -59,6 +59,9 @@ export default function InventoryPage() {
   const partsById = useMemo(() => new Map(parts.map((p) => [p._id, p])), [parts])
 
   const filtered = items.filter(it => {
+    // Skip items with null center_id or part_id
+    if (!it.center_id || !it.part_id) return false
+    
     const c = typeof it.center_id === 'string' ? it.center_id : it.center_id._id
     const p = typeof it.part_id === 'string' ? it.part_id : it.part_id._id
     const centerOk = centerFilter === 'all' || c === centerFilter
@@ -98,18 +101,20 @@ export default function InventoryPage() {
   }
 
   const rows: Row[] = useMemo(() => {
-    return items.map((it) => {
-      const centerId = typeof it.center_id === "string" ? it.center_id : it.center_id._id
-      const partId = typeof it.part_id === "string" ? it.part_id : it.part_id._id
-      const centerName = typeof it.center_id === "string" ? (centersById.get(centerId)?.name || it.center_id) : (it.center_id.name || "")
-      const partName = typeof it.part_id === "string" ? (partsById.get(partId)?.name || it.part_id) : (it.part_id.name || "")
-      const price = typeof it.part_id === "string" ? (partsById.get(partId)?.selling_price || 0) : (it.part_id.selling_price || 0)
-      const qty = it.quantity
-      const min = it.min_stock
-      const recommendedMinStock = it.recommended_min_stock
-      const status: Row["status"] = qty <= 0 ? "Out of Stock" : qty < min ? "Low Stock" : "In Stock"
-      return { id: it._id, name: partName, centerName, quantity: qty, minStock: min, recommendedMinStock, price, status }
-    })
+    return items
+      .filter(it => it.center_id && it.part_id) // Skip items with null center_id or part_id
+      .map((it) => {
+        const centerId = typeof it.center_id === "string" ? it.center_id : it.center_id._id
+        const partId = typeof it.part_id === "string" ? it.part_id : it.part_id._id
+        const centerName = typeof it.center_id === "string" ? (centersById.get(centerId)?.name || it.center_id) : (it.center_id.name || "")
+        const partName = typeof it.part_id === "string" ? (partsById.get(partId)?.name || it.part_id) : (it.part_id.name || "")
+        const price = typeof it.part_id === "string" ? (partsById.get(partId)?.selling_price || 0) : (it.part_id.selling_price || 0)
+        const qty = it.quantity
+        const min = it.min_stock
+        const recommendedMinStock = it.recommended_min_stock
+        const status: Row["status"] = qty <= 0 ? "Out of Stock" : qty < min ? "Low Stock" : "In Stock"
+        return { id: it._id, name: partName, centerName, quantity: qty, minStock: min, recommendedMinStock, price, status }
+      })
   }, [items, centersById, partsById])
 
   const filteredParts = rows.filter((row) => {
@@ -230,9 +235,10 @@ export default function InventoryPage() {
               </TableHeader>
               <TableBody>
                 {filtered.map((it) => {
-                  const centerName = typeof it.center_id === 'string' ? it.center_id : (it.center_id.name || "")
-                  const partName = typeof it.part_id === 'string' ? it.part_id : (it.part_id.name || "")
-                  const partId = typeof it.part_id === 'string' ? it.part_id : it.part_id._id
+                  // Already filtered out null values, but add safe checks
+                  const centerName = !it.center_id ? "—" : (typeof it.center_id === 'string' ? it.center_id : (it.center_id.name || ""))
+                  const partName = !it.part_id ? "—" : (typeof it.part_id === 'string' ? it.part_id : (it.part_id.name || ""))
+                  const partId = !it.part_id ? "" : (typeof it.part_id === 'string' ? it.part_id : it.part_id._id)
                   const price = partsById.get(partId)?.selling_price || 0
                   const qty = it.quantity
                   const min = it.min_stock

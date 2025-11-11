@@ -9,6 +9,7 @@ import { WorkStatusChart } from "@/components/dashboard/work-status-chart"
 import { RecentAppointments } from "@/components/dashboard/recent-appointments"
 import { mockCustomers, mockVehicles, mockAppointments } from "@/src/lib/mock-data"
 import { useAuth } from "@/components/auth-provider"
+import { formatVND } from "@/lib/utils"
 
 export default function DashboardPage() {
   const { user } = useAuth()
@@ -43,7 +44,7 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <KpiCard
           title="Total Revenue"
-          value={`$${totalRevenue.toLocaleString()}`}
+          value={formatVND(totalRevenue)}
           change="+12.5% from last week"
           changeType="positive"
           icon={<DollarSign className="h-4 w-4" />}

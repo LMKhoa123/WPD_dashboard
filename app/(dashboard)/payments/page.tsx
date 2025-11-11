@@ -13,6 +13,7 @@ import { ExternalLink, Eye, RotateCcw } from "lucide-react"
 import { PaymentDetailDialog } from "@/components/payments/payment-detail-dialog"
 import { CreatePaymentManualDialog } from "@/components/payments/create-payment-manual-dialog"
 import { Spinner } from "@/components/ui/spinner"
+import { formatVND, formatDateTime } from "@/lib/utils"
 
 export default function PaymentsPage() {
   const isAdmin = useIsAdmin()
@@ -49,7 +50,6 @@ export default function PaymentsPage() {
     )
   }
 
-  const formatVnd = (v: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v)
   const statusBadge = (s: string) => {
     const map: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
       pending: "secondary",
@@ -120,9 +120,9 @@ export default function PaymentsPage() {
                   <TableRow key={p._id}>
                     <TableCell className="font-medium">{p.order_code}</TableCell>
                     <TableCell className="uppercase text-xs">{p.payment_type || '—'}</TableCell>
-                    <TableCell className="text-right">{formatVnd(p.amount)}</TableCell>
+                    <TableCell className="text-right">{formatVND(p.amount)}</TableCell>
                     <TableCell>{statusBadge(p.status)}</TableCell>
-                    <TableCell>{new Date(p.createdAt).toLocaleString("vi-VN")}</TableCell>
+                    <TableCell>{formatDateTime(p.createdAt)}</TableCell>
                     <TableCell className="text-right space-x-2">
                       {p.payment_url && (
                         <Button size="sm" variant="ghost" asChild title="Mở link thanh toán">

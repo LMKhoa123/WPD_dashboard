@@ -9,6 +9,7 @@ import { getApiClient, type ServiceRecordRecord, type PaymentRecord } from "@/li
 import { useToast } from "@/components/ui/use-toast"
 import { PaymentDetailDialog } from "@/components/payments/payment-detail-dialog"
 import { ExternalLink } from "lucide-react"
+import { formatVND } from "@/lib/utils"
 
 interface Props {
   record: ServiceRecordRecord
@@ -126,7 +127,7 @@ export function CreatePaymentDialog({ record, trigger, onCreated }: Props) {
 
         {created ? (
           <div className="space-y-4">
-            <div className="text-sm">Đã tạo order <span className="font-semibold">#{created.order_code}</span> với số tiền <span className="font-semibold">{new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(created.amount)}</span></div>
+            <div className="text-sm">Đã tạo order <span className="font-semibold">#{created.order_code}</span> với số tiền <span className="font-semibold">{formatVND(created.amount)}</span></div>
             <div className="flex items-center gap-2">
               {created.payment_url ? (
                 <Button asChild size="sm" variant="secondary" title="Mở đường dẫn thanh toán">

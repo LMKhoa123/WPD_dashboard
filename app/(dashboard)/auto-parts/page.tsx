@@ -28,6 +28,7 @@ import { getApiClient, type AutoPartRecord } from "@/lib/api"
 import { Plus, Pencil, Trash2, Search } from "lucide-react"
 import { AutoPartDialog } from "@/components/auto-parts/auto-part-dialog"
 import { useRole } from "@/components/auth-provider"
+import { formatDate } from "@/lib/utils"
 
 export default function AutoPartsPage() {
   const { toast } = useToast()
@@ -179,7 +180,7 @@ export default function AutoPartsPage() {
                     <TableCell className="text-right">
                       <Badge variant="secondary">{part.warranty_time} days</Badge>
                     </TableCell>
-                    <TableCell>{new Date(part.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell>{formatDate(part.createdAt)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button

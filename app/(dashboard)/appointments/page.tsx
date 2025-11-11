@@ -18,6 +18,7 @@ import { getApiClient, type AppointmentRecord, type AppointmentStatus } from "@/
 import { AdminStaffTechnicianOnly } from "@/components/role-guards"
 import { AssignStaffDialog } from "@/components/appointments/assign-staff-dialog"
 import { AssignTechnicianDialog } from "@/components/appointments/assign-technician-dialog"
+import { formatDateTime, formatDate } from "@/lib/utils"
 
 const statusColors: Record<AppointmentStatus, string> = {
   pending: "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20",
@@ -155,9 +156,9 @@ export default function AppointmentsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Customer</TableHead>
                       <TableHead>Vehicle</TableHead>
                       <TableHead>Service Center</TableHead>
+                      <TableHead>Technician</TableHead>
                       <TableHead>Start Time</TableHead>
                       <TableHead>End Time</TableHead>
                       <TableHead>Status</TableHead>
@@ -171,24 +172,24 @@ export default function AppointmentsPage() {
                         ? apt.slot_id
                         : null
                       const startDisplay = slotInfo
-                        ? `${new Date(slotInfo.slot_date).toLocaleDateString()} ${slotInfo.start_time}`
-                        : apt.startTime ? new Date(apt.startTime).toLocaleString() : "—"
+                        ? `${formatDate(slotInfo.slot_date)} ${slotInfo.start_time}`
+                        : apt.startTime ? formatDateTime(apt.startTime) : "—"
                       const endDisplay = slotInfo
                         ? slotInfo.end_time
-                        : apt.endTime ? new Date(apt.endTime).toLocaleString() : "—"
+                        : apt.endTime ? formatDateTime(apt.endTime) : "—"
 
                       return (
                         <TableRow key={apt._id}>
-                          <TableCell className="text-muted-foreground">
-                            {typeof apt.customer_id === 'string'
-                              ? apt.customer_id
-                              : apt.customer_id?.customerName || (apt.customer_id as any)?.email || "—"}
-                          </TableCell>
                           <TableCell className="font-medium">
                             {typeof apt.vehicle_id === 'string' ? apt.vehicle_id : `${apt.vehicle_id?.vehicleName} • ${apt.vehicle_id?.plateNumber}`}
                           </TableCell>
                           <TableCell>
                             {typeof apt.center_id === 'string' ? apt.center_id : apt.center_id?.name}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {typeof apt.staffId === 'string'
+                              ? apt.staffId
+                              : apt.staffId?.name || (apt.staffId as any)?.email || "—"}
                           </TableCell>
                           <TableCell className="text-muted-foreground">
                             {startDisplay}
@@ -228,6 +229,7 @@ export default function AppointmentsPage() {
                                   {/* Assign Staff */}
                                   <AssignStaffDialog
                                     appointmentId={apt._id}
+                                    centerId={apt.center_id}
                                     onAssigned={load}
                                     trigger={<Button variant="ghost" size="sm">Assign Staff</Button>}
                                   />

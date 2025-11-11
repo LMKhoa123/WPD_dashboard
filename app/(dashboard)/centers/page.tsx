@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { AdminStaffTechnicianOnly } from "@/components/role-guards"
 import { useIsAdmin } from "@/components/auth-provider"
+import { formatDateTime } from "@/lib/utils"
 
 export default function ServiceCentersPage() {
   const [centers, setCenters] = useState<CenterRecord[]>([])
@@ -95,7 +96,7 @@ export default function ServiceCentersPage() {
                 </TableCell>
                 <TableCell>{ct.address}</TableCell>
                 <TableCell>{ct.phone}</TableCell>
-                <TableCell>{new Date(ct.createdAt).toLocaleString()}</TableCell>
+                <TableCell>{formatDateTime(ct.createdAt)}</TableCell>
                 <TableCell className="text-right space-x-2">
                   {isAdmin && (
                     <>
