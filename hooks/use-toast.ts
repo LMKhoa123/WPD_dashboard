@@ -2,6 +2,7 @@
 
 // Inspired by react-hot-toast library
 import * as React from 'react'
+import { toast as sonnerToast } from 'sonner'
 
 import type { ToastActionElement, ToastProps } from '@/components/ui/toast'
 
@@ -140,6 +141,16 @@ function dispatch(action: Action) {
 type Toast = Omit<ToasterToast, 'id'>
 
 function toast({ ...props }: Toast) {
+  // Also forward to Sonner so root Toaster (Sonner) displays messages
+  try {
+    const titleStr = typeof props.title === 'string' ? props.title : ''
+    const descStr = typeof props.description === 'string' ? props.description : ''
+    const message = titleStr || descStr ? `${titleStr}${descStr ? ' — ' + descStr : ''}` : undefined
+    if (message) sonnerToast(message)
+  } catch (e) {
+    // ignore sonner errors
+  }
+
   const id = genId()
 
   const update = (props: ToasterToast) =>
