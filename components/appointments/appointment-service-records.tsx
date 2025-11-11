@@ -8,6 +8,8 @@ import { Spinner } from "@/components/ui/spinner"
 import { Separator } from "@/components/ui/separator"
 import RecordChecklists from "./record-checklists"
 import { User, Clock, ClipboardList } from "lucide-react"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
 
 export interface AppointmentServiceRecordsProps {
     appointmentId: string
@@ -167,9 +169,14 @@ export function AppointmentServiceRecords({ appointmentId }: AppointmentServiceR
                     return (
                         <Card key={r._id} className="shadow-sm">
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-base flex items-center gap-2">
-                                    <ClipboardList className="h-4 w-4" />#{r._id.slice(-6)} Đề xuất sửa chữa
-                                </CardTitle>
+                                <div className="flex items-center justify-between gap-2">
+                                    <CardTitle className="text-base flex items-center gap-2">
+                                        <ClipboardList className="h-4 w-4" />#{r._id.slice(-6)} Đề xuất sửa chữa
+                                    </CardTitle>
+                                    <Link href={`/service-records/${r._id}/suggested-parts`}>
+                                        <Button size="sm" variant="outline">Tạo hóa đơn</Button>
+                                    </Link>
+                                </div>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="flex flex-wrap items-center gap-3 text-sm">

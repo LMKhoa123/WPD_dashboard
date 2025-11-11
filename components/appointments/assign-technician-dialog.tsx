@@ -92,7 +92,7 @@ export function AssignTechnicianDialog({ appointmentId, slotId, trigger, onAssig
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="max-w-[560px] w-[calc(100%-2rem)] p-4">
+      <DialogContent className="max-w-[420px] w-[calc(100%-2rem)] p-4">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Gán kỹ thuật viên</DialogTitle>

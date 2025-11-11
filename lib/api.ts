@@ -1975,12 +1975,12 @@ export class ApiClient {
   }
 
   // Payments: create payment request (e.g., for completed service record)
-  async createPayment(payload: CreatePaymentRequest): Promise<PaymentRecord> {
+  async createPayment(payload: CreatePaymentRequest): Promise<{ payment: PaymentRecord; paymentUrl?: string }> {
     const res = await this.fetchJson<{ success: boolean; message?: string; data: { payment: PaymentRecord; paymentUrl?: string } }>(`/payments`, {
       method: "POST",
       body: JSON.stringify(payload),
     })
-    return res.data.payment
+    return { payment: res.data.payment, paymentUrl: (res as any).data?.paymentUrl }
   }
 
   // Payments: list (Admin view only)
