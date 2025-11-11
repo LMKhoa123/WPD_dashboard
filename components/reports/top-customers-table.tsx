@@ -3,6 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { formatVND } from "@/lib/utils"
 
 const topCustomers = [
   { name: "Michael Johnson", visits: 12, revenue: 8450, initials: "MJ" },
@@ -42,7 +43,7 @@ export function TopCustomersTable() {
                   </div>
                 </TableCell>
                 <TableCell className="text-right text-muted-foreground">{customer.visits}</TableCell>
-                <TableCell className="text-right font-semibold">${customer.revenue.toLocaleString()}</TableCell>
+                <TableCell className="text-right font-semibold">{formatVND(customer.revenue)}</TableCell>
               </TableRow>
             ))}
           </TableBody>

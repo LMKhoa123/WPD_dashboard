@@ -9,11 +9,12 @@ import { getApiClient, type SystemUserRecord } from "@/lib/api"
 
 interface AssignStaffDialogProps {
   appointmentId: string
+  centerId?: string | { _id: string; name?: string; address?: string; phone?: string }
   trigger: React.ReactNode
   onAssigned?: () => void
 }
 
-export function AssignStaffDialog({ appointmentId, trigger, onAssigned }: AssignStaffDialogProps) {
+export function AssignStaffDialog({ appointmentId, centerId, trigger, onAssigned }: AssignStaffDialogProps) {
   const [open, setOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [staffId, setStaffId] = useState("")
@@ -27,13 +28,16 @@ export function AssignStaffDialog({ appointmentId, trigger, onAssigned }: Assign
     const run = async () => {
       try {
         setLoading(true)
-        const res = await api.getSystemUsers({ limit: 200 })
-        // Filter to STAFF role if available in userId
-        const list = res.data.systemUsers.filter(s => {
-          const u: any = s.userId
-          return typeof u === 'object' ? (u.role === 'STAFF' || u.role === 'ADMIN') : true
+        // Get centerId string
+        const centerIdStr = typeof centerId === 'string' ? centerId : centerId?._id
+        
+        // Call API with centerId and role=STAFF filter
+        const res = await api.getSystemUsers({ 
+          limit: 200, 
+          centerId: centerIdStr,
+          role: 'STAFF'
         })
-        setStaffList(list)
+        setStaffList(res.data.systemUsers)
       } catch (e: any) {
         toast({ title: "Không tải được danh sách nhân viên", description: e?.message || "Failed to load staff", variant: "destructive" })
       } finally {
@@ -41,7 +45,7 @@ export function AssignStaffDialog({ appointmentId, trigger, onAssigned }: Assign
       }
     }
     run()
-  }, [open, api, toast])
+  }, [open, api, toast, centerId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

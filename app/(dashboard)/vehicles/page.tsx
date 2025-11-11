@@ -15,6 +15,7 @@ import { getApiClient, type VehicleRecord } from "@/lib/api"
 import { toast } from "@/components/ui/use-toast"
 import { VehicleDialog } from "@/components/vehicles/vehicle-dialog"
 import { AssignVehicleDialog } from "@/components/vehicles/assign-vehicle-dialog"
+import { formatVND, formatNumber } from "@/lib/utils"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -72,12 +73,12 @@ export default function VehiclesPage() {
 
   const formatPrice = (price?: number) => {
     if (!price) return "—"
-    return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price)
+    return formatVND(price)
   }
 
   const formatMileage = (mileage?: number) => {
     if (mileage === undefined || mileage === null) return "—"
-    return `${mileage.toLocaleString("vi-VN")} km`
+    return `${formatNumber(mileage)} km`
   }
 
   const handleDeleteClick = (vehicle: VehicleRecord) => {

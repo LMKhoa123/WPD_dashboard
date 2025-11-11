@@ -13,6 +13,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { useToast } from "@/components/ui/use-toast"
 import { Eye } from "lucide-react"
 import { AdminOrStaffOnly } from "@/components/role-guards"
+import { formatVND, formatDate } from "@/lib/utils"
 
 export default function VehicleSubscriptionsPage() {
   const [items, setItems] = useState<VehicleSubscriptionRecord[]>([])
@@ -137,7 +138,7 @@ export default function VehicleSubscriptionsPage() {
                         <span className="font-medium">{packageInfo.name}</span>
                         {packageInfo.price && (
                           <span className="text-xs text-muted-foreground">
-                            {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(packageInfo.price)}
+                            {formatVND(packageInfo.price)}
                           </span>
                         )}
                       </div>
@@ -145,10 +146,10 @@ export default function VehicleSubscriptionsPage() {
                       <span className="text-muted-foreground">—</span>
                     )}
                   </TableCell>
-                  <TableCell>{new Date(it.start_date).toLocaleDateString("vi-VN")}</TableCell>
-                  <TableCell>{it.end_date ? new Date(it.end_date).toLocaleDateString("vi-VN") : '—'}</TableCell>
+                  <TableCell>{formatDate(it.start_date)}</TableCell>
+                  <TableCell>{it.end_date ? formatDate(it.end_date) : '—'}</TableCell>
                   <TableCell>{getStatusBadge(it.status)}</TableCell>
-                  <TableCell>{new Date(it.createdAt).toLocaleDateString("vi-VN")}</TableCell>
+                  <TableCell>{formatDate(it.createdAt)}</TableCell>
                   <TableCell className="text-right space-x-2">
                     <VehicleSubscriptionDetailDialog 
                       subscription={it} 

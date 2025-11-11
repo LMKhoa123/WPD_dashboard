@@ -13,6 +13,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Eye } from "lucide-react"
 import type { ServicePackageRecord } from "@/lib/api"
+import { formatVND, formatDateTime, formatNumber } from "@/lib/utils"
 
 interface ServicePackageDetailDialogProps {
   servicePackage: ServicePackageRecord
@@ -20,9 +21,6 @@ interface ServicePackageDetailDialogProps {
 }
 
 export function ServicePackageDetailDialog({ servicePackage, trigger }: ServicePackageDetailDialogProps) {
-  const formatCurrency = (v: number) => 
-    new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v)
-
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -51,7 +49,7 @@ export function ServicePackageDetailDialog({ servicePackage, trigger }: ServiceP
               <CardContent className="pt-6">
                 <div className="text-sm text-muted-foreground mb-1">Giá tiền</div>
                 <div className="text-2xl font-bold text-primary">
-                  {formatCurrency(servicePackage.price)}
+                  {formatVND(servicePackage.price)}
                 </div>
               </CardContent>
             </Card>
@@ -71,7 +69,7 @@ export function ServicePackageDetailDialog({ servicePackage, trigger }: ServiceP
               <CardContent className="pt-6">
                 <div className="text-sm text-muted-foreground mb-1">Khoảng cách bảo dưỡng</div>
                 <div className="text-2xl font-bold text-orange-600">
-                  {servicePackage.km_interval.toLocaleString()} <span className="text-base font-normal">km</span>
+                  {formatNumber(servicePackage.km_interval)} <span className="text-base font-normal">km</span>
                 </div>
               </CardContent>
             </Card>
@@ -89,11 +87,11 @@ export function ServicePackageDetailDialog({ servicePackage, trigger }: ServiceP
           <div className="flex items-center justify-between text-sm text-muted-foreground pt-4 border-t">
             <div>
               <span className="font-medium">Tạo lúc:</span>{" "}
-              {new Date(servicePackage.createdAt).toLocaleString("vi-VN")}
+              {formatDateTime(servicePackage.createdAt)}
             </div>
             <div>
               <span className="font-medium">Cập nhật:</span>{" "}
-              {new Date(servicePackage.updatedAt).toLocaleString("vi-VN")}
+              {formatDateTime(servicePackage.updatedAt)}
             </div>
           </div>
         </div>

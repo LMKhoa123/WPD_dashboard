@@ -11,6 +11,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { useToast } from "@/components/ui/use-toast"
 import { Eye } from "lucide-react"
 import { AdminOrStaffOnly } from "@/components/role-guards"
+import { formatVND, formatDateTime, formatNumber } from "@/lib/utils"
 
 export default function ServicePackagesPage() {
   const [packages, setPackages] = useState<ServicePackageRecord[]>([])
@@ -35,8 +36,6 @@ export default function ServicePackagesPage() {
   useEffect(() => {
     load()
   }, [load])
-
-  const formatCurrency = (v: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v)
 
   const handleCreated = (sp: ServicePackageRecord) => {
     setPackages((prev) => [sp, ...prev])
@@ -88,11 +87,11 @@ export default function ServicePackagesPage() {
             {packages.map((sp) => (
               <TableRow key={sp._id}>
                 <TableCell className="font-medium">{sp.name}</TableCell>
-                <TableCell>{formatCurrency(sp.price)}</TableCell>
+                <TableCell>{formatVND(sp.price)}</TableCell>
                 <TableCell>{sp.duration} days</TableCell>
-                <TableCell>{sp.km_interval.toLocaleString()} km</TableCell>
+                <TableCell>{formatNumber(sp.km_interval)} km</TableCell>
                 <TableCell>{sp.service_interval_days} days</TableCell>
-                <TableCell>{new Date(sp.createdAt).toLocaleString()}</TableCell>
+                <TableCell>{formatDateTime(sp.createdAt)}</TableCell>
                 <TableCell className="text-right space-x-2">
                   <ServicePackageDetailDialog 
                     servicePackage={sp} 

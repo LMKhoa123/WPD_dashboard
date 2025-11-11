@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Eye } from "lucide-react"
 import { getApiClient, type PaymentInfoResponse, type PaymentRecord } from "@/lib/api"
 import { Spinner } from "@/components/ui/spinner"
+import { formatVND, formatDateTime } from "@/lib/utils"
 
 interface Props {
   payment: PaymentRecord
@@ -38,8 +39,6 @@ export function PaymentDetailDialog({ payment, trigger }: Props) {
     loadInfo()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, api, payment.order_code])
-
-  const formatVnd = (v: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v)
 
   const statusBadge = (s: string) => {
     const map: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -103,7 +102,7 @@ export function PaymentDetailDialog({ payment, trigger }: Props) {
             <Card>
               <CardContent className="pt-6">
                 <div className="text-sm text-muted-foreground">Số tiền</div>
-                <div className="text-base font-semibold text-primary">{formatVnd(payment.amount)}</div>
+                <div className="text-base font-semibold text-primary">{formatVND(payment.amount)}</div>
               </CardContent>
             </Card>
             <Card>
@@ -138,22 +137,22 @@ export function PaymentDetailDialog({ payment, trigger }: Props) {
                     <div className="text-sm text-muted-foreground">Trạng thái</div>
                     <div>{statusBadge(info.status)}</div>
                     <div className="text-sm text-muted-foreground">Tạo lúc</div>
-                    <div>{new Date(info.createdAt).toLocaleString("vi-VN")}</div>
+                    <div>{formatDateTime(info.createdAt)}</div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-6 space-y-1">
                     <div className="text-sm text-muted-foreground">Đã thanh toán</div>
-                    <div>{formatVnd(info.amountPaid)} / {formatVnd(info.amount)}</div>
+                    <div>{formatVND(info.amountPaid)} / {formatVND(info.amount)}</div>
                     <div className="text-sm text-muted-foreground">Còn lại</div>
-                    <div>{formatVnd(info.amountRemaining)}</div>
+                    <div>{formatVND(info.amountRemaining)}</div>
                   </CardContent>
                 </Card>
                 {info.canceledAt && (
                   <Card className="md:col-span-2">
                     <CardContent className="pt-6 space-y-1">
                       <div className="text-sm text-muted-foreground">Đã hủy lúc</div>
-                      <div>{new Date(info.canceledAt).toLocaleString("vi-VN")}</div>
+                      <div>{formatDateTime(info.canceledAt)}</div>
                       {info.cancellationReason && (
                         <div className="text-sm text-muted-foreground">Lý do: <span className="text-foreground">{info.cancellationReason}</span></div>
                       )}
@@ -173,8 +172,8 @@ export function PaymentDetailDialog({ payment, trigger }: Props) {
           </div>
 
           <div className="flex items-center justify-between text-xs text-muted-foreground pt-2">
-            <div>Tạo: {new Date(payment.createdAt).toLocaleString("vi-VN")}</div>
-            <div>Cập nhật: {new Date(payment.updatedAt).toLocaleString("vi-VN")}</div>
+            <div>Tạo: {formatDateTime(payment.createdAt)}</div>
+            <div>Cập nhật: {formatDateTime(payment.updatedAt)}</div>
           </div>
         </div>
       </DialogContent>
