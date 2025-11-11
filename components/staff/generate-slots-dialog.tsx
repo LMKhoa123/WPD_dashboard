@@ -10,7 +10,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { format } from "date-fns"
+import { format, isValid } from "date-fns"
 import { vi } from "date-fns/locale"
 import { CalendarIcon, X, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
@@ -63,6 +63,12 @@ export function GenerateSlotsDialog({ open, onOpenChange, centers, onSuccess }: 
     setSelectedDates(prev => prev.filter((_, i) => i !== index))
   }
 
+  const hhmmToMinutes = (s: string) => {
+    const [h, m] = s.split(":").map(Number)
+    if (Number.isNaN(h) || Number.isNaN(m)) return NaN
+    return h * 60 + m
+  }
+
   const handleGenerate = async () => {
     if (selectedCenterIds.length === 0) {
       toast({ title: "Vui lòng chọn ít nhất một trung tâm", variant: "destructive" })
@@ -73,11 +79,29 @@ export function GenerateSlotsDialog({ open, onOpenChange, centers, onSuccess }: 
       return
     }
 
+    // Validate time range
+    const startMin = hhmmToMinutes(startTime)
+    const endMin = hhmmToMinutes(endTime)
+    if (!Number.isFinite(startMin) || !Number.isFinite(endMin) || startMin >= endMin) {
+      toast({ title: "Khoảng giờ không hợp lệ", description: "Giờ bắt đầu phải trước giờ kết thúc", variant: "destructive" })
+      return
+    }
+
+    // Normalize and validate dates to avoid sending "Invalid Date"
+    const dates = Array.from(new Set(
+      selectedDates
+        .filter((d) => isValid(d))
+        .map((d) => format(d, "yyyy-MM-dd"))
+    ))
+    if (dates.length === 0) {
+      toast({ title: "Ngày không hợp lệ", description: "Vui lòng chọn lại ngày hợp lệ", variant: "destructive" })
+      return
+    }
+
     setLoading(true)
     setResult(null)
     try {
       const api = getApiClient()
-      const dates = selectedDates.map(d => format(d, "yyyy-MM-dd"))
       
       const response = await api.generateSlots({
         center_ids: selectedCenterIds,
