@@ -102,9 +102,9 @@ export function CreatePaymentDialog({ record, trigger, onCreated }: Props) {
         returnUrl: getReturnUrl(),
         cancelUrl: getCancelUrl(),
       })
-      setCreated(payment)
-      onCreated?.(payment)
-      toast({ title: "Đã tạo yêu cầu thanh toán", description: `Order #${payment.order_code}` })
+      // setCreated(payment)
+      // onCreated?.(payment)
+      // toast({ title: "Đã tạo yêu cầu thanh toán", description: `Order #${payment.order_code}` })
     } catch (e: any) {
       toast({ title: "Tạo thanh toán thất bại", description: e?.message || "Create payment error", variant: "destructive" })
     } finally {

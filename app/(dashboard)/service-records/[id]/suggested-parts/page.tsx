@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
-import { getApiClient, type ServiceDetailRecord } from "@/lib/api"
+import { getApiClient, type ServiceDetailRecord, type PaymentRecord } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -42,6 +42,9 @@ export default function SuggestedPartsPage() {
     const [submittingId, setSubmittingId] = useState<string | null>(null)
     const [customerId, setCustomerId] = useState<string | null>(null)
     const [paying, setPaying] = useState(false)
+    const [discountPercent, setDiscountPercent] = useState<number>(0)
+    const [isPaid, setIsPaid] = useState(false)
+    const [paidPayment, setPaidPayment] = useState<PaymentRecord | null>(null)
 
     const VND = (v: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v)
 
@@ -128,6 +131,35 @@ export default function SuggestedPartsPage() {
                 } catch {
                     // ignore customer resolution error
                 }
+
+                // Load active subscription package by service record to get discount percent
+                try {
+                    const pkg = await api.getActiveSubscriptionPackageByServiceRecord(recordId)
+                    const dp = (pkg as any)?.discount_percent ?? 0
+                    setDiscountPercent(Number(dp) || 0)
+                } catch {
+                    setDiscountPercent(0)
+                }
+
+                // Check payment status for this service record
+                try {
+                    const payRes = await api.getPayments({ service_record_id: recordId, limit: 50 })
+                    const payments = (payRes as any)?.data?.payments || []
+                    const paid = payments.find((p: any) => {
+                        const s = String(p?.status || "").toLowerCase()
+                        return s === "paid" || s === "completed"
+                    }) as PaymentRecord | undefined
+                    if (paid) {
+                        setIsPaid(true)
+                        setPaidPayment(paid)
+                    } else {
+                        setIsPaid(false)
+                        setPaidPayment(null)
+                    }
+                } catch {
+                    // if cannot fetch payments, keep default (treat as unpaid)
+                    setIsPaid(false)
+                }
             } catch (e: any) {
                 toast({ title: "Không tải được đề xuất vật tư", description: e?.message || "Failed to load suggested parts", variant: "destructive" })
             } finally {
@@ -172,8 +204,8 @@ export default function SuggestedPartsPage() {
 
     const partsTotal = lines.filter(l => l.confirmed).reduce((sum, l) => sum + l.quantity * l.selling_price, 0)
     const labor = 200_000
-    const discount = 0
-    const grandTotal = partsTotal + labor - discount
+    const discount = Math.round(((partsTotal + labor) * (discountPercent || 0)) / 100)
+    const grandTotal = Math.max(0, partsTotal + labor - discount)
     const hasUnconfirmed = lines.some((l) => !l.confirmed)
 
     const createPayment = async () => {
@@ -191,12 +223,15 @@ export default function SuggestedPartsPage() {
         }
         try {
             setPaying(true)
+            const currentUrl = typeof window !== "undefined" ? window.location.href : undefined
             const { payment, paymentUrl } = await api.createPayment({
                 service_record_id: recordId,
                 customer_id: customerId,
                 amount: Math.round(grandTotal),
-                description: `Thanh toán dịch vụ cho hồ sơ ${recordId}`,
+                description: `Thanh toán dịch vụ `,
                 payment_type: "service_record",
+                returnUrl: currentUrl,
+                cancelUrl: currentUrl,
                 // Giữ returnUrl/cancelUrl mặc định ở backend
             })
             const url = paymentUrl || (payment as any)?.payment_url
@@ -215,6 +250,51 @@ export default function SuggestedPartsPage() {
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[60vh] text-muted-foreground"><Spinner /> Đang tải đề xuất...</div>
+        )
+    }
+
+    if (isPaid) {
+        return (
+            <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                            <ArrowLeft className="h-5 w-5" />
+                        </Button>
+                        <div>
+                            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2"><ReceiptText className="h-5 w-5" /> Hóa đơn linh kiện</h1>
+                            <p className="text-sm text-muted-foreground">Record: {recordId}</p>
+                        </div>
+                    </div>
+                    <Button variant="outline" asChild>
+                        <Link href={`/appointments`}>
+                            Quay về lịch hẹn
+                        </Link>
+                    </Button>
+                </div>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <CheckCircle2 className="h-5 w-5 text-green-600" /> Đã thanh toán
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm">
+                        {paidPayment ? (
+                            <div className="space-y-1">
+                                <div className="flex items-center justify-between"><span>Mã đơn</span><span className="font-medium">{paidPayment.order_code}</span></div>
+                                <div className="flex items-center justify-between"><span>Số tiền</span><span className="font-semibold">{VND(paidPayment.amount)}</span></div>
+                                <div className="flex items-center justify-between"><span>Trạng thái</span><Badge className="bg-green-500/10 text-green-700 border-green-500/20">{paidPayment.status}</Badge></div>
+                            </div>
+                        ) : null}
+                        <div className="pt-3 flex items-center justify-end gap-2">
+                            <Button variant="outline" asChild>
+                                <Link href="/payments">Xem danh sách thanh toán</Link>
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
         )
     }
 
@@ -315,7 +395,7 @@ export default function SuggestedPartsPage() {
                             <div className="font-medium">{VND(labor)}</div>
                         </div>
                         <div className="flex items-center justify-between">
-                            <div>Giảm giá</div>
+                            <div>Giảm giá{submittingId ? null : <span className="text-muted-foreground"> {discountPercent ? `(${discountPercent}%)` : ""}</span>}</div>
                             <div className="font-medium">{VND(discount)}</div>
                         </div>
                         <Separator />
