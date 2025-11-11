@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Zap } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
+import { toast } from "sonner"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -24,10 +25,18 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-  await loginWithCredentials(identifier, password)
-    const url = new URL(window.location.href)
-    const next = url.searchParams.get("next")
-    router.push(next || "/")
+    
+    try {
+      toast.loading("Đang đăng nhập...", { id: "login" })
+      await loginWithCredentials(identifier, password)
+      toast.success("Đăng nhập thành công! 🎉", { id: "login" })
+      
+      const url = new URL(window.location.href)
+      const next = url.searchParams.get("next")
+      router.push(next || "/")
+    } catch (error: any) {
+      toast.error(error?.message || "Đăng nhập thất bại. Vui lòng thử lại!", { id: "login" })
+    }
   }
 
   return (

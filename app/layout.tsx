@@ -7,7 +7,7 @@ import { Suspense } from "react"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/components/auth-provider"
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster as SonnerToaster } from "sonner"
 import { QueryProvider } from "@/components/query-provider"
 
 export const metadata: Metadata = {
@@ -26,12 +26,12 @@ export default function RootLayout({
       <body className={`font-sans ${GeistSans.variable} p-8  ${GeistMono.variable} antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <AuthProvider>
-            <QueryProvider>
-              <Suspense fallback={null}>{children}</Suspense>
-            </QueryProvider>
-          </AuthProvider>
-        </ThemeProvider>
-        <Toaster />
+                <QueryProvider>
+                  <Suspense fallback={null}>{children}</Suspense>
+                </QueryProvider>
+              </AuthProvider>
+            </ThemeProvider>
+            <SonnerToaster position="top-right" richColors />
         <Analytics />
       </body>
     </html>
