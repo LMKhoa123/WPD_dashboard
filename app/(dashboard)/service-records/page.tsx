@@ -18,7 +18,7 @@ import { ServiceDetailsDialog } from "@/components/service-records/service-detai
 import { CreatePaymentDialog } from "@/components/payments/create-payment-dialog"
 import { RecordChecklistsDialog } from "@/components/service-records/record-checklists-dialog"
 import { AdminStaffTechnicianOnly } from "@/components/role-guards"
-import { cn, formatDateTime } from "@/lib/utils"
+import { formatDateTime } from "@/lib/utils"
 
 const statusColors: Record<ServiceRecordStatus, string> = {
   pending: "bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20",
@@ -207,20 +207,16 @@ export default function ServiceRecordsPage() {
                                 </Button>
                               }
                             />
-                            <ServiceRecordDialog
+                            {/* <ServiceRecordDialog
                               record={rec}
                               onUpdated={handleUpdated}
                               trigger={
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className={cn(!(isAdmin || isStaff) && "hidden")}
-                                >
+                                <Button variant="ghost" size="icon">
                                   <Pencil className="h-4 w-4" />
                                 </Button>
                               }
-                            />
-                            {/* {rec.status === 'completed' && (
+                            /> */}
+                            {rec.status === 'completed' && (
                               <CreatePaymentDialog
                                 record={rec}
                                 trigger={
@@ -229,7 +225,7 @@ export default function ServiceRecordsPage() {
                                   </Button>
                                 }
                               />
-                            )} */}
+                            )}
                             {isAdmin && (
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
