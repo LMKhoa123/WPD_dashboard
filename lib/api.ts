@@ -372,6 +372,24 @@ export interface SlotsListResponse {
   data: SlotRecord[]
 }
 
+export interface GenerateSlotsRequest {
+  center_ids: string[]
+  dates: string[] // array of YYYY-MM-DD
+  start_time: string // HH:mm
+  end_time: string // HH:mm
+  duration: number // minutes
+}
+
+export interface GenerateSlotsResponse {
+  success: boolean
+  message: string
+  data: {
+    created: number
+    skipped: number
+    slots: SlotRecord[]
+  }
+}
+
 export interface UpdateAppointmentRequest {
   staffId?: string
   customer_id?: string | null
@@ -442,6 +460,7 @@ export interface RecordChecklistItem {
   checklist_id: string | ServiceChecklistRecord
   status: RecordChecklistStatus
   note?: string
+  suggest?: string[] // Array of part IDs suggested for replacement
   createdAt: string
   updatedAt: string
   __v?: number
@@ -463,6 +482,7 @@ export interface CreateRecordChecklistsRequest {
   checklist_ids: string[]
   status?: RecordChecklistStatus
   note?: string
+  suggest?: string[] // Array of part IDs, should be empty [] when first creating
 }
 
 export interface CreateRecordChecklistRequest {
@@ -470,11 +490,34 @@ export interface CreateRecordChecklistRequest {
   checklist_id: string
   status?: RecordChecklistStatus
   note?: string
+  suggest?: string[] // Array of part IDs, should be empty [] when first creating
 }
 
 export interface UpdateRecordChecklistRequest {
   status?: RecordChecklistStatus
   note?: string
+  suggest_add?: string[] // Part IDs to add to suggest list
+  suggest_remove?: string[] // Part IDs to remove from suggest list
+}
+
+// Suggested Parts aggregated from all checklists in a service record
+export interface SuggestedPartItem {
+  _id: string
+  center_id: string | CenterRecord
+  part_id: string | AutoPartRecord
+  quantity: number
+  min_stock: number
+  recommended_min_stock: number
+  last_forecast_date?: string
+  createdAt: string
+  updatedAt: string
+  __v?: number
+}
+
+export interface AllSuggestedPartsResponse {
+  success: boolean
+  message?: string
+  data: SuggestedPartItem[]
 }
 
 // Service Checklist types (templates managed by Admin)
@@ -618,6 +661,7 @@ export interface AutoPartRecord {
   name: string
   cost_price: number
   selling_price: number
+  warranty_time: number // Thời gian bảo hành (đơn vị: ngày)
   // Legacy fields from previous backend versions (may be absent in new API)
   quantity?: number
   min_stock?: number
@@ -648,12 +692,35 @@ export interface CreateAutoPartRequest {
   name: string
   cost_price: number
   selling_price: number
+  warranty_time: number // Thời gian bảo hành (đơn vị: ngày)
 }
 
 export interface UpdateAutoPartRequest {
   name?: string
   cost_price?: number
   selling_price?: number
+  warranty_time?: number // Thời gian bảo hành (đơn vị: ngày)
+}
+
+// Forecast types
+export interface ForecastResultItem {
+  _id: string
+  center_id: string
+  part_id: string
+  analysis: {
+    riskLevel: string // e.g., "MEDIUM", "HIGH", "LOW"
+    title: string
+    content: string
+    suggestedOrderQty: number
+  }
+  createdAt: string
+  updatedAt: string
+  __v?: number
+}
+
+export interface ForecastInfoResponse {
+  success: boolean
+  results: ForecastResultItem[]
 }
 
 // Center Auto Parts (Inventory per center per part)
@@ -1516,8 +1583,16 @@ export class ApiClient {
   }
 
   async getSlots(centerId: string): Promise<SlotRecord[]> {
-    const res = await this.fetchJson<SlotsListResponse>(`/slots?centerId=${centerId}`, { method: "GET" })
+    const res = await this.fetchJson<SlotsListResponse>(`/slots?center_id=${centerId}`, { method: "GET" })
     return res.data
+  }
+
+  async generateSlots(payload: GenerateSlotsRequest): Promise<GenerateSlotsResponse> {
+    const res = await this.fetchJson<GenerateSlotsResponse>(`/slots/generate`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+    return res
   }
 
   // Appointments: delete
@@ -1607,6 +1682,11 @@ export class ApiClient {
   // Record Checklists: delete a checklist item (Admin/Staff/Technician)
   async deleteRecordChecklist(id: string): Promise<void> {
     await this.fetchJson(`/record-checklists/${id}`, { method: "DELETE" })
+  }
+
+  // Record Checklists: get all suggested parts from all checklists in a service record
+  async getAllSuggestedParts(recordId: string): Promise<AllSuggestedPartsResponse> {
+    return this.fetchJson(`/service-records/${recordId}/all-suggested-parts`, { method: "GET" })
   }
 
   // Service Checklists: get all
@@ -1747,6 +1827,11 @@ export class ApiClient {
   // Auto Parts: delete
   async deleteAutoPart(id: string): Promise<void> {
     await this.fetchJson(`/auto-parts/${id}`, { method: "DELETE" })
+  }
+
+  // Forecast: get forecast results by center
+  async getForecastInfo(centerId: string): Promise<ForecastInfoResponse> {
+    return this.fetchJson(`/forecast/info/${centerId}`, { method: "GET" })
   }
 
   // Center Auto Parts: list

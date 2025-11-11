@@ -9,6 +9,7 @@ import { Clock, CheckCircle2, AlertCircle, FileText } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
+import { MyShiftsCalendar } from "@/components/technician/my-shifts-calendar"
 
 export default function TechnicianDashboardPage() {
   const [records, setRecords] = useState<ServiceRecordRecord[]>([])
@@ -84,6 +85,11 @@ export default function TechnicianDashboardPage() {
         </div>
       ) : (
         <>
+          {/* Shift Calendar */}
+          {technicianId && (
+            <MyShiftsCalendar systemUserId={technicianId} />
+          )}
+
           <div className="grid gap-4 md:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
