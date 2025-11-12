@@ -852,6 +852,10 @@ export interface ServiceDetailRecord {
   description: string
   quantity: number
   unit_price: number
+  // Warranty-aware pricing breakdown (backend added fields)
+  warranty_qty?: number // portion covered by warranty (not charged)
+  paid_qty?: number     // portion that is actually charged
+  totalPrice?: number   // convenience field = (paid_qty || quantity) * unit_price
   createdAt: string
   updatedAt: string
   __v?: number

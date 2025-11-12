@@ -145,45 +145,45 @@ export function ServiceDetailsDialog({ recordId, trigger }: ServiceDetailsDialog
         </DialogHeader>
 
         {(canCreate || !!editing) && (
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Center-Part</Label>
-              <Select value={centerPartId} onValueChange={setCenterPartId} disabled={!!editing}>
-                <SelectTrigger>
-                  <SelectValue placeholder={loading ? "Loading..." : "Select center-part"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {centerParts.map(cp => (
-                    <SelectItem key={cp._id} value={cp._id}>{getLabelForCenterPart(cp)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <form onSubmit={onSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Center-Part</Label>
+                <Select value={centerPartId} onValueChange={setCenterPartId} disabled={!!editing}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={loading ? "Loading..." : "Select center-part"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {centerParts.map(cp => (
+                      <SelectItem key={cp._id} value={cp._id}>{getLabelForCenterPart(cp)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What was done..." />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What was done..." />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Quantity</Label>
-              <Input type="number" min="0" value={quantity} onChange={(e) => setQuantity(e.target.value)} required />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Quantity</Label>
+                <Input type="number" min="0" value={quantity} onChange={(e) => setQuantity(e.target.value)} required />
+              </div>
+              <div className="space-y-2">
+                <Label>Unit Price</Label>
+                <Input type="number" min="0" step="0.01" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} required />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Unit Price</Label>
-              <Input type="number" min="0" step="0.01" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} required />
-            </div>
-          </div>
 
-          <div className="flex justify-end gap-2">
-            {editing && (
-              <Button type="button" variant="outline" onClick={resetForm}>Cancel edit</Button>
-            )}
-            <Button type="submit" disabled={saving}>{editing ? "Update" : "Add Detail"}</Button>
-          </div>
-        </form>
+            <div className="flex justify-end gap-2">
+              {editing && (
+                <Button type="button" variant="outline" onClick={resetForm}>Cancel edit</Button>
+              )}
+              <Button type="submit" disabled={saving}>{editing ? "Update" : "Add Detail"}</Button>
+            </div>
+          </form>
         )}
 
         <div className="mt-6 rounded-md border">
