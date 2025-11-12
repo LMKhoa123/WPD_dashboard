@@ -47,127 +47,126 @@ export default function SuggestedPartsPage() {
     const [paidPayment, setPaidPayment] = useState<PaymentRecord | null>(null)
 
     const VND = (v: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v)
+    const run = async () => {
+        try {
+            setLoading(true)
+            // 1) Load existing service details first (may be present or empty)
+            const detailsRes = await api.getServiceDetails({ record_id: recordId })
+            const existingDetails = detailsRes?.data?.details || []
+            const existingByCenterPart: Record<string, ServiceDetailRecord> = {}
+            existingDetails.forEach((d: ServiceDetailRecord) => {
+                const cp = typeof d.centerpart_id === "string" ? d.centerpart_id : (d.centerpart_id as any)?._id
+                if (cp) existingByCenterPart[cp] = d
+            })
 
-    useEffect(() => {
-        const run = async () => {
-            try {
-                setLoading(true)
-                // 1) Load existing service details first (may be present or empty)
-                const detailsRes = await api.getServiceDetails({ record_id: recordId })
-                const existingDetails = detailsRes?.data?.details || []
-                const existingByCenterPart: Record<string, ServiceDetailRecord> = {}
-                existingDetails.forEach((d: ServiceDetailRecord) => {
-                    const cp = typeof d.centerpart_id === "string" ? d.centerpart_id : (d.centerpart_id as any)?._id
-                    if (cp) existingByCenterPart[cp] = d
-                })
-
-                // Bootstrap confirmed lines from existing service details
-                const existingLines: LineState[] = existingDetails.map((d: ServiceDetailRecord) => {
-                    const centerpartId = typeof d.centerpart_id === "string" ? d.centerpart_id : (d.centerpart_id as any)?._id
-                    return {
-                        center_auto_part_id: centerpartId || "",
-                        auto_part_id: "",
-                        name: d.description || "Vật tư đã thêm",
-                        selling_price: Number(d.unit_price ?? 0),
-                        center_stock: 0,
-                        total_suggested_quantity: 0,
-                        warranty_time: 0,
-                        image: undefined,
-                        quantity: Number(d.quantity ?? 0),
-                        confirmed: true,
-                        detail: d,
-                    }
-                })
-
-                // 2) Load suggested parts and merge with existing
-                const res: any = await api.getAllSuggestedParts(recordId)
-                const raw: SuggestedLine[] = (res?.data || []).map((x: any) => ({
-                    center_auto_part_id: x.center_auto_part_id || x.centerpart_id || x.center_id || "",
-                    auto_part_id: x.auto_part_id || (x.part_id?._id ?? x.part_id) || "",
-                    name: x.name || x.part_id?.name || "—",
-                    selling_price: Number(x.selling_price ?? x.part_id?.selling_price ?? 0),
-                    center_stock: Number(x.center_stock ?? x.quantity ?? 0),
-                    total_suggested_quantity: Number(x.total_suggested_quantity ?? x.quantity ?? 0),
-                    warranty_time: Number(x.warranty_time ?? 0),
-                    image: x.image || x.part_id?.image || "",
-                }))
-                const initSuggested: LineState[] = raw.map((r) => ({
-                    ...r,
-                    quantity: Math.max(0, Math.min(r.total_suggested_quantity || 0, r.center_stock || 0)),
-                    confirmed: false,
-                }))
-
-                // Merge: keep existing confirmed lines, and add suggested ones that aren't already confirmed
-                const merged: LineState[] = [...existingLines]
-                for (const s of initSuggested) {
-                    const existing = merged.find((m) => m.center_auto_part_id === s.center_auto_part_id)
-                    if (existing) {
-                        // Enrich existing confirmed line with display info if missing
-                        merged.splice(merged.indexOf(existing), 1, {
-                            ...existing,
-                            name: existing.name && existing.name !== "Vật tư đã thêm" ? existing.name : s.name,
-                            image: existing.image || s.image,
-                            warranty_time: existing.warranty_time || s.warranty_time,
-                            center_stock: s.center_stock || existing.center_stock,
-                            // keep selling_price from detail (unit_price) for confirmed lines
-                        })
-                    } else {
-                        merged.push(s)
-                    }
+            // Bootstrap confirmed lines from existing service details
+            const existingLines: LineState[] = existingDetails.map((d: ServiceDetailRecord) => {
+                const centerpartId = typeof d.centerpart_id === "string" ? d.centerpart_id : (d.centerpart_id as any)?._id
+                return {
+                    center_auto_part_id: centerpartId || "",
+                    auto_part_id: "",
+                    name: d.description || "Vật tư đã thêm",
+                    selling_price: Number(d.unit_price ?? 0),
+                    center_stock: 0,
+                    total_suggested_quantity: 0,
+                    warranty_time: 0,
+                    image: undefined,
+                    quantity: Number(d.quantity ?? 0),
+                    confirmed: true,
+                    detail: d,
                 }
+            })
 
-                setLines(merged)
+            // 2) Load suggested parts and merge with existing
+            const res: any = await api.getAllSuggestedParts(recordId)
+            const raw: SuggestedLine[] = (res?.data || []).map((x: any) => ({
+                center_auto_part_id: x.center_auto_part_id || x.centerpart_id || x.center_id || "",
+                auto_part_id: x.auto_part_id || (x.part_id?._id ?? x.part_id) || "",
+                name: x.name || x.part_id?.name || "—",
+                selling_price: Number(x.selling_price ?? x.part_id?.selling_price ?? 0),
+                center_stock: Number(x.center_stock ?? x.quantity ?? 0),
+                total_suggested_quantity: Number(x.total_suggested_quantity ?? x.quantity ?? 0),
+                warranty_time: Number(x.warranty_time ?? 0),
+                image: x.image || x.part_id?.image || "",
+            }))
+            const initSuggested: LineState[] = raw.map((r) => ({
+                ...r,
+                quantity: Math.max(0, Math.min(r.total_suggested_quantity || 0, r.center_stock || 0)),
+                confirmed: false,
+            }))
 
-                // Also resolve customerId from record -> appointment
-                try {
-                    const record = await api.getServiceRecordById(recordId)
-                    const appt = record?.appointment_id
-                        ? (typeof record.appointment_id === "string" ? await api.getAppointmentById(record.appointment_id) : record.appointment_id)
-                        : null
-                    const cid = appt?.customer_id
-                        ? (typeof appt.customer_id === "string" ? appt.customer_id : appt.customer_id?._id)
-                        : null
-                    setCustomerId(cid || null)
-                } catch {
-                    // ignore customer resolution error
+            // Merge: keep existing confirmed lines, and add suggested ones that aren't already confirmed
+            const merged: LineState[] = [...existingLines]
+            for (const s of initSuggested) {
+                const existing = merged.find((m) => m.center_auto_part_id === s.center_auto_part_id)
+                if (existing) {
+                    // Enrich existing confirmed line with display info if missing
+                    merged.splice(merged.indexOf(existing), 1, {
+                        ...existing,
+                        name: existing.name && existing.name !== "Vật tư đã thêm" ? existing.name : s.name,
+                        image: existing.image || s.image,
+                        warranty_time: existing.warranty_time || s.warranty_time,
+                        center_stock: s.center_stock || existing.center_stock,
+                        // keep selling_price from detail (unit_price) for confirmed lines
+                    })
+                } else {
+                    merged.push(s)
                 }
-
-                // Load active subscription package by service record to get discount percent
-                try {
-                    const pkg = await api.getActiveSubscriptionPackageByServiceRecord(recordId)
-                    const dp = (pkg as any)?.discount_percent ?? 0
-                    setDiscountPercent(Number(dp) || 0)
-                } catch {
-                    setDiscountPercent(0)
-                }
-
-                // Check payment status for this service record
-                try {
-                    const payRes = await api.getPayments({ service_record_id: recordId, limit: 50 })
-                    const payments = (payRes as any)?.data?.payments || []
-                    const paid = payments.find((p: any) => {
-                        const s = String(p?.status || "").toLowerCase()
-                        return s === "paid" || s === "completed"
-                    }) as PaymentRecord | undefined
-                    if (paid) {
-                        setIsPaid(true)
-                        setPaidPayment(paid)
-                    } else {
-                        setIsPaid(false)
-                        setPaidPayment(null)
-                    }
-                } catch {
-                    // if cannot fetch payments, keep default (treat as unpaid)
-                    setIsPaid(false)
-                }
-            } catch (e: any) {
-                toast({ title: "Không tải được đề xuất vật tư", description: e?.message || "Failed to load suggested parts", variant: "destructive" })
-            } finally {
-                setLoading(false)
             }
+
+            setLines(merged)
+
+            // Also resolve customerId from record -> appointment
+            try {
+                const record = await api.getServiceRecordById(recordId)
+                const appt = record?.appointment_id
+                    ? (typeof record.appointment_id === "string" ? await api.getAppointmentById(record.appointment_id) : record.appointment_id)
+                    : null
+                const cid = appt?.customer_id
+                    ? (typeof appt.customer_id === "string" ? appt.customer_id : appt.customer_id?._id)
+                    : null
+                setCustomerId(cid || null)
+            } catch {
+                // ignore customer resolution error
+            }
+
+            // Load active subscription package by service record to get discount percent
+            try {
+                const pkg = await api.getActiveSubscriptionPackageByServiceRecord(recordId)
+                const dp = (pkg as any)?.discount_percent ?? 0
+                setDiscountPercent(Number(dp) || 0)
+            } catch {
+                setDiscountPercent(0)
+            }
+
+            // Check payment status for this service record
+            try {
+                const payRes = await api.getPayments({ service_record_id: recordId, limit: 50 })
+                const payments = (payRes as any)?.data?.payments || []
+                const paid = payments.find((p: any) => {
+                    const s = String(p?.status || "").toLowerCase()
+                    return s === "paid" || s === "completed"
+                }) as PaymentRecord | undefined
+                if (paid) {
+                    setIsPaid(true)
+                    setPaidPayment(paid)
+                } else {
+                    setIsPaid(false)
+                    setPaidPayment(null)
+                }
+            } catch {
+                // if cannot fetch payments, keep default (treat as unpaid)
+                setIsPaid(false)
+            }
+        } catch (e: any) {
+            toast({ title: "Không tải được đề xuất vật tư", description: e?.message || "Failed to load suggested parts", variant: "destructive" })
+        } finally {
+            setLoading(false)
         }
+    }
+    useEffect(() => {
         run()
-    }, [api, recordId, toast])
+    }, [recordId, toast])
 
     const setQty = (centerpartId: string, next: number) => {
         setLines((prev) => prev.map((l) => {
@@ -182,15 +181,18 @@ export default function SuggestedPartsPage() {
         if (l.confirmed || !l.quantity) return
         try {
             setSubmittingId(l.center_auto_part_id)
-            const detail = await api.createServiceDetail({
+            await api.createServiceDetail({
                 record_id: recordId,
                 centerpart_id: l.center_auto_part_id,
                 description: undefined as any, // backend will generate description
                 quantity: l.quantity,
                 unit_price: undefined as any, // backend will set
             } as any)
-            setLines((prev) => prev.map((x) => x.center_auto_part_id === l.center_auto_part_id ? { ...x, confirmed: true, detail, selling_price: detail.unit_price } : x))
+            // Do not use createServiceDetail response for UI; rely on getServiceDetails
+            setLines((prev) => prev.map((x) => x.center_auto_part_id === l.center_auto_part_id ? { ...x, confirmed: true } : x))
             toast({ title: "Đã xác nhận dòng vật tư" })
+            // Refresh current route to re-fetch details from server
+            await run()
         } catch (e: any) {
             toast({ title: "Xác nhận thất bại", description: e?.message || "Failed to create service detail", variant: "destructive" })
         } finally {
