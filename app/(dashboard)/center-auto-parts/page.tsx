@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getApiClient, type CenterAutoPartRecord, type CenterRecord, type AutoPartRecord } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
-import { useAuth, useIsAdmin, useIsStaff } from "@/components/auth-provider"
+import { useIsAdmin, useIsStaff } from "@/components/auth-provider"
 import { AdminStaffTechnicianOnly } from "@/components/role-guards"
 import { CenterAutoPartDialog } from "@/components/center-auto-parts/center-auto-part-dialog"
 import { ForecastInfoDialog } from "@/components/center-auto-parts/forecast-info-dialog"
@@ -16,11 +16,9 @@ import { Pencil, Plus, Trash2, Search, LineChart } from "lucide-react"
 
 export default function CenterAutoPartsPage() {
 	const { toast } = useToast()
-	const { user } = useAuth()
 	const api = useMemo(() => getApiClient(), [])
 	const isAdmin = useIsAdmin()
 	const isStaff = useIsStaff()
-	const isTechnicianOnly = !isAdmin && !isStaff
 
 	const [items, setItems] = useState<CenterAutoPartRecord[]>([])
 	const [loading, setLoading] = useState(true)
@@ -68,12 +66,6 @@ export default function CenterAutoPartsPage() {
 
 		const c = typeof it.center_id === 'string' ? it.center_id : it.center_id._id
 		const p = typeof it.part_id === 'string' ? it.part_id : it.part_id._id
-		
-		// For technician, only show their assigned center
-		if (isTechnicianOnly && (user as any)?.centerId) {
-			if (c !== (user as any).centerId) return false
-		}
-		
 		const centerOk = centerFilter === 'all' || c === centerFilter
 		const partOk = partFilter === 'all' || p === partFilter
 		const kw = query.toLowerCase()
@@ -136,10 +128,7 @@ export default function CenterAutoPartsPage() {
 								<SelectTrigger className="w-[220px]"><SelectValue placeholder="All centers" /></SelectTrigger>
 								<SelectContent>
 									<SelectItem value="all">All centers</SelectItem>
-									{centers
-										.filter(c => isTechnicianOnly && (user as any)?.centerId ? c._id === (user as any).centerId : true)
-										.map(c => <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>)
-									}
+									{centers.map(c => <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>)}
 								</SelectContent>
 							</Select>
 							<Select value={partFilter} onValueChange={setPartFilter}>

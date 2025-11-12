@@ -137,7 +137,7 @@ export default function VehiclesPage() {
       </div>
 
       {/* Stats Cards */}
-      {/* <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Vehicles</CardTitle>
@@ -170,7 +170,7 @@ export default function VehiclesPage() {
             </div>
           </CardContent>
         </Card>
-      </div> */}
+      </div>
 
       <Card>
         <CardHeader>

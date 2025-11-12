@@ -13,7 +13,7 @@ import { ExternalLink, Eye, RotateCcw } from "lucide-react"
 import { PaymentDetailDialog } from "@/components/payments/payment-detail-dialog"
 import { CreatePaymentManualDialog } from "@/components/payments/create-payment-manual-dialog"
 import { Spinner } from "@/components/ui/spinner"
-import { cn, formatVND, formatDateTime } from "@/lib/utils"
+import { formatVND, formatDateTime } from "@/lib/utils"
 
 export default function PaymentsPage() {
   const isAdmin = useIsAdmin()
@@ -132,32 +132,27 @@ export default function PaymentsPage() {
                         </Button>
                       )}
                       <PaymentDetailDialog payment={p} trigger={<Button size="sm" variant="ghost" title="Xem chi tiết"><Eye className="h-4 w-4" /></Button>} />
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            disabled={!canCancel(p) || cancelCode === p.order_code}
-                            className={cn(canCancel(p) ? undefined : "invisible")}
-                          >
-                            Hủy
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Xác nhận hủy giao dịch?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Bạn chắc chắn muốn hủy order #{p.order_code}? Hành động này không thể hoàn tác.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Đóng</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => doCancel(p.order_code)} disabled={cancelCode === p.order_code}>
-                              {cancelCode === p.order_code ? "Đang hủy..." : "Hủy giao dịch"}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      {canCancel(p) && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="destructive" disabled={cancelCode === p.order_code}>Hủy</Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Xác nhận hủy giao dịch?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Bạn chắc chắn muốn hủy order #{p.order_code}? Hành động này không thể hoàn tác.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Đóng</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => doCancel(p.order_code)} disabled={cancelCode === p.order_code}>
+                                {cancelCode === p.order_code ? "Đang hủy..." : "Hủy giao dịch"}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
