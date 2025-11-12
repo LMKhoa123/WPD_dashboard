@@ -202,7 +202,11 @@ export default function SuggestedPartsPage() {
         setLines((prev) => prev.filter((l) => l.center_auto_part_id !== centerpartId))
     }
 
-    const partsTotal = lines.filter(l => l.confirmed).reduce((sum, l) => sum + l.quantity * l.selling_price, 0)
+    // Warranty-aware parts total: only charge paid_qty portion
+    const partsTotal = lines.filter(l => l.confirmed).reduce((sum, l) => {
+        const paidQty = l.detail?.paid_qty ?? l.quantity
+        return sum + paidQty * l.selling_price
+    }, 0)
     const labor = 200_000
     const discount = Math.round(((partsTotal + labor) * (discountPercent || 0)) / 100)
     const grandTotal = Math.max(0, partsTotal + labor - discount)
@@ -326,7 +330,9 @@ export default function SuggestedPartsPage() {
                         <div className="text-sm text-muted-foreground">Không có đề xuất nào.</div>
                     )}
                     {lines.map((l) => {
-                        const lineTotal = l.quantity * l.selling_price
+                        const paidQty = l.detail?.paid_qty ?? l.quantity
+                        const warrantyQty = l.detail?.warranty_qty ?? 0
+                        const lineTotal = paidQty * l.selling_price
                         return (
                             <div key={l.center_auto_part_id} className="rounded-lg border p-3">
                                 <div className="flex items-start gap-3">
@@ -341,10 +347,17 @@ export default function SuggestedPartsPage() {
                                             <div className="truncate font-medium">{l.name}</div>
                                             <Badge variant="outline">Giá: {VND(l.selling_price)}</Badge>
                                         </div>
-                                        <div className="mt-1 text-xs text-muted-foreground flex items-center gap-2">
+                                        <div className="mt-1 text-xs text-muted-foreground flex flex-wrap items-center gap-2">
                                             <ShieldCheck className="h-3.5 w-3.5" /> Bảo hành: {l.warranty_time} ngày
                                             <span className="mx-2">•</span>
                                             Tồn kho tối đa: <span className="font-medium">{l.center_stock}</span>
+                                            {l.detail ? (
+                                                <>
+                                                    <span className="mx-2">•</span>
+                                                    <span>BH: <span className="font-medium">{warrantyQty}</span></span>
+                                                    <span>Trả tiền: <span className="font-medium">{paidQty}</span></span>
+                                                </>
+                                            ) : null}
                                         </div>
 
                                         {/* Controls */}
@@ -370,6 +383,9 @@ export default function SuggestedPartsPage() {
 
                                             <div className="flex items-center gap-3">
                                                 <div className="text-sm font-medium">Tạm tính: {VND(lineTotal)}</div>
+                                                {l.detail && warrantyQty > 0 ? (
+                                                    <div className="text-xs text-muted-foreground">(SL {l.quantity} / BH {warrantyQty} / Trả {paidQty})</div>
+                                                ) : null}
                                                 {!l.confirmed ? (
                                                     <div className="flex items-center gap-2">
                                                         <Button size="sm" disabled={!l.quantity || submittingId === l.center_auto_part_id} onClick={() => confirmLine(l)}>
