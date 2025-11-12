@@ -28,7 +28,7 @@ import { getApiClient, type AutoPartRecord } from "@/lib/api"
 import { Plus, Pencil, Trash2, Search } from "lucide-react"
 import { AutoPartDialog } from "@/components/auto-parts/auto-part-dialog"
 import { useRole } from "@/components/auth-provider"
-import { formatDate } from "@/lib/utils"
+import { formatDate, formatVND } from "@/lib/utils"
 
 export default function AutoPartsPage() {
   const { toast } = useToast()
@@ -175,8 +175,8 @@ export default function AutoPartsPage() {
                 {filteredParts.map((part) => (
                   <TableRow key={part._id}>
                     <TableCell className="font-medium">{part.name}</TableCell>
-                    <TableCell className="text-right">${part.cost_price.toFixed(2)}</TableCell>
-                    <TableCell className="text-right">${part.selling_price.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">{formatVND(part.cost_price)}</TableCell>
+                    <TableCell className="text-right">{formatVND(part.selling_price)}</TableCell>
                     <TableCell className="text-right">
                       <Badge variant="secondary">{part.warranty_time} days</Badge>
                     </TableCell>
