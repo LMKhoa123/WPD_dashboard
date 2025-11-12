@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Plus, Trash2, Award } from "lucide-react"
 import { getApiClient, type SystemUserRecord } from "@/lib/api"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 
 interface Certificate {
   name: string
@@ -38,7 +38,7 @@ export function StaffDialog({ systemUser, trigger, onSuccess }: StaffDialogProps
   const [name, setName] = useState("")
   const [dateOfBirth, setDateOfBirth] = useState("")
   const [certificates, setCertificates] = useState<Certificate[]>([])
-  const { toast } = useToast()
+  
 
   useEffect(() => {
     if (open) {
@@ -99,14 +99,12 @@ export function StaffDialog({ systemUser, trigger, onSuccess }: StaffDialogProps
         certificates: certificates.filter((c) => c.name && c.issuingOrganization), // Only include filled certificates
       })
 
-      toast({ title: "Cập nhật nhân viên thành công" })
+  toast.success("Cập nhật nhân viên thành công")
       setOpen(false)
       onSuccess?.(updated)
     } catch (e: any) {
-      toast({
-        title: "Cập nhật thất bại",
+      toast.error("Cập nhật thất bại", {
         description: e?.message || "Failed to update staff member",
-        variant: "destructive",
       })
     } finally {
       setSubmitting(false)

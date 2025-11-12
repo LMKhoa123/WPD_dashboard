@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { Plus } from "lucide-react"
 import { getApiClient, type ServicePackageRecord, type CreateServicePackageRequest, type UpdateServicePackageRequest } from "@/lib/api"
 
@@ -37,7 +37,7 @@ export function ServicePackageDialog({ servicePackage, trigger, onCreated, onUpd
   const [kmInterval, setKmInterval] = useState<string>("")
   const [serviceIntervalDays, setServiceIntervalDays] = useState<string>("")
 
-  const { toast } = useToast()
+  
 
   useEffect(() => {
     if (open && isEditMode && servicePackage) {
@@ -77,7 +77,7 @@ export function ServicePackageDialog({ servicePackage, trigger, onCreated, onUpd
           service_interval_days: Number(serviceIntervalDays),
         }
         const updated = await api.updateServicePackage(servicePackage._id, payload)
-        toast({ title: "Cập nhật gói dịch vụ thành công" })
+  toast.success("Cập nhật gói dịch vụ thành công")
         setOpen(false)
         resetForm()
         onUpdated?.(updated)
@@ -91,16 +91,14 @@ export function ServicePackageDialog({ servicePackage, trigger, onCreated, onUpd
           service_interval_days: Number(serviceIntervalDays),
         }
         const created = await api.createServicePackage(payload)
-        toast({ title: "Tạo gói dịch vụ thành công" })
+  toast.success("Tạo gói dịch vụ thành công")
         setOpen(false)
         resetForm()
         onCreated?.(created)
       }
     } catch (e: any) {
-      toast({
-        title: isEditMode ? "Cập nhật gói dịch vụ thất bại" : "Tạo gói dịch vụ thất bại",
+      toast.error(isEditMode ? "Cập nhật gói dịch vụ thất bại" : "Tạo gói dịch vụ thất bại", {
         description: e?.message || `Failed to ${isEditMode ? "update" : "create"} service package`,
-        variant: "destructive",
       })
     } finally {
       setSubmitting(false)

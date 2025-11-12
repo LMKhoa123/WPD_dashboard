@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { getApiClient, type VehicleRecord } from "@/lib/api"
 import type { CustomersListResponse } from "@/lib/api"
 import { Plus } from "lucide-react"
@@ -42,7 +42,7 @@ export function VehicleDialog({ vehicle, trigger, onCreated, onUpdated }: Vehicl
   const [customerId, setCustomerId] = useState<string>("")
   const [imageFile, setImageFile] = useState<File | null>(null)
 
-  const { toast } = useToast()
+  
 
   const [customers, setCustomers] = useState<CustomersListResponse["data"]["customers"]>([])
   const [loadingCustomers, setLoadingCustomers] = useState(false)
@@ -57,7 +57,7 @@ export function VehicleDialog({ vehicle, trigger, onCreated, onUpdated }: Vehicl
         const res = await api.getCustomers({ limit: 200 })
         setCustomers(res.data.customers)
       } catch (e: any) {
-        toast({ title: "Không tải được khách hàng", description: e?.message || "Failed to load customers", variant: "destructive" })
+        toast.error("Không tải được khách hàng", { description: e?.message || "Failed to load customers" })
       } finally {
         setLoadingCustomers(false)
       }
@@ -116,23 +116,21 @@ export function VehicleDialog({ vehicle, trigger, onCreated, onUpdated }: Vehicl
       if (isEditMode && vehicle) {
         // Update existing vehicle
         const updated = await api.updateVehicle(vehicle._id, form)
-        toast({ title: "Cập nhật xe thành công" })
+  toast.success("Cập nhật xe thành công")
         setOpen(false)
         resetForm()
         onUpdated?.(updated)
       } else {
         // Create new vehicle
         const created = await api.createVehicle(form)
-        toast({ title: "Tạo xe thành công" })
+  toast.success("Tạo xe thành công")
         setOpen(false)
         resetForm()
         onCreated?.(created)
       }
     } catch (e: any) {
-      toast({ 
-        title: isEditMode ? "Cập nhật xe thất bại" : "Tạo xe thất bại", 
-        description: e?.message || `Failed to ${isEditMode ? 'update' : 'create'} vehicle`, 
-        variant: "destructive" 
+      toast.error(isEditMode ? "Cập nhật xe thất bại" : "Tạo xe thất bại", { 
+        description: e?.message || `Failed to ${isEditMode ? 'update' : 'create'} vehicle`
       })
     } finally {
       setSubmitting(false)
