@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { getApiClient, type ServiceRecordRecord, type PaymentRecord } from "@/lib/api"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { PaymentDetailDialog } from "@/components/payments/payment-detail-dialog"
 import { ExternalLink } from "lucide-react"
 import { formatVND } from "@/lib/utils"
@@ -19,7 +19,7 @@ interface Props {
 
 export function CreatePaymentDialog({ record, trigger, onCreated }: Props) {
   const api = useMemo(() => getApiClient(), [])
-  const { toast } = useToast()
+  
   const [open, setOpen] = useState(false)
   const [amount, setAmount] = useState<number>(0)
   const [description, setDescription] = useState<string>("Payment for service")
@@ -79,7 +79,7 @@ export function CreatePaymentDialog({ record, trigger, onCreated }: Props) {
 
   const submit = async () => {
     if (!amount || amount <= 0) {
-      toast({ title: "Số tiền không hợp lệ", variant: "destructive" })
+      toast.error("Số tiền không hợp lệ")
       return
     }
     try {
@@ -89,7 +89,7 @@ export function CreatePaymentDialog({ record, trigger, onCreated }: Props) {
       if (!customerId) {
         // Ask user to input manually
         setNeedCustomerId(true)
-        toast({ title: "Thiếu thông tin khách hàng", description: "Vui lòng nhập Customer ID hoặc gắn lịch hẹn có khách hàng.", variant: "destructive" })
+        toast.error("Thiếu thông tin khách hàng", { description: "Vui lòng nhập Customer ID hoặc gắn lịch hẹn có khách hàng." })
         setCreating(false)
         return
       }
@@ -104,9 +104,9 @@ export function CreatePaymentDialog({ record, trigger, onCreated }: Props) {
       })
       // setCreated(payment)
       // onCreated?.(payment)
-      // toast({ title: "Đã tạo yêu cầu thanh toán", description: `Order #${payment.order_code}` })
+      // toast.success("Đã tạo yêu cầu thanh toán", { description: `Order #${payment.order_code}` })
     } catch (e: any) {
-      toast({ title: "Tạo thanh toán thất bại", description: e?.message || "Create payment error", variant: "destructive" })
+      toast.error("Tạo thanh toán thất bại", { description: e?.message || "Create payment error" })
     } finally {
       setCreating(false)
     }

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { getApiClient, type CenterAutoPartRecord, type ServiceDetailRecord, type CreateServiceDetailRequest, type UpdateServiceDetailRequest } from "@/lib/api"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { Pencil, Trash2, Plus } from "lucide-react"
 import { useIsAdmin, useIsStaff, useRole } from "@/components/auth-provider"
 
@@ -33,7 +33,7 @@ export function ServiceDetailsDialog({ recordId, trigger }: ServiceDetailsDialog
   const [unitPrice, setUnitPrice] = useState("")
 
   const api = useMemo(() => getApiClient(), [])
-  const { toast } = useToast()
+  
   const isAdmin = useIsAdmin()
   const isStaff = useIsStaff()
   const role = useRole()
@@ -59,7 +59,7 @@ export function ServiceDetailsDialog({ recordId, trigger }: ServiceDetailsDialog
       setDetails(list.data.details)
       setCenterParts(centerPartsRes.data.items)
     } catch (e: any) {
-      toast({ title: "Không tải được dữ liệu", description: e?.message || "Failed to load data", variant: "destructive" })
+      toast.error("Không tải được dữ liệu", { description: e?.message || "Failed to load data" })
     } finally {
       setLoading(false)
     }
@@ -76,7 +76,7 @@ export function ServiceDetailsDialog({ recordId, trigger }: ServiceDetailsDialog
     try {
       setSaving(true)
       if (!centerPartId || !quantity || !unitPrice) {
-        toast({ title: "Thiếu dữ liệu", description: "Vui lòng chọn Center-Part và nhập Quantity/Unit Price" })
+        toast.error("Thiếu dữ liệu", { description: "Vui lòng chọn Center-Part và nhập Quantity/Unit Price" })
         return
       }
       if (editing) {
@@ -87,7 +87,7 @@ export function ServiceDetailsDialog({ recordId, trigger }: ServiceDetailsDialog
         }
         const updated = await api.updateServiceDetail(editing._id, payload)
         setDetails(prev => prev.map(d => d._id === updated._id ? updated : d))
-        toast({ title: "Đã cập nhật" })
+  toast.success("Đã cập nhật")
       } else {
         const payload: CreateServiceDetailRequest = {
           record_id: recordId,
@@ -98,11 +98,11 @@ export function ServiceDetailsDialog({ recordId, trigger }: ServiceDetailsDialog
         }
         const created = await api.createServiceDetail(payload)
         setDetails(prev => [created, ...prev])
-        toast({ title: "Đã tạo" })
+  toast.success("Đã tạo")
       }
       resetForm()
     } catch (e: any) {
-      toast({ title: "Lưu thất bại", description: e?.message || "Save failed", variant: "destructive" })
+      toast.error("Lưu thất bại", { description: e?.message || "Save failed" })
     } finally {
       setSaving(false)
     }
@@ -120,9 +120,9 @@ export function ServiceDetailsDialog({ recordId, trigger }: ServiceDetailsDialog
     try {
       await api.deleteServiceDetail(id)
       setDetails(prev => prev.filter(d => d._id !== id))
-      toast({ title: "Đã xóa" })
+  toast.success("Đã xóa")
     } catch (e: any) {
-      toast({ title: "Xóa thất bại", description: e?.message || "Delete failed", variant: "destructive" })
+      toast.error("Xóa thất bại", { description: e?.message || "Delete failed" })
     }
   }
 

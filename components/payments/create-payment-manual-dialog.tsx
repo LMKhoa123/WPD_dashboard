@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getApiClient, type PaymentRecord } from "@/lib/api"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { PaymentDetailDialog } from "./payment-detail-dialog"
 import { ExternalLink } from "lucide-react"
 import { formatVND } from "@/lib/utils"
@@ -19,7 +19,7 @@ interface Props {
 
 export function CreatePaymentManualDialog({ trigger, onCreated }: Props) {
   const api = useMemo(() => getApiClient(), [])
-  const { toast } = useToast()
+  
   const [open, setOpen] = useState(false)
   const [type, setType] = useState<"service_record" | "subscription">("service_record")
   const [refId, setRefId] = useState("")
@@ -40,7 +40,7 @@ export function CreatePaymentManualDialog({ trigger, onCreated }: Props) {
 
   const submit = async () => {
     if (!refId || !amount || amount <= 0) {
-      toast({ title: "Thiếu dữ liệu", description: "Nhập ID tham chiếu và số tiền hợp lệ", variant: "destructive" })
+      toast.error("Thiếu dữ liệu", { description: "Nhập ID tham chiếu và số tiền hợp lệ" })
       return
     }
     try {
@@ -77,12 +77,12 @@ export function CreatePaymentManualDialog({ trigger, onCreated }: Props) {
         }
       }
       else payload.subscription_id = refId
-      const payment = await api.createPayment(payload)
-      setCreated(payment)
-      onCreated?.(payment)
-      toast({ title: "Đã tạo yêu cầu thanh toán", description: `Order #${payment.order_code}` })
+  const paymentRes = await api.createPayment(payload)
+  setCreated(paymentRes.payment)
+  onCreated?.(paymentRes.payment)
+  toast.success("Đã tạo yêu cầu thanh toán", { description: `Order #${paymentRes.payment.order_code}` })
     } catch (e: any) {
-      toast({ title: "Tạo thanh toán thất bại", description: e?.message || "Create payment error", variant: "destructive" })
+      toast.error("Tạo thanh toán thất bại", { description: e?.message || "Create payment error" })
     } finally {
       setCreating(false)
     }

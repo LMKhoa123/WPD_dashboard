@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { getApiClient, type CenterAutoPartRecord } from "@/lib/api"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
@@ -35,7 +35,7 @@ export function SuggestPartsDialog({ checklistItemId, currentSuggested, trigger,
   const [selected, setSelected] = useState<Record<string, boolean>>({})
   const [quantities, setQuantities] = useState<PartQuantity>({})
   const [searchQuery, setSearchQuery] = useState("")
-  const { toast } = useToast()
+  
   const api = useMemo(() => getApiClient(), [])
 
   useEffect(() => {
@@ -66,7 +66,7 @@ export function SuggestPartsDialog({ checklistItemId, currentSuggested, trigger,
         setSelected(initialSelected)
         setQuantities(counts)
       } catch (e: any) {
-        toast({ title: "Không tải được danh sách linh kiện", description: e?.message || "Failed to load parts", variant: "destructive" })
+        toast.error("Không tải được danh sách linh kiện", { description: e?.message || "Failed to load parts" })
       } finally {
         setLoading(false)
       }
@@ -153,11 +153,11 @@ export function SuggestPartsDialog({ checklistItemId, currentSuggested, trigger,
     try {
       setSubmitting(true)
       await api.updateRecordChecklist(checklistItemId, { suggest_add, suggest_remove })
-      toast({ title: "Đã cập nhật đề xuất linh kiện" })
+  toast.success("Đã cập nhật đề xuất linh kiện")
       setOpen(false)
       onSaved?.()
     } catch (e: any) {
-      toast({ title: "Cập nhật thất bại", description: e?.message || "Failed to update", variant: "destructive" })
+      toast.error("Cập nhật thất bại", { description: e?.message || "Failed to update" })
     } finally {
       setSubmitting(false)
     }
