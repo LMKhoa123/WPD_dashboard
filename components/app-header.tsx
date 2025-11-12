@@ -164,7 +164,7 @@ export function AppHeader() {
               </Avatar>
               <div className="hidden md:flex flex-col items-start text-sm">
                 <span className="font-medium">{user?.name || "Guest"}</span>
-                <span className="text-xs text-muted-foreground">Role: {user?.role === "Admin" ? "Administrator" : "Staff"}</span>
+                <span className="text-xs text-muted-foreground">Role: {user?.role === "Admin" ? "Administrator" : user?.role === "Staff" ? "Staff" : "Technician"}</span>
               </div>
             </Button>
           </DropdownMenuTrigger>

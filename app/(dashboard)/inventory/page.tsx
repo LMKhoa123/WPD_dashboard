@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { getApiClient, type CenterAutoPartRecord, type CenterRecord, type AutoPartRecord } from "@/lib/api"
 import { Search, Pencil, Trash2, Plus, AlertTriangle, Sparkles } from "lucide-react"
 import { ForecastResultsDialog } from "@/components/inventory/forecast-results-dialog"
-import { cn } from "@/lib/utils"
+import { cn, formatVND } from "@/lib/utils"
 import { useIsAdmin } from "@/components/auth-provider"
 import { useToast } from "@/hooks/use-toast"
 import { CenterAutoPartDialog } from "@/components/center-auto-parts/center-auto-part-dialog"
@@ -267,7 +267,7 @@ export default function InventoryPage() {
                       </TableCell>
                       <TableCell className="text-right">{min}</TableCell>
                       <TableCell className="text-right">{it.recommended_min_stock}</TableCell>
-                      <TableCell className="text-right">${price.toFixed(2)}</TableCell>
+                      <TableCell className="text-right">{formatVND(price)}</TableCell>
                       <TableCell>
                         <Badge variant="secondary" className={statusColor}>
                           {status}
