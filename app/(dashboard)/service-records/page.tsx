@@ -18,6 +18,7 @@ import { ServiceDetailsDialog } from "@/components/service-records/service-detai
 import { CreatePaymentDialog } from "@/components/payments/create-payment-dialog"
 import { RecordChecklistsDialog } from "@/components/service-records/record-checklists-dialog"
 import { AdminStaffTechnicianOnly } from "@/components/role-guards"
+import { DataPagination } from "@/components/ui/data-pagination"
 import { formatDateTime } from "@/lib/utils"
 
 const statusColors: Record<ServiceRecordStatus, string> = {
@@ -38,12 +39,18 @@ export default function ServiceRecordsPage() {
   const { user } = useAuth()
   const { toast } = useToast()
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const limit = 20
+
   const api = useMemo(() => getApiClient(), [])
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (page: number) => {
     try {
       setLoading(true)
-      const res = await api.getServiceRecords({ limit: 500 })
+      const res = await api.getServiceRecords({ page, limit })
       let data = res.data.records
       // If technician, only show their own records
       if (!isAdmin && !isStaff && user?.email) {
@@ -62,16 +69,18 @@ export default function ServiceRecordsPage() {
         } catch { }
       }
       setRecords(data)
+      setTotalItems(res.data.total || data.length)
+      setTotalPages(Math.ceil((res.data.total || data.length) / limit))
     } catch (e: any) {
-      toast({ title: "Không tải được danh sách hồ sơ dịch vụ", description: e?.message || "Failed to load service records", variant: "destructive" })
+      toast({ title: "Failed to load service records", description: e?.message || "Failed to load service records", variant: "destructive" })
     } finally {
       setLoading(false)
     }
   }, [api, isAdmin, isStaff, user?.email, toast])
 
   useEffect(() => {
-    load()
-  }, [load])
+    load(currentPage)
+  }, [load, currentPage])
 
   const handleCreated = (r: ServiceRecordRecord) => {
     setRecords((prev) => [r, ...prev])
@@ -86,9 +95,9 @@ export default function ServiceRecordsPage() {
       setDeletingId(id)
       await api.deleteServiceRecord(id)
       setRecords((prev) => prev.filter((rec) => rec._id !== id))
-      toast({ title: "Đã xóa hồ sơ dịch vụ" })
+      toast({ title: "Service record deleted" })
     } catch (e: any) {
-      toast({ title: "Xóa thất bại", description: e?.message || "Failed to delete", variant: "destructive" })
+      toast({ title: "Delete failed", description: e?.message || "Failed to delete", variant: "destructive" })
     } finally {
       setDeletingId(null)
     }
@@ -145,8 +154,9 @@ export default function ServiceRecordsPage() {
             {loading ? (
               <div className="flex items-center gap-2 text-muted-foreground"><Spinner /> Loading...</div>
             ) : filteredRecords.length === 0 ? (
-              <div className="text-muted-foreground">Chưa có hồ sơ dịch vụ nào.</div>
+              <div className="text-muted-foreground">No service records found.</div>
             ) : (
+              <>
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
@@ -225,9 +235,9 @@ export default function ServiceRecordsPage() {
                                   </AlertDialogTrigger>
                                   <AlertDialogContent>
                                     <AlertDialogHeader>
-                                      <AlertDialogTitle>Xóa hồ sơ dịch vụ?</AlertDialogTitle>
+                                      <AlertDialogTitle>Delete Service Record?</AlertDialogTitle>
                                       <AlertDialogDescription>
-                                        Hành động này không thể hoàn tác. Hồ sơ sẽ bị xóa vĩnh viễn.
+                                        This action cannot be undone. The record will be permanently deleted.
                                       </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
@@ -247,6 +257,15 @@ export default function ServiceRecordsPage() {
                   </TableBody>
                 </Table>
               </div>
+              
+              <div className="mt-4">
+                <DataPagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
+              </div>
+              </>
             )}
           </CardContent>
         </Card>

@@ -12,6 +12,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { AdminStaffTechnicianOnly } from "@/components/role-guards"
 import { useIsAdmin } from "@/components/auth-provider"
 import { formatDateTime } from "@/lib/utils"
+import { DataPagination } from "@/components/ui/data-pagination"
 
 export default function ServiceCentersPage() {
   const [centers, setCenters] = useState<CenterRecord[]>([])
@@ -20,23 +21,31 @@ export default function ServiceCentersPage() {
   const { toast } = useToast()
   const isAdmin = useIsAdmin()
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const limit = 20
+
   const api = useMemo(() => getApiClient(), [])
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (page: number) => {
     try {
       setLoading(true)
-      const res = await api.getCenters({ limit: 100 })
+      const res = await api.getCenters({ page, limit })
       setCenters(res.data.centers)
+      setTotalItems(res.data.total || res.data.centers.length)
+      setTotalPages(Math.ceil((res.data.total || res.data.centers.length) / limit))
     } catch (e: any) {
-      toast({ title: "Không tải được danh sách trung tâm", description: e?.message || "Failed to load centers", variant: "destructive" })
+      toast({ title: "Failed to load centers", description: e?.message || "Failed to load centers", variant: "destructive" })
     } finally {
       setLoading(false)
     }
   }, [api, toast])
 
   useEffect(() => {
-    load()
-  }, [load])
+    load(currentPage)
+  }, [load, currentPage])
 
   const handleCreated = (c: CenterRecord) => {
     setCenters((prev) => [c, ...prev])
@@ -51,9 +60,9 @@ export default function ServiceCentersPage() {
       setDeletingId(id)
       await api.deleteCenter(id)
       setCenters((prev) => prev.filter((ct) => ct._id !== id))
-      toast({ title: "Đã xóa trung tâm dịch vụ" })
+      toast({ title: "Service center deleted" })
     } catch (e: any) {
-      toast({ title: "Xóa thất bại", description: e?.message || "Failed to delete", variant: "destructive" })
+      toast({ title: "Delete failed", description: e?.message || "Failed to delete", variant: "destructive" })
     } finally {
       setDeletingId(null)
     }
@@ -70,8 +79,9 @@ export default function ServiceCentersPage() {
       {loading ? (
         <div className="flex items-center gap-2 text-muted-foreground"><Spinner /> Loading...</div>
       ) : centers.length === 0 ? (
-        <div className="text-muted-foreground">Chưa có trung tâm dịch vụ nào.</div>
+        <div className="text-muted-foreground">No service centers yet.</div>
       ) : (
+        <>
         <Table>
           <TableHeader>
             <TableRow>
@@ -107,9 +117,9 @@ export default function ServiceCentersPage() {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Xóa trung tâm dịch vụ?</AlertDialogTitle>
+                            <AlertDialogTitle>Delete service center?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Hành động này không thể hoàn tác. Trung tâm "{ct.name}" sẽ bị xóa vĩnh viễn.
+                              This action cannot be undone. The center "{ct.name}" will be permanently deleted.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
@@ -127,6 +137,15 @@ export default function ServiceCentersPage() {
             ))}
           </TableBody>
         </Table>
+        
+        <div className="mt-4">
+          <DataPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </div>
+        </>
       )}
     </div>
     </AdminStaffTechnicianOnly>

@@ -1,7 +1,7 @@
 import WorkshiftsManager from "@/components/staff/workshifts-manager"
 
 export const metadata = {
-  title: "Ca làm việc",
+  title: "Work Shifts Management",
 }
 
 export default function WorkshiftsPage() {

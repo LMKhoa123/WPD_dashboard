@@ -29,7 +29,7 @@ export default function VehicleSubscriptionsPage() {
       const list = await api.getVehicleSubscriptions()
       setItems(list)
     } catch (e: any) {
-      toast({ title: "Không tải được danh sách đăng ký", description: e?.message || "Failed to load vehicle subscriptions", variant: "destructive" })
+      toast({ title: "Failed to load subscriptions", description: e?.message || "Failed to load vehicle subscriptions", variant: "destructive" })
     } finally {
       setLoading(false)
     }
@@ -52,9 +52,9 @@ export default function VehicleSubscriptionsPage() {
       setDeletingId(id)
       const renewed = await api.renewVehicleSubscription(id)
       setItems((prev) => prev.map((it) => (it._id === renewed._id ? renewed : it)))
-      toast({ title: "Gia hạn thành công", description: "Đã gia hạn đăng ký gói bảo hành" })
+      toast({ title: "Renewal successful", description: "Warranty package subscription has been renewed" })
     } catch (e: any) {
-      toast({ title: "Gia hạn thất bại", description: e?.message || "Failed to renew subscription", variant: "destructive" })
+      toast({ title: "Renewal failed", description: e?.message || "Failed to renew subscription", variant: "destructive" })
     } finally {
       setDeletingId(null)
     }
@@ -65,9 +65,9 @@ export default function VehicleSubscriptionsPage() {
       setDeletingId(id)
       await api.deleteVehicleSubscription(id)
       setItems((prev) => prev.filter((it) => it._id !== id))
-      toast({ title: "Đã xóa đăng ký" })
+      toast({ title: "Subscription deleted" })
     } catch (e: any) {
-      toast({ title: "Xóa thất bại", description: e?.message || "Failed to delete", variant: "destructive" })
+      toast({ title: "Delete failed", description: e?.message || "Failed to delete", variant: "destructive" })
     } finally {
       setDeletingId(null)
     }
@@ -93,7 +93,7 @@ export default function VehicleSubscriptionsPage() {
       {loading ? (
         <div className="flex items-center gap-2 text-muted-foreground"><Spinner /> Loading...</div>
       ) : items.length === 0 ? (
-        <div className="text-muted-foreground">Chưa có đăng ký nào.</div>
+        <div className="text-muted-foreground">No subscriptions yet.</div>
       ) : (
         <Table>
           <TableHeader>
@@ -167,9 +167,9 @@ export default function VehicleSubscriptionsPage() {
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Xóa đăng ký?</AlertDialogTitle>
+                          <AlertDialogTitle>Delete subscription?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Hành động này không thể hoàn tác. Bản ghi sẽ bị xóa vĩnh viễn.
+                            This action cannot be undone. The record will be permanently deleted.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

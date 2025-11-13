@@ -26,7 +26,7 @@ export default function ServiceStatusBoardPage() {
       const res = await api.getServiceRecords({ limit: 500 })
       setRecords(res.data.records)
     } catch (e: any) {
-      toast({ title: "Không tải được hồ sơ dịch vụ", description: e?.message || "Failed to load records", variant: "destructive" })
+      toast({ title: "Failed to load service records", description: e?.message || "Failed to load records", variant: "destructive" })
     } finally {
       setLoading(false)
     }
@@ -63,7 +63,7 @@ export default function ServiceStatusBoardPage() {
       const next = await api.updateServiceRecord(id, { status: to })
       setRecords((prev) => prev.map((r) => (r._id === id ? next : r)))
     } catch (e: any) {
-      toast({ title: "Cập nhật trạng thái thất bại", description: e?.message || "Failed to update", variant: "destructive" })
+      toast({ title: "Status update failed", description: e?.message || "Failed to update", variant: "destructive" })
     } finally {
       setUpdatingId(null)
     }
@@ -112,7 +112,7 @@ export default function ServiceStatusBoardPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Service Status Board</h1>
-            <p className="text-muted-foreground">Theo dõi tiến độ: chờ – đang làm – hoàn tất</p>
+            <p className="text-muted-foreground">Track progress: pending – in progress – completed</p>
           </div>
           <Button variant="outline" size="sm" onClick={load} disabled={loading}>
             <RefreshCw className="mr-2 h-4 w-4" /> Reload

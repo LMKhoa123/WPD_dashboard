@@ -27,7 +27,7 @@ export default function ServicePackagesPage() {
       const list = await api.getServicePackages()
       setPackages(list)
     } catch (e: any) {
-      toast({ title: "Không tải được gói dịch vụ", description: e?.message || "Failed to load service packages", variant: "destructive" })
+      toast({ title: "Failed to load service packages", description: e?.message || "Failed to load service packages", variant: "destructive" })
     } finally {
       setLoading(false)
     }
@@ -50,9 +50,9 @@ export default function ServicePackagesPage() {
       setDeletingId(id)
       await api.deleteServicePackage(id)
       setPackages((prev) => prev.filter((p) => p._id !== id))
-      toast({ title: "Đã xóa gói dịch vụ" })
+      toast({ title: "Service package deleted" })
     } catch (e: any) {
-      toast({ title: "Xóa thất bại", description: e?.message || "Failed to delete", variant: "destructive" })
+      toast({ title: "Delete failed", description: e?.message || "Failed to delete", variant: "destructive" })
     } finally {
       setDeletingId(null)
     }
@@ -69,7 +69,7 @@ export default function ServicePackagesPage() {
       {loading ? (
         <div className="flex items-center gap-2 text-muted-foreground"><Spinner /> Loading...</div>
       ) : packages.length === 0 ? (
-        <div className="text-muted-foreground">Chưa có gói dịch vụ nào.</div>
+        <div className="text-muted-foreground">No service packages yet.</div>
       ) : (
         <Table>
           <TableHeader>
@@ -109,9 +109,9 @@ export default function ServicePackagesPage() {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Xóa gói dịch vụ?</AlertDialogTitle>
+                        <AlertDialogTitle>Delete service package?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Hành động này không thể hoàn tác. Gói dịch vụ "{sp.name}" sẽ bị xóa vĩnh viễn.
+                          This action cannot be undone. The service package "{sp.name}" will be permanently deleted.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>

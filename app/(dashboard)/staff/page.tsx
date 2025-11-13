@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { DataPagination } from "@/components/ui/data-pagination"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,14 +19,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Search, Pencil, Trash2, Plus, Eye } from "lucide-react"
+import { Search, Pencil, Trash2, Eye } from "lucide-react"
 import { AdminOnly } from "@/components/role-guards"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-// Removed Scheduling and Shift (DnD Sidebar) features
-import CalendarShiftView from "@/components/staff/calendar-shift-view"
-import { PerformanceDashboard } from "@/components/staff/performance-dashboard"
-import { CertificationsManager } from "@/components/staff/certifications"
-import WorkshiftsManager from "@/components/staff/workshifts-manager"
 import { StaffDialog } from "@/components/staff/staff-dialog"
 import { AddStaffDialog } from "@/components/staff/add-staff-dialog"
 import { getApiClient, type SystemUserRecord, type UserAccount } from "@/lib/api"
@@ -40,23 +35,43 @@ export default function StaffPage() {
   const [userToDelete, setUserToDelete] = useState<SystemUserRecord | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  useEffect(() => {
-    loadData()
-  }, [])
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const limit = 20
 
-  const loadData = async () => {
+  const loadData = async (page: number) => {
     try {
       setLoading(true)
       const api = getApiClient()
-      const [sys, us] = await Promise.all([api.getSystemUsers({ limit: 200 }), api.getUsers({ limit: 200 })])
+      const [sys, us] = await Promise.all([
+        api.getSystemUsers({ page, limit }), 
+        api.getUsers({ limit: 10 })
+      ])
+      
       setSystemUsers(sys.data.systemUsers)
       setUsers(us)
+      
+      const total = sys.data.total || sys.data.systemUsers.length
+      setTotalItems(total)
+      setTotalPages(Math.ceil(total / limit))
+      
+      console.log('Staff pagination:', { page, total, totalPages: Math.ceil(total / limit) })
     } catch (e: any) {
-      toast({ title: "Lỗi tải danh sách nhân sự", description: e?.message || "Failed to load staff", variant: "destructive" })
+      toast({ 
+        title: "Failed to load staff", 
+        description: e?.message || "Failed to load staff", 
+        variant: "destructive" 
+      })
     } finally {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    loadData(currentPage)
+  }, [currentPage])
 
   const usersById = useMemo(() => new Map(users.map((u) => [u._id, u])), [users])
 
@@ -85,12 +100,12 @@ export default function StaffPage() {
       await api.deleteSystemUser(userToDelete._id)
       
       setSystemUsers((prev) => prev.filter((u) => u._id !== userToDelete._id))
-      toast({ title: "Xóa nhân viên thành công" })
+      toast({ title: "Staff member deleted" })
       setDeleteDialogOpen(false)
       setUserToDelete(null)
     } catch (e: any) {
       toast({
-        title: "Xóa thất bại",
+        title: "Delete failed",
         description: e?.message || "Failed to delete system user",
         variant: "destructive",
       })
@@ -123,195 +138,201 @@ export default function StaffPage() {
   return (
     <AdminOnly>
       <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Staff</h1>
-          <p className="text-muted-foreground">Manage team members and roles</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Staff</h1>
+            <p className="text-muted-foreground">Manage team members and roles</p>
+          </div>
+          <AddStaffDialog onSuccess={() => loadData(currentPage)} />
         </div>
-        <AddStaffDialog onSuccess={loadData} />
-      </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Staff</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{systemUsers.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Active</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-500">
-              {systemUsers.filter((s) => s.isOnline).length}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Technicians</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{/* unknown technicians from API */}0</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Tabs defaultValue="team" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="team">Team</TabsTrigger>
-          <TabsTrigger value="calendar">Calendar</TabsTrigger>
-          <TabsTrigger value="workshifts">Workshifts</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
-          <TabsTrigger value="certs">Certifications</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="calendar">
-          <CalendarShiftView />
-        </TabsContent>
-
-        <TabsContent value="team">
-      <Card>
-        <CardHeader>
-          <CardTitle>All Staff Members</CardTitle>
-          <CardDescription>View and manage team members</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-6">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search by name, email, or role..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
-
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  {/* <TableHead>Phone</TableHead> */}
-                  <TableHead>Role</TableHead>
-                  <TableHead>Certificates</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-10">Loading staff...</TableCell>
-                  </TableRow>
-                ) : filteredStaff.map((s) => {
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Staff</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{totalItems}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Active</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-500">
+                {systemUsers.filter((s) => s.isOnline).length}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Technicians</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {systemUsers.filter(s => {
                   const account = typeof s.userId === "object" ? s.userId : usersById.get(s.userId)
-                  const role = mapRole(account?.role)
-                  const status = s.isOnline ? "Active" : "Inactive"
-                  const name = s.name || (account?.email?.split("@")[0] ?? "—")
-                  const certCount = s.certificates?.length || 0
-                  return (
-                  <TableRow key={s._id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                            {getInitials(name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="font-medium">{name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{account?.email || "—"}</TableCell>
-                    {/* <TableCell className="text-muted-foreground">{account?.phone || "—"}</TableCell> */}
-                    <TableCell>
-                      <Badge variant="secondary" className={getRoleColor(role)}>
-                        {role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {certCount > 0 ? (
-                        <Badge variant="outline">{certCount} certificate{certCount !== 1 ? "s" : ""}</Badge>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">None</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="secondary"
-                        className={status === "Active" ? "bg-green-500/10 text-green-500 hover:bg-green-500/20" : "bg-gray-500/10 text-gray-500 hover:bg-gray-500/20"}
-                      >
-                        {status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="icon" asChild>
-                          <Link href={`/staff/${s._id}`}>
-                            <Eye className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                        <StaffDialog
-                          systemUser={s}
-                          trigger={
-                            <Button variant="ghost" size="icon">
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          }
-                          onSuccess={() => loadData()}
-                        />
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(s)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+                  return account?.role === "TECHNICIAN"
+                }).length}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>All Staff Members</CardTitle>
+            <CardDescription>View and manage team members</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-6">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search by name, email, or role..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Certificates</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                )})}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-        </TabsContent>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
+                        Loading staff...
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredStaff.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
+                        No staff members found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredStaff.map((s) => {
+                      const account = typeof s.userId === "object" ? s.userId : usersById.get(s.userId)
+                      const role = mapRole(account?.role)
+                      const status = s.isOnline ? "Active" : "Inactive"
+                      const name = s.name || (account?.email?.split("@")[0] ?? "—")
+                      const certCount = s.certificates?.length || 0
+                      return (
+                        <TableRow key={s._id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                                  {getInitials(name)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="font-medium">{name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{account?.email || "—"}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary" className={getRoleColor(role)}>
+                              {role}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {certCount > 0 ? (
+                              <Badge variant="outline">
+                                {certCount} certificate{certCount !== 1 ? "s" : ""}
+                              </Badge>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">None</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="secondary"
+                              className={
+                                status === "Active"
+                                  ? "bg-green-500/10 text-green-500 hover:bg-green-500/20"
+                                  : "bg-gray-500/10 text-gray-500 hover:bg-gray-500/20"
+                              }
+                            >
+                              {status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button variant="ghost" size="icon" asChild>
+                                <Link href={`/staff/${s._id}`}>
+                                  <Eye className="h-4 w-4" />
+                                </Link>
+                              </Button>
+                              <StaffDialog
+                                systemUser={s}
+                                trigger={
+                                  <Button variant="ghost" size="icon">
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                }
+                                onSuccess={() => loadData(currentPage)}
+                              />
+                              <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(s)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
 
-        {/* Scheduling and Shift (DnD Sidebar) removed */}
+            {/* Pagination - Always visible */}
+            {!loading && totalPages > 0 && (
+              <div className="mt-4 flex justify-end">
+                <DataPagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-        <TabsContent value="workshifts">
-          <WorkshiftsManager />
-        </TabsContent>
-
-        <TabsContent value="performance">
-          <PerformanceDashboard />
-        </TabsContent>
-
-        <TabsContent value="certs">
-          <CertificationsManager />
-        </TabsContent>
-      </Tabs>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete staff member "{userToDelete?.name || "this user"}". This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteConfirm} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              {deleting ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete staff member "{userToDelete?.name || "this user"}". This action cannot be
+                undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleting ? "Deleting..." : "Delete"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AdminOnly>
   )

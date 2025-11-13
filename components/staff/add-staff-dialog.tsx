@@ -73,7 +73,7 @@ export function AddStaffDialog({ trigger, onSuccess }: AddStaffDialogProps) {
         email,
         password,
         role,
-        centerId: centerId === "__none__" ? undefined : centerId,
+        centerId: centerId === "__none__" ? "" : centerId,
       })
 
       toast({

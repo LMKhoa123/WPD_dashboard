@@ -12,7 +12,9 @@ import { useIsAdmin, useIsStaff } from "@/components/auth-provider"
 import { AdminStaffTechnicianOnly } from "@/components/role-guards"
 import { CenterAutoPartDialog } from "@/components/center-auto-parts/center-auto-part-dialog"
 import { ForecastInfoDialog } from "@/components/center-auto-parts/forecast-info-dialog"
+import { DataPagination } from "@/components/ui/data-pagination"
 import { Pencil, Plus, Trash2, Search, LineChart } from "lucide-react"
+import { formatDate } from "@/lib/utils"
 
 export default function CenterAutoPartsPage() {
 	const { toast } = useToast()
@@ -40,25 +42,35 @@ export default function CenterAutoPartsPage() {
 
 	const [deletingId, setDeletingId] = useState<string | null>(null)
 
-	const load = useCallback(async () => {
+	// Pagination state
+	const [currentPage, setCurrentPage] = useState(1)
+	const [totalPages, setTotalPages] = useState(1)
+	const [totalItems, setTotalItems] = useState(0)
+	const limit = 20
+
+	const load = useCallback(async (page: number) => {
 		try {
 			setLoading(true)
 			const [centersRes, partsRes, listRes] = await Promise.all([
 				api.getCenters({ limit: 200 }).then(r => r.data.centers),
 				api.getAutoParts(1, 200).then(r => r.data.parts),
-				api.getCenterAutoParts({ page: 1, limit: 200 }),
+				api.getCenterAutoParts({ page, limit }),
 			])
 			setCenters(centersRes)
 			setParts(partsRes)
 			setItems(listRes.data.items)
+			setTotalItems(listRes.data.total || listRes.data.items.length)
+			setTotalPages(Math.ceil((listRes.data.total || listRes.data.items.length) / limit))
 		} catch (e: any) {
-			toast({ title: "Không tải được dữ liệu", description: e?.message || "Failed to load data", variant: "destructive" })
+			toast({ title: "Failed to load data", description: e?.message || "Failed to load data", variant: "destructive" })
 		} finally {
 			setLoading(false)
 		}
 	}, [api, toast])
 
-	useEffect(() => { load() }, [load])
+	useEffect(() => {
+		load(currentPage)
+	}, [load, currentPage])
 
 	const filtered = items.filter(it => {
 		// Null check để tránh lỗi khi center_id hoặc part_id là null
@@ -83,9 +95,9 @@ export default function CenterAutoPartsPage() {
 			setDeletingId(id)
 			await api.deleteCenterAutoPart(id)
 			setItems(prev => prev.filter(x => x._id !== id))
-			toast({ title: "Đã xóa" })
+			toast({ title: "Deleted" })
 		} catch (e: any) {
-			toast({ title: "Xóa thất bại", description: e?.message || "Failed to delete", variant: "destructive" })
+			toast({ title: "Delete failed", description: e?.message || "Failed to delete", variant: "destructive" })
 		} finally {
 			setDeletingId(null)
 		}
@@ -96,7 +108,7 @@ export default function CenterAutoPartsPage() {
 		const c = typeof rec.center_id === 'string' ? rec.center_id : rec.center_id?._id
 		const p = typeof rec.part_id === 'string' ? rec.part_id : rec.part_id?._id
 		if (!c || !p) {
-			toast({ title: "Thiếu dữ liệu", description: "Không xác định được Center ID hoặc Part ID", variant: "destructive" })
+			toast({ title: "Missing data", description: "Center ID or Part ID not found", variant: "destructive" })
 			return
 		}
 		setForecastCenterId(c)
@@ -170,8 +182,8 @@ export default function CenterAutoPartsPage() {
 												<TableCell className="text-right">{it.quantity}</TableCell>
 												<TableCell className="text-right">{it.min_stock}</TableCell>
 												<TableCell className="text-right">{it.recommended_min_stock}</TableCell>
-												<TableCell>{it.last_forecast_date ? new Date(it.last_forecast_date).toLocaleDateString() : "-"}</TableCell>
-												<TableCell>{new Date(it.createdAt).toLocaleDateString()}</TableCell>
+												<TableCell>{it.last_forecast_date ? formatDate(it.last_forecast_date) : "-"}</TableCell>
+												<TableCell>{formatDate(it.createdAt)}</TableCell>
 												<TableCell className="text-right">
 													<div className="flex justify-end gap-2">
 														{canManage && (
@@ -194,8 +206,16 @@ export default function CenterAutoPartsPage() {
 					</CardContent>
 				</Card>
 
-				<CenterAutoPartDialog open={dialogOpen} onOpenChange={setDialogOpen} record={selected} onSuccess={load} />
+				<CenterAutoPartDialog open={dialogOpen} onOpenChange={setDialogOpen} record={selected} onSuccess={() => load(currentPage)} />
 				<ForecastInfoDialog open={forecastOpen} onOpenChange={setForecastOpen} centerId={forecastCenterId} partId={forecastPartId} />
+				
+				<div className="mt-4">
+					<DataPagination
+						currentPage={currentPage}
+						totalPages={totalPages}
+						onPageChange={setCurrentPage}
+					/>
+				</div>
 			</div>
 		</AdminStaffTechnicianOnly>
 	)

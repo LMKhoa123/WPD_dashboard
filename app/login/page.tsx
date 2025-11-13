@@ -27,15 +27,15 @@ export default function LoginPage() {
     e.preventDefault()
     
     try {
-      toast.loading("Đang đăng nhập...", { id: "login" })
+      toast.loading("Signing in...", { id: "login" })
       await loginWithCredentials(identifier, password)
-      toast.success("Đăng nhập thành công! 🎉", { id: "login" })
+      toast.success("Signed in successfully! 🎉", { id: "login" })
       
       const url = new URL(window.location.href)
       const next = url.searchParams.get("next")
       router.push(next || "/")
     } catch (error: any) {
-      toast.error(error?.message || "Đăng nhập thất bại. Vui lòng thử lại!", { id: "login" })
+      toast.error(error?.message || "Sign in failed. Please try again!", { id: "login" })
     }
   }
 

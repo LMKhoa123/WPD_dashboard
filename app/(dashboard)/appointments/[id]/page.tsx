@@ -64,7 +64,7 @@ export default function AppointmentDetailPage() {
         // Technicians & record checklists are handled by child component now
       } catch (e: any) {
         toast({
-          title: "Không thể tải thông tin lịch hẹn",
+          title: "Failed to load appointment",
           description: e?.message || "Failed to load appointment",
           variant: "destructive"
         })
@@ -80,11 +80,11 @@ export default function AppointmentDetailPage() {
     try {
       setDeleting(true)
       await api.deleteAppointment(appointment._id)
-      toast({ title: "Đã xóa lịch hẹn thành công" })
+      toast({ title: "Deleted appointment successfully" })
       router.push("/appointments")
     } catch (e: any) {
       toast({
-        title: "Không thể xóa lịch hẹn",
+        title: "Failed to delete appointment",
         description: e?.message || "Failed to delete appointment",
         variant: "destructive"
       })
@@ -101,7 +101,7 @@ export default function AppointmentDetailPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex items-center gap-2 text-muted-foreground">
-          <Spinner /> Đang tải...
+          <Spinner /> Loading...
         </div>
       </div>
     )
@@ -110,9 +110,9 @@ export default function AppointmentDetailPage() {
   if (!appointment) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <p className="text-muted-foreground">Không tìm thấy lịch hẹn</p>
+        <p className="text-muted-foreground">Appointment not found</p>
         <Button onClick={() => router.push("/appointments")} variant="outline">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Quay lại danh sách
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to list
         </Button>
       </div>
     )
@@ -152,8 +152,8 @@ export default function AppointmentDetailPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Chi tiết lịch hẹn</h1>
-            <p className="text-muted-foreground">Mã: {appointment._id}</p>
+            <h1 className="text-3xl font-bold tracking-tight">Appointment Details</h1>
+            <p className="text-muted-foreground">ID: {appointment._id}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -167,27 +167,27 @@ export default function AppointmentDetailPage() {
                 onUpdated={handleUpdated}
                 trigger={
                   <Button variant="outline" size="sm">
-                    <Edit className="mr-2 h-4 w-4" /> Chỉnh sửa
+                    <Edit className="mr-2 h-4 w-4" /> Edit
                   </Button>
                 }
               />
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" size="sm" disabled={deleting}>
-                    <Trash2 className="mr-2 h-4 w-4" /> Xóa
+                    <Trash2 className="mr-2 h-4 w-4" /> Delete
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Xác nhận xóa lịch hẹn?</AlertDialogTitle>
+                    <AlertDialogTitle>Confirm delete appointment?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Hành động này không thể hoàn tác. Lịch hẹn sẽ bị xóa vĩnh viễn khỏi hệ thống.
+                      This action cannot be undone. The appointment will be permanently deleted from the system.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Hủy</AlertDialogCancel>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction onClick={handleDelete} disabled={deleting}>
-                      {deleting ? "Đang xóa..." : "Xóa"}
+                      {deleting ? "Deleting..." : "Delete"}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -203,7 +203,7 @@ export default function AppointmentDetailPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              Thông tin lịch hẹn
+              Appointment Information
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -211,14 +211,14 @@ export default function AppointmentDetailPage() {
               <div className="flex items-start gap-3">
                 <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium">Ngày hẹn</p>
+                  <p className="text-sm font-medium">Appointment Date</p>
                   <p className="text-sm text-muted-foreground">{appointmentDate}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <Clock className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium">Thời gian</p>
+                  <p className="text-sm font-medium">Time</p>
                   <p className="text-sm text-muted-foreground">{timeRange}</p>
                   {slot && (
                     <p className="text-xs text-muted-foreground mt-1">
@@ -229,8 +229,8 @@ export default function AppointmentDetailPage() {
               </div>
               <Separator />
               <div className="text-xs text-muted-foreground">
-                <p>Tạo lúc: {new Date(appointment.createdAt).toLocaleString('vi-VN')}</p>
-                <p>Cập nhật: {new Date(appointment.updatedAt).toLocaleString('vi-VN')}</p>
+                <p>Created at: {new Date(appointment.createdAt).toLocaleString('en-US')}</p>
+                <p>Updated at: {new Date(appointment.updatedAt).toLocaleString('en-US')}</p>
               </div>
             </div>
           </CardContent>
@@ -241,27 +241,27 @@ export default function AppointmentDetailPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5" />
-              Trung tâm dịch vụ
+              Service Center
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {center ? (
               <div className="grid gap-3">
                 <div>
-                  <p className="text-sm font-medium">Tên trung tâm</p>
+                  <p className="text-sm font-medium">Center Name</p>
                   <p className="text-lg font-semibold">{center.name}</p>
                 </div>
                 <div className="flex items-start gap-3">
                   <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium">Địa chỉ</p>
+                    <p className="text-sm font-medium">Address</p>
                     <p className="text-sm text-muted-foreground">{center.address}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <Phone className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium">Số điện thoại</p>
+                    <p className="text-sm font-medium">Phone Number</p>
                     <p className="text-sm text-muted-foreground">{center.phone}</p>
                   </div>
                 </div>
@@ -276,7 +276,7 @@ export default function AppointmentDetailPage() {
                 )}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">Thông tin trung tâm không có sẵn</p>
+              <p className="text-sm text-muted-foreground">Service center information is not available</p>
             )}
           </CardContent>
         </Card>
@@ -286,19 +286,19 @@ export default function AppointmentDetailPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Car className="h-5 w-5" />
-              Thông tin xe
+              Vehicle Information
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {vehicle ? (
               <div className="grid gap-3">
                 <div>
-                  <p className="text-sm font-medium">Tên xe</p>
+                  <p className="text-sm font-medium">Vehicle Name</p>
                   <p className="text-lg font-semibold">{vehicle.vehicleName}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <p className="text-sm font-medium">Biển số</p>
+                    <p className="text-sm font-medium">Plate Number</p>
                     <p className="text-sm text-muted-foreground">{vehicle.plateNumber}</p>
                   </div>
                   <div>
@@ -308,7 +308,7 @@ export default function AppointmentDetailPage() {
                 </div>
                 {vehicle.mileage !== undefined && (
                   <div>
-                    <p className="text-sm font-medium">Số km đã đi</p>
+                    <p className="text-sm font-medium">Mileage</p>
                     <p className="text-sm text-muted-foreground">{vehicle.mileage.toLocaleString()} km</p>
                   </div>
                 )}
@@ -323,7 +323,7 @@ export default function AppointmentDetailPage() {
                 )}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">Thông tin xe không có sẵn</p>
+              <p className="text-sm text-muted-foreground">Vehicle information is not available</p>
             )}
           </CardContent>
         </Card>
@@ -333,14 +333,14 @@ export default function AppointmentDetailPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
-              Thông tin khách hàng
+              Customer Information
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {customer ? (
               <div className="grid gap-3">
                 <div>
-                  <p className="text-sm font-medium">Tên khách hàng</p>
+                  <p className="text-sm font-medium">Customer Name</p>
                   <p className="text-lg font-semibold">{customer.customerName || "—"}</p>
                 </div>
                 {(customer as any).userId && typeof (customer as any).userId === 'object' && (
@@ -355,7 +355,7 @@ export default function AppointmentDetailPage() {
                     <div className="flex items-start gap-3">
                       <Phone className="h-5 w-5 text-muted-foreground mt-0.5" />
                       <div>
-                        <p className="text-sm font-medium">Số điện thoại</p>
+                        <p className="text-sm font-medium">Phone Number</p>
                         <p className="text-sm text-muted-foreground">{(customer as any).userId.phone || "—"}</p>
                       </div>
                     </div>
@@ -365,14 +365,14 @@ export default function AppointmentDetailPage() {
                   <div className="flex items-start gap-3">
                     <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium">Địa chỉ</p>
+                      <p className="text-sm font-medium">Address</p>
                       <p className="text-sm text-muted-foreground">{(customer as any).address}</p>
                     </div>
                   </div>
                 )}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">Không có thông tin khách hàng</p>
+              <p className="text-sm text-muted-foreground">Customer information is not available</p>
             )}
           </CardContent>
         </Card>
@@ -382,7 +382,7 @@ export default function AppointmentDetailPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
-              Nhân viên phụ trách
+              Staff in Charge
               {loadingStaff && <Spinner className="h-4 w-4" />}
             </CardTitle>
           </CardHeader>
@@ -391,7 +391,7 @@ export default function AppointmentDetailPage() {
               isFullStaff(staff) ? (
                 <div className="grid gap-3 md:grid-cols-2">
                   <div>
-                    <p className="text-sm font-medium">Tên nhân viên</p>
+                    <p className="text-sm font-medium">Staff Name</p>
                     <p className="text-lg font-semibold">{staff.name || "—"}</p>
                   </div>
                   {staff.userId && typeof staff.userId === 'object' && (
@@ -401,21 +401,21 @@ export default function AppointmentDetailPage() {
                         <p className="text-sm text-muted-foreground">{staff.userId.email}</p>
                       </div>
                       <div>
-                        <p className="text-sm font-medium">Vai trò</p>
+                        <p className="text-sm font-medium">Role</p>
                         <Badge variant="outline">{staff.userId.role}</Badge>
                       </div>
                       {staff.userId.phone && (
                         <div>
-                          <p className="text-sm font-medium">Số điện thoại</p>
+                          <p className="text-sm font-medium">Phone Number</p>
                           <p className="text-sm text-muted-foreground">{staff.userId.phone}</p>
                         </div>
                       )}
                     </>
                   )}
                   <div>
-                    <p className="text-sm font-medium">Trạng thái</p>
+                    <p className="text-sm font-medium">Status</p>
                     <Badge variant={staff.isOnline ? "default" : "secondary"}>
-                      {staff.isOnline ? "Đang online" : "Offline"}
+                      {staff.isOnline ? "Online" : "Offline"}
                     </Badge>
                   </div>
                   {(staff as any).centerId && (
@@ -426,7 +426,7 @@ export default function AppointmentDetailPage() {
                   )}
                   {staff.certificates && staff.certificates.length > 0 && (
                     <div className="md:col-span-2">
-                      <p className="text-sm font-medium mb-2">Chứng chỉ</p>
+                      <p className="text-sm font-medium mb-2">Certificates</p>
                       <div className="space-y-2">
                         {staff.certificates.map((cert: any, idx: number) => (
                           <div key={idx} className="text-sm p-2 bg-muted rounded">
@@ -440,12 +440,12 @@ export default function AppointmentDetailPage() {
                 </div>
               ) : loadingStaff ? (
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  <Spinner /> Đang tải thông tin nhân viên...
+                  <Spinner /> Loading staff information...
                 </div>
               ) : staff ? (
                 <div className="grid gap-3">
                   <div>
-                    <p className="text-sm font-medium">Tên nhân viên</p>
+                    <p className="text-sm font-medium">Staff Name</p>
                     <p className="text-lg font-semibold">{staff.name || "—"}</p>
                   </div>
                   {staff.email && (
@@ -459,7 +459,7 @@ export default function AppointmentDetailPage() {
                 <p className="text-sm text-muted-foreground">Staff ID: {typeof appointment.staffId === 'string' ? appointment.staffId : appointment.staffId._id}</p>
               )
             ) : (
-              <p className="text-sm text-muted-foreground">Chưa có nhân viên được phân công</p>
+              <p className="text-sm text-muted-foreground">No staff assigned</p>
             )}
           </CardContent>
         </Card>
