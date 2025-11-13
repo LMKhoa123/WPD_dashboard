@@ -65,7 +65,7 @@ export default function SuggestedPartsPage() {
                 return {
                     center_auto_part_id: centerpartId || "",
                     auto_part_id: "",
-                    name: d.description || "Vật tư đã thêm",
+                    name: d.description || "Added Part",
                     selling_price: Number(d.unit_price ?? 0),
                     center_stock: 0,
                     total_suggested_quantity: 0,
@@ -103,7 +103,7 @@ export default function SuggestedPartsPage() {
                     // Enrich existing confirmed line with display info if missing
                     merged.splice(merged.indexOf(existing), 1, {
                         ...existing,
-                        name: existing.name && existing.name !== "Vật tư đã thêm" ? existing.name : s.name,
+                        name: existing.name && existing.name !== "Added Part" ? existing.name : s.name,
                         image: existing.image || s.image,
                         warranty_time: existing.warranty_time || s.warranty_time,
                         center_stock: s.center_stock || existing.center_stock,
@@ -159,7 +159,7 @@ export default function SuggestedPartsPage() {
                 setIsPaid(false)
             }
         } catch (e: any) {
-            toast({ title: "Không tải được đề xuất vật tư", description: e?.message || "Failed to load suggested parts", variant: "destructive" })
+            toast({ title: "Failed to load suggested parts", description: e?.message || "Failed to load suggested parts", variant: "destructive" })
         } finally {
             setLoading(false)
         }
@@ -190,11 +190,11 @@ export default function SuggestedPartsPage() {
             } as any)
             // Do not use createServiceDetail response for UI; rely on getServiceDetails
             setLines((prev) => prev.map((x) => x.center_auto_part_id === l.center_auto_part_id ? { ...x, confirmed: true } : x))
-            toast({ title: "Đã xác nhận dòng vật tư" })
+            toast({ title: "Confirmed part line" })
             // Refresh current route to re-fetch details from server
             await run()
         } catch (e: any) {
-            toast({ title: "Xác nhận thất bại", description: e?.message || "Failed to create service detail", variant: "destructive" })
+            toast({ title: "Confirmation failed", description: e?.message || "Failed to create service detail", variant: "destructive" })
         } finally {
             setSubmittingId(null)
         }
@@ -216,15 +216,15 @@ export default function SuggestedPartsPage() {
 
     const createPayment = async () => {
         if (hasUnconfirmed) {
-            toast({ title: "Còn dòng chưa xác nhận", description: "Vui lòng xác nhận hoặc xóa các dòng chưa xác nhận trước khi thanh toán." })
+            toast({ title: "There are unconfirmed lines", description: "Please confirm or remove all unconfirmed lines before proceeding with payment." })
             return
         }
         if (!customerId) {
-            toast({ title: "Thiếu thông tin khách hàng", description: "Không xác định được khách hàng để tạo thanh toán", variant: "destructive" })
+            toast({ title: "Missing customer information", description: "Unable to identify customer for payment creation", variant: "destructive" })
             return
         }
         if (grandTotal <= 0) {
-            toast({ title: "Số tiền không hợp lệ", description: "Tổng tiền cần lớn hơn 0" })
+            toast({ title: "Invalid amount", description: "Total amount must be greater than 0" })
             return
         }
         try {
@@ -234,7 +234,7 @@ export default function SuggestedPartsPage() {
                 service_record_id: recordId,
                 customer_id: customerId,
                 amount: Math.round(grandTotal),
-                description: `Thanh toán dịch vụ `,
+                description: `Service payment `,
                 payment_type: "service_record",
                 returnUrl: currentUrl,
                 cancelUrl: currentUrl,
@@ -244,10 +244,10 @@ export default function SuggestedPartsPage() {
             if (url) {
                 window.location.href = url as string
             } else {
-                toast({ title: "Tạo thanh toán thành công", description: "Không có liên kết thanh toán, vui lòng kiểm tra danh sách thanh toán." })
+                toast({ title: "Payment created successfully", description: "No payment link available, please check the payment list." })
             }
         } catch (e: any) {
-            toast({ title: "Tạo thanh toán thất bại", description: e?.message || "Không thể tạo thanh toán", variant: "destructive" })
+            toast({ title: "Payment creation failed", description: e?.message || "Unable to create payment", variant: "destructive" })
         } finally {
             setPaying(false)
         }
@@ -255,7 +255,7 @@ export default function SuggestedPartsPage() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-[60vh] text-muted-foreground"><Spinner /> Đang tải đề xuất...</div>
+            <div className="flex items-center justify-center min-h-[60vh] text-muted-foreground"><Spinner /> Loading suggestions...</div>
         )
     }
 
@@ -268,13 +268,13 @@ export default function SuggestedPartsPage() {
                             <ArrowLeft className="h-5 w-5" />
                         </Button>
                         <div>
-                            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2"><ReceiptText className="h-5 w-5" /> Hóa đơn linh kiện</h1>
+                            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2"><ReceiptText className="h-5 w-5" /> Parts Invoice</h1>
                             <p className="text-sm text-muted-foreground">Record: {recordId}</p>
                         </div>
                     </div>
                     <Button variant="outline" asChild>
                         <Link href={`/appointments`}>
-                            Quay về lịch hẹn
+                            Back to Appointments
                         </Link>
                     </Button>
                 </div>
@@ -282,20 +282,20 @@ export default function SuggestedPartsPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <CheckCircle2 className="h-5 w-5 text-green-600" /> Đã thanh toán
+                            <CheckCircle2 className="h-5 w-5 text-green-600" /> Paid
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2 text-sm">
                         {paidPayment ? (
                             <div className="space-y-1">
-                                <div className="flex items-center justify-between"><span>Mã đơn</span><span className="font-medium">{paidPayment.order_code}</span></div>
-                                <div className="flex items-center justify-between"><span>Số tiền</span><span className="font-semibold">{VND(paidPayment.amount)}</span></div>
-                                <div className="flex items-center justify-between"><span>Trạng thái</span><Badge className="bg-green-500/10 text-green-700 border-green-500/20">{paidPayment.status}</Badge></div>
+                                <div className="flex items-center justify-between"><span>Order Code</span><span className="font-medium">{paidPayment.order_code}</span></div>
+                                <div className="flex items-center justify-between"><span>Amount</span><span className="font-semibold">{VND(paidPayment.amount)}</span></div>
+                                <div className="flex items-center justify-between"><span>Status</span><Badge className="bg-green-500/10 text-green-700 border-green-500/20">{paidPayment.status}</Badge></div>
                             </div>
                         ) : null}
                         <div className="pt-3 flex items-center justify-end gap-2">
                             <Button variant="outline" asChild>
-                                <Link href="/payments">Xem danh sách thanh toán</Link>
+                                <Link href="/payments">View payment list</Link>
                             </Button>
                         </div>
                     </CardContent>
@@ -312,24 +312,24 @@ export default function SuggestedPartsPage() {
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2"><ReceiptText className="h-5 w-5" /> Hóa đơn linh kiện</h1>
+                        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2"><ReceiptText className="h-5 w-5" /> Parts Invoice</h1>
                         <p className="text-sm text-muted-foreground">Record: {recordId}</p>
                     </div>
                 </div>
                 <Button variant="outline" asChild>
                     <Link href={`/appointments`}>
-                        Quay về lịch hẹn
+                        Back to Appointments
                     </Link>
                 </Button>
             </div>
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Danh sách vật tư</CardTitle>
+                    <CardTitle>Parts List</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     {lines.length === 0 && (
-                        <div className="text-sm text-muted-foreground">Không có đề xuất nào.</div>
+                        <div className="text-sm text-muted-foreground">No suggestions available.</div>
                     )}
                     {lines.map((l) => {
                         const paidQty = l.detail?.paid_qty ?? l.quantity
@@ -350,14 +350,14 @@ export default function SuggestedPartsPage() {
                                             <Badge variant="outline">Giá: {VND(l.selling_price)}</Badge>
                                         </div>
                                         <div className="mt-1 text-xs text-muted-foreground flex flex-wrap items-center gap-2">
-                                            <ShieldCheck className="h-3.5 w-3.5" /> Bảo hành: {l.warranty_time} ngày
+                                            <ShieldCheck className="h-3.5 w-3.5" /> Warranty: {l.warranty_time} days
                                             <span className="mx-2">•</span>
-                                            Tồn kho tối đa: <span className="font-medium">{l.center_stock}</span>
+                                            Max Stock: <span className="font-medium">{l.center_stock}</span>
                                             {l.detail ? (
                                                 <>
                                                     <span className="mx-2">•</span>
-                                                    <span>BH: <span className="font-medium">{warrantyQty}</span></span>
-                                                    <span>Trả tiền: <span className="font-medium">{paidQty}</span></span>
+                                                    <span>Warranty: <span className="font-medium">{warrantyQty}</span></span>
+                                                    <span>Paid: <span className="font-medium">{paidQty}</span></span>
                                                 </>
                                             ) : null}
                                         </div>
@@ -380,23 +380,23 @@ export default function SuggestedPartsPage() {
                                                 <Button type="button" variant="outline" size="icon" disabled={l.confirmed || l.quantity >= l.center_stock} onClick={() => setQty(l.center_auto_part_id, l.quantity + 1)}>
                                                     <Plus className="h-4 w-4" />
                                                 </Button>
-                                                <div className="text-sm text-muted-foreground">Mặc định: {l.total_suggested_quantity}</div>
+                                                <div className="text-sm text-muted-foreground">Default: {l.total_suggested_quantity}</div>
                                             </div>
 
                                             <div className="flex items-center gap-3">
-                                                <div className="text-sm font-medium">Tạm tính: {VND(lineTotal)}</div>
+                                                <div className="text-sm font-medium">Subtotal: {VND(lineTotal)}</div>
                                                 {l.detail && warrantyQty > 0 ? (
-                                                    <div className="text-xs text-muted-foreground">(SL {l.quantity} / BH {warrantyQty} / Trả {paidQty})</div>
+                                                    <div className="text-xs text-muted-foreground">(Qty {l.quantity} / Warranty {warrantyQty} / Paid {paidQty})</div>
                                                 ) : null}
                                                 {!l.confirmed ? (
                                                     <div className="flex items-center gap-2">
                                                         <Button size="sm" disabled={!l.quantity || submittingId === l.center_auto_part_id} onClick={() => confirmLine(l)}>
-                                                            {submittingId === l.center_auto_part_id ? <Spinner className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4 mr-1" />} Xác nhận
+                                                            {submittingId === l.center_auto_part_id ? <Spinner className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4 mr-1" />} Confirm
                                                         </Button>
-                                                        <Button size="sm" variant="ghost" onClick={() => removeLine(l.center_auto_part_id)}>Xóa</Button>
+                                                        <Button size="sm" variant="ghost" onClick={() => removeLine(l.center_auto_part_id)}>Delete</Button>
                                                     </div>
                                                 ) : (
-                                                    <Badge className="bg-green-500/10 text-green-700 border-green-500/20">Đã xác nhận</Badge>
+                                                    <Badge className="bg-green-500/10 text-green-700 border-green-500/20">Confirmed</Badge>
                                                 )}
                                             </div>
                                         </div>
@@ -409,25 +409,25 @@ export default function SuggestedPartsPage() {
                     <Separator />
                     <div className="space-y-2 text-sm">
                         <div className="flex items-center justify-between">
-                            <div>Tiền công</div>
+                            <div>Labor</div>
                             <div className="font-medium">{VND(labor)}</div>
                         </div>
                         <div className="flex items-center justify-between">
-                            <div>Giảm giá{submittingId ? null : <span className="text-muted-foreground"> {discountPercent ? `(${discountPercent}%)` : ""}</span>}</div>
+                            <div>Discount{submittingId ? null : <span className="text-muted-foreground"> {discountPercent ? `(${discountPercent}%)` : ""}</span>}</div>
                             <div className="font-medium">{VND(discount)}</div>
                         </div>
                         <Separator />
                         <div className="flex items-center justify-between text-base">
-                            <div className="font-semibold">Tổng cộng</div>
+                            <div className="font-semibold">Total</div>
                             <div className="font-bold">{VND(grandTotal)}</div>
                         </div>
                         {hasUnconfirmed ? (
-                            <div className="pt-3 text-sm text-amber-600">Có {lines.filter(l => !l.confirmed).length} dòng chưa xác nhận. Vui lòng xác nhận hoặc xóa để tiếp tục thanh toán.</div>
+                            <div className="pt-3 text-sm text-amber-600">There are {lines.filter(l => !l.confirmed).length} unconfirmed lines. Please confirm or delete them to proceed with payment.</div>
                         ) : null}
                         <div className="pt-3 flex items-center justify-end">
                             <Button onClick={createPayment} disabled={paying || grandTotal <= 0 || !customerId || hasUnconfirmed}>
                                 {paying ? <Spinner className="h-4 w-4 mr-2" /> : null}
-                                Thanh toán
+                                Pay
                             </Button>
                         </div>
                     </div>

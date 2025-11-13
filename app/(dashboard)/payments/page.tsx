@@ -14,6 +14,7 @@ import { PaymentDetailDialog } from "@/components/payments/payment-detail-dialog
 import { CreatePaymentManualDialog } from "@/components/payments/create-payment-manual-dialog"
 import { Spinner } from "@/components/ui/spinner"
 import { formatVND, formatDateTime } from "@/lib/utils"
+import { DataPagination } from "@/components/ui/data-pagination"
 
 export default function PaymentsPage() {
   const isAdmin = useIsAdmin()
@@ -25,26 +26,34 @@ export default function PaymentsPage() {
   const [loading, setLoading] = useState(true)
   const [cancelCode, setCancelCode] = useState<number | null>(null)
 
-  const load = useCallback(async () => {
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const limit = 20
+
+  const load = useCallback(async (page: number) => {
     try {
       setLoading(true)
-      const res = await api.getPayments({ limit: 100 })
+      const res = await api.getPayments({ page, limit })
       setItems(res.data.payments)
+      setTotalItems(res.data.total || res.data.payments.length)
+      setTotalPages(Math.ceil((res.data.total || res.data.payments.length) / limit))
     } catch (e: any) {
-      toast({ title: "Không tải được danh sách thanh toán", description: e?.message || "Failed to load payments", variant: "destructive" })
+      toast({ title: "Failed to load payments", description: e?.message || "Failed to load payments", variant: "destructive" })
     } finally {
       setLoading(false)
     }
   }, [api, toast])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load(currentPage) }, [load, currentPage])
 
   if (!isAdmin && !isStaff) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-muted-foreground">Access Denied</h2>
-          <p className="text-muted-foreground mt-2">Trang này chỉ dành cho Quản trị hoặc Nhân viên.</p>
+          <p className="text-muted-foreground mt-2">This page is for Admin or Staff only.</p>
         </div>
       </div>
     )
@@ -66,14 +75,14 @@ export default function PaymentsPage() {
       setCancelCode(orderCode)
       const res = await api.cancelPayment(orderCode)
       if (res.success) {
-        toast({ title: "Đã hủy giao dịch", description: `Order ${orderCode} đã được hủy.` })
+        toast({ title: "Transaction canceled", description: `Order ${orderCode} has been cancelled.` })
         // Refresh list
-        await load()
+        await load(currentPage)
       } else {
-        toast({ title: "Hủy thất bại", description: res.message || "Unknown error", variant: "destructive" })
+        toast({ title: "Cancel failed", description: res.message || "Unknown error", variant: "destructive" })
       }
     } catch (e: any) {
-      toast({ title: "Hủy thất bại", description: e?.message || "Cancel error", variant: "destructive" })
+      toast({ title: "Cancel failed", description: e?.message || "Cancel error", variant: "destructive" })
     } finally {
       setCancelCode(null)
     }
@@ -84,11 +93,11 @@ export default function PaymentsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Payments</h1>
-          <p className="text-muted-foreground">Admin/Staff có thể xem và hủy giao dịch khi cần</p>
+          <p className="text-muted-foreground">Admins/Staff can view and cancel transactions as needed.</p>
         </div>
         <div className="flex items-center gap-2">
-          <CreatePaymentManualDialog onCreated={() => load()} />
-          <Button variant="outline" onClick={load}>
+          <CreatePaymentManualDialog onCreated={() => load(currentPage)} />
+          <Button variant="outline" onClick={() => load(currentPage)}>
             <RotateCcw className="h-4 w-4 mr-2" /> Refresh
           </Button>
         </div>
@@ -96,14 +105,15 @@ export default function PaymentsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Danh sách thanh toán</CardTitle>
+          <CardTitle>Payments</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="flex items-center gap-2 text-muted-foreground"><Spinner /> Loading...</div>
           ) : items.length === 0 ? (
-            <div className="text-muted-foreground">Chưa có giao dịch.</div>
+            <div className="text-muted-foreground">No transactions yet.</div>
           ) : (
+            <>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -125,29 +135,29 @@ export default function PaymentsPage() {
                     <TableCell>{formatDateTime(p.createdAt)}</TableCell>
                     <TableCell className="text-right space-x-2">
                       {p.payment_url && (
-                        <Button size="sm" variant="ghost" asChild title="Mở link thanh toán">
+                        <Button size="sm" variant="ghost" asChild title="Open payment link">
                           <a href={p.payment_url} target="_blank" rel="noreferrer">
                             <ExternalLink className="h-4 w-4" />
                           </a>
                         </Button>
                       )}
-                      <PaymentDetailDialog payment={p} trigger={<Button size="sm" variant="ghost" title="Xem chi tiết"><Eye className="h-4 w-4" /></Button>} />
+                      <PaymentDetailDialog payment={p} trigger={<Button size="sm" variant="ghost" title="View details"><Eye className="h-4 w-4" /></Button>} />
                       {canCancel(p) && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button size="sm" variant="destructive" disabled={cancelCode === p.order_code}>Hủy</Button>
+                            <Button size="sm" variant="destructive" disabled={cancelCode === p.order_code}>Cancel</Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Xác nhận hủy giao dịch?</AlertDialogTitle>
+                              <AlertDialogTitle>Confirm cancel transaction?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Bạn chắc chắn muốn hủy order #{p.order_code}? Hành động này không thể hoàn tác.
+                                Are you sure you want to cancel order #{p.order_code}? This action cannot be undone.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                              <AlertDialogCancel>Đóng</AlertDialogCancel>
+                              <AlertDialogCancel>Close</AlertDialogCancel>
                               <AlertDialogAction onClick={() => doCancel(p.order_code)} disabled={cancelCode === p.order_code}>
-                                {cancelCode === p.order_code ? "Đang hủy..." : "Hủy giao dịch"}
+                                {cancelCode === p.order_code ? "Cancelling..." : "Cancel transaction"}
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
@@ -158,6 +168,15 @@ export default function PaymentsPage() {
                 ))}
               </TableBody>
             </Table>
+            
+            <div className="mt-4">
+              <DataPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+            </>
           )}
         </CardContent>
       </Card>

@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState, useMemo } from "react"
 import { Button } from "@/components/ui/button"
+import { formatDate } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
+import { DataPagination } from "@/components/ui/data-pagination"
 import {
   Table,
   TableBody,
@@ -40,15 +42,23 @@ export default function ServiceChecklistsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [checklistToDelete, setChecklistToDelete] = useState<ServiceChecklistRecord | null>(null)
 
-  const loadChecklists = useCallback(async () => {
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const limit = 20
+
+  const loadChecklists = useCallback(async (page: number) => {
     try {
       setLoading(true)
       const apiClient = getApiClient()
-      const response = await apiClient.getServiceChecklists(1, 100)
+      const response = await apiClient.getServiceChecklists(page, limit)
       setChecklists(response.data.checklists)
+      setTotalItems(response.data.total || response.data.checklists.length)
+      setTotalPages(Math.ceil((response.data.total || response.data.checklists.length) / limit))
     } catch (error: any) {
       toast({
-        title: "Lỗi tải danh sách",
+        title: "Failed to load list",
         description: error?.message || "Failed to load service checklists",
         variant: "destructive",
       })
@@ -58,8 +68,8 @@ export default function ServiceChecklistsPage() {
   }, [toast])
 
   useEffect(() => {
-    loadChecklists()
-  }, [loadChecklists])
+    loadChecklists(currentPage)
+  }, [loadChecklists, currentPage])
 
   const filteredChecklists = useMemo(() => {
     if (!searchQuery) return checklists.sort((a, b) => a.order - b.order)
@@ -91,13 +101,13 @@ export default function ServiceChecklistsPage() {
       const apiClient = getApiClient()
       await apiClient.deleteServiceChecklist(checklistToDelete._id)
       toast({
-        title: "Xóa thành công",
-        description: "Service checklist đã được xóa",
+        title: "Delete successful",
+        description: "Service checklist has been deleted",
       })
-      loadChecklists()
+      loadChecklists(currentPage)
     } catch (error: any) {
       toast({
-        title: "Xóa thất bại",
+        title: "Delete failed",
         description: error?.message || "Failed to delete service checklist",
         variant: "destructive",
       })
@@ -113,7 +123,7 @@ export default function ServiceChecklistsPage() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold">Service Checklists</h1>
-            <p className="text-muted-foreground">Quản lý các mẫu checklist bảo dưỡng (Admin only)</p>
+            <p className="text-muted-foreground">Manage service checklist templates (Admin only)</p>
           </div>
           <Button onClick={handleCreate}>
             <Plus className="mr-2 h-4 w-4" />
@@ -158,12 +168,8 @@ export default function ServiceChecklistsPage() {
                     <TableRow key={checklist._id}>
                       <TableCell className="font-medium">{checklist.order}</TableCell>
                       <TableCell className="font-medium">{checklist.name}</TableCell>
-                      <TableCell>
-                        {new Date(checklist.createdAt).toLocaleDateString("vi-VN")}
-                      </TableCell>
-                      <TableCell>
-                        {new Date(checklist.updatedAt).toLocaleDateString("vi-VN")}
-                      </TableCell>
+                      <TableCell>{formatDate(checklist.createdAt)}</TableCell>
+                      <TableCell>{formatDate(checklist.updatedAt)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button
@@ -194,26 +200,34 @@ export default function ServiceChecklistsPage() {
           open={dialogOpen}
           onOpenChange={setDialogOpen}
           checklist={selectedChecklist}
-          onSuccess={loadChecklists}
+          onSuccess={() => loadChecklists(currentPage)}
         />
 
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Xác nhận xóa?</AlertDialogTitle>
+              <AlertDialogTitle>Confirm deletion?</AlertDialogTitle>
               <AlertDialogDescription>
-                Bạn chắc chắn muốn xóa checklist "{checklistToDelete?.name}"?
-                Hành động này không thể hoàn tác.
+                Are you sure you want to delete checklist "{checklistToDelete?.name}"?
+                This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Hủy</AlertDialogCancel>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={handleDeleteConfirm}>
-                Xóa
+                Delete
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        
+        <div className="mt-4">
+          <DataPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </div>
       </div>
     </AdminOnly>
   )

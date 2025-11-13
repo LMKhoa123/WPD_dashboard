@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { DataPagination } from "@/components/ui/data-pagination"
 import {
   Table,
   TableBody,
@@ -28,7 +29,7 @@ import { getApiClient, type AutoPartRecord } from "@/lib/api"
 import { Plus, Pencil, Trash2, Search } from "lucide-react"
 import { AutoPartDialog } from "@/components/auto-parts/auto-part-dialog"
 import { useRole } from "@/components/auth-provider"
-import { formatDate } from "@/lib/utils"
+import { formatDate, formatVND } from "@/lib/utils"
 
 export default function AutoPartsPage() {
   const { toast } = useToast()
@@ -43,12 +44,20 @@ export default function AutoPartsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [partToDelete, setPartToDelete] = useState<AutoPartRecord | null>(null)
 
-  const loadParts = useCallback(async () => {
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const limit = 20
+
+  const loadParts = useCallback(async (page: number) => {
     try {
       setLoading(true)
       const apiClient = getApiClient()
-      const response = await apiClient.getAutoParts(1, 100)
+      const response = await apiClient.getAutoParts(page, limit)
       setParts(response.data.parts)
+      setTotalItems(response.data.total || response.data.parts.length)
+      setTotalPages(Math.ceil((response.data.total || response.data.parts.length) / limit))
     } catch (error: any) {
       toast({
         title: "Error",
@@ -61,8 +70,8 @@ export default function AutoPartsPage() {
   }, [toast])
 
   useEffect(() => {
-    loadParts()
-  }, [loadParts])
+    loadParts(currentPage)
+  }, [loadParts, currentPage])
 
   const filteredParts = useMemo(() => {
     if (!searchQuery) return parts
@@ -98,7 +107,7 @@ export default function AutoPartsPage() {
         title: "Success",
         description: "Auto part deleted successfully",
       })
-      loadParts()
+      loadParts(currentPage)
     } catch (error: any) {
       toast({
         title: "Error",
@@ -175,8 +184,8 @@ export default function AutoPartsPage() {
                 {filteredParts.map((part) => (
                   <TableRow key={part._id}>
                     <TableCell className="font-medium">{part.name}</TableCell>
-                    <TableCell className="text-right">${part.cost_price.toFixed(2)}</TableCell>
-                    <TableCell className="text-right">${part.selling_price.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">{formatVND(part.cost_price)}</TableCell>
+                    <TableCell className="text-right">{formatVND(part.selling_price)}</TableCell>
                     <TableCell className="text-right">
                       <Badge variant="secondary">{part.warranty_time} days</Badge>
                     </TableCell>
@@ -211,7 +220,7 @@ export default function AutoPartsPage() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         autoPart={selectedPart}
-        onSuccess={loadParts}
+        onSuccess={() => loadParts(currentPage)}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -231,6 +240,14 @@ export default function AutoPartsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      <div className="mt-4">
+        <DataPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
+      </div>
     </div>
   )
 }

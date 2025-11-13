@@ -74,7 +74,7 @@ export default function TechnicianServiceRecordsPage() {
       setRecords(myRecords)
     } catch (e: any) {
       toast({ 
-        title: "Không tải được danh sách hồ sơ dịch vụ", 
+        title: "Failed to load service records", 
         description: e?.message || "Failed to load service records", 
         variant: "destructive" 
       })
@@ -100,10 +100,10 @@ export default function TechnicianServiceRecordsPage() {
       setDeletingId(id)
       await api.deleteServiceRecord(id)
       setRecords((prev) => prev.filter((rec) => rec._id !== id))
-      toast({ title: "Đã xóa hồ sơ dịch vụ" })
+      toast({ title: "Service record deleted" })
     } catch (e: any) {
       toast({ 
-        title: "Xóa thất bại", 
+        title: "Failed to delete", 
         description: e?.message || "Failed to delete", 
         variant: "destructive" 
       })
@@ -134,7 +134,7 @@ export default function TechnicianServiceRecordsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">My Service Records</h1>
-          <p className="text-muted-foreground">Quản lý các hồ sơ dịch vụ của bạn</p>
+          <p className="text-muted-foreground">Manage your service records</p>
         </div>
         <ServiceRecordDialog onCreated={handleCreated} />
       </div>
@@ -187,7 +187,7 @@ export default function TechnicianServiceRecordsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Service Records</CardTitle>
-          <CardDescription>Xem và quản lý các hồ sơ dịch vụ của bạn</CardDescription>
+          <CardDescription>View and manage your service records</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4 mb-6">
@@ -286,15 +286,15 @@ export default function TechnicianServiceRecordsPage() {
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Xác nhận xóa?</AlertDialogTitle>
+                                  <AlertDialogTitle>Confirm deletion?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Bạn có chắc muốn xóa hồ sơ dịch vụ này? Hành động này không thể hoàn tác.
+                                    Are you sure you want to delete this service record? This action cannot be undone.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                  <AlertDialogCancel>Hủy</AlertDialogCancel>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
                                   <AlertDialogAction onClick={() => handleDelete(rec._id)}>
-                                    Xóa
+                                    Delete
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>

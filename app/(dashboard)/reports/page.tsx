@@ -7,7 +7,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { CalendarIcon, Download, TrendingUp, TrendingDown, DollarSign, Users } from "lucide-react"
 import { format } from "date-fns"
-import { cn } from "@/lib/utils"
+import { cn, formatVND } from "@/lib/utils"
 import { MonthlyRevenueChart } from "@/components/reports/monthly-revenue-chart"
 import { RevenueByServiceChart } from "@/components/reports/revenue-by-service-chart"
 import { TopCustomersTable } from "@/components/reports/top-customers-table"
@@ -143,7 +143,7 @@ export default function ReportsPage() {
                 <TableCell className="font-medium">{r.q}</TableCell>
                 <TableCell>{r.c}</TableCell>
                 <TableCell>{r.s}</TableCell>
-                <TableCell>${'{'}r.a.toFixed(2){'}'}</TableCell>
+                <TableCell>{formatVND(r.a)}</TableCell>
                 <TableCell>{r.st}</TableCell>
                 <TableCell>{r.i}</TableCell>
                 <TableCell>{r.p}</TableCell>

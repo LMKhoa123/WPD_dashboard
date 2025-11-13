@@ -30,7 +30,7 @@ export default function TechnicianDashboardPage() {
         setTechnicianId(profile.data._id)
       } catch (e: any) {
         toast({ 
-          title: "Không tải được profile", 
+          title: "Failed to load profile", 
           description: e?.message || "Failed to load profile", 
           variant: "destructive" 
         })
@@ -53,7 +53,7 @@ export default function TechnicianDashboardPage() {
       setRecords(myRecords)
     } catch (e: any) {
       toast({ 
-        title: "Không tải được danh sách hồ sơ dịch vụ", 
+        title: "Failed to load service records", 
         description: e?.message || "Failed to load service records", 
         variant: "destructive" 
       })
@@ -76,7 +76,7 @@ export default function TechnicianDashboardPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Xin chào, {user?.name || "Technician"}! Đây là tổng quan công việc của bạn.</p>
+        <p className="text-muted-foreground">Hello, {user?.name || "Technician"}! This is your work overview.</p>
       </div>
 
       {loading ? (
@@ -136,12 +136,12 @@ export default function TechnicianDashboardPage() {
           <Card>
             <CardHeader>
               <CardTitle>Recent Service Records</CardTitle>
-              <CardDescription>Các hồ sơ dịch vụ gần đây của bạn</CardDescription>
+              <CardDescription>Your recent service records</CardDescription>
             </CardHeader>
             <CardContent>
               {recentRecords.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  Chưa có hồ sơ dịch vụ nào
+                  No service records yet
                 </div>
               ) : (
                 <div className="space-y-4">

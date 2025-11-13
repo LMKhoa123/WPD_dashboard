@@ -125,7 +125,7 @@ export default function ChatDashboardPage() {
         setSelectedIsWaiting(isWaiting)
         if (initial) await loadConversation(initial)
       } catch (e: any) {
-        toast({ title: "Không tải được dữ liệu chat", description: e?.message || "Failed to load chats", variant: "destructive" })
+        toast({ title: "Failed to load chats", description: e?.message || "Failed to load chats", variant: "destructive" })
       }
     }
     load()
@@ -182,7 +182,7 @@ export default function ChatDashboardPage() {
 
       await api.markConversationRead(conversationId)
     } catch (e: any) {
-      toast({ title: "Không tải được hội thoại", description: e?.message || "Failed to load conversation", variant: "destructive" })
+      toast({ title: "Failed to load conversation", description: e?.message || "Failed to load conversation", variant: "destructive" })
     }
   }
 
@@ -196,9 +196,7 @@ export default function ChatDashboardPage() {
         const mapped = mapSocketMessage(msg)
         if (!convId) return
 
-        // Deduplicate: if this is a server echo of a message we optimistically appended,
-        // replace the optimistic entry instead of appending a duplicate. Matching is
-        // done by (from==='me', same type, same text/src for a short time window).
+ 
         const addOrReplace = (prev: Record<string, Msg[]>) => {
           const list = prev[convId] ?? []
 
@@ -235,10 +233,7 @@ export default function ChatDashboardPage() {
               return { ...prev, [convId]: newList }
             }
 
-            // If we didn't find an exact content match, try a fallback: replace the
-            // most recent optimistic message (if any). This covers cases where the
-            // backend transforms the content (e.g. sanitizes/trims or returns a
-            // different attachment URL) so exact matching fails.
+       
             const lastOptIdx = (() => {
               for (let i = list.length - 1; i >= 0; i--) {
                 const it = list[i] as any
@@ -324,7 +319,7 @@ export default function ChatDashboardPage() {
     const hasAttachment = !!attachment?.data
     if ((!hasText && !hasAttachment) || !selected || !staffId) return
     if (selectedIsWaiting) {
-      toast({ title: "Chưa nhận đối thoại", description: "Hãy nhấn 'Nhận đối thoại' trước khi trả lời", variant: "destructive" })
+      toast({ title: "Conversation not accepted", description: "Please click 'Accept Conversation' before replying", variant: "destructive" })
       return
     }
     const text = (overrideText ?? composer).trim()
@@ -378,7 +373,7 @@ export default function ChatDashboardPage() {
         if (el) el.scrollTop = el.scrollHeight
       }, 20)
     } catch (e: any) {
-      toast({ title: "Gửi tin nhắn thất bại", description: e?.message || "Failed to send message", variant: "destructive" })
+      toast({ title: "Failed to send message", description: e?.message || "Failed to send message", variant: "destructive" })
     }
   }
 
@@ -387,7 +382,7 @@ export default function ChatDashboardPage() {
       if (typeof window === "undefined") return
       const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
       if (!SR) {
-        toast({ title: "Trình duyệt không hỗ trợ STT", description: "Web Speech API không khả dụng", variant: "destructive" })
+        toast({ title: "Browser does not support STT", description: "Web Speech API is not available", variant: "destructive" })
         return
       }
       const rec = new SR()
@@ -411,7 +406,7 @@ export default function ChatDashboardPage() {
         if (finalText) {
           if (selectedIsWaiting) {
             setComposer(finalText)
-            toast({ title: "Chưa nhận đối thoại", description: "Hãy nhận đối thoại trước khi gửi", variant: "destructive" })
+            toast({ title: "Conversation not accepted", description: "Please accept the conversation before sending", variant: "destructive" })
           } else {
             await send(finalText)
           }
@@ -421,7 +416,7 @@ export default function ChatDashboardPage() {
       rec.start()
       setIsListening(true)
     } catch (err: any) {
-      toast({ title: "Không thể bật micro", description: err?.message || "Kiểm tra quyền micro của trình duyệt", variant: "destructive" })
+      toast({ title: "Failed to enable microphone", description: err?.message || "Check browser microphone permissions", variant: "destructive" })
       setIsListening(false)
     }
   }
@@ -447,9 +442,9 @@ export default function ChatDashboardPage() {
         setTab("my")
         setSelectedIsWaiting(false)
       }
-      toast({ title: "Đã nhận đối thoại" })
+      toast({ title: "Conversation accepted" })
     } catch (e: any) {
-      toast({ title: "Nhận đối thoại thất bại", description: e?.message || "Failed to take chat", variant: "destructive" })
+      toast({ title: "Failed to accept conversation", description: e?.message || "Failed to take chat", variant: "destructive" })
     } finally {
       setTaking(false)
     }
@@ -470,13 +465,13 @@ export default function ChatDashboardPage() {
                 className={`rounded-xl px-3 py-2 text-sm border ${tab === "my" ? "border-primary bg-primary/10 text-primary" : "border-gray-200 dark:border-gray-700"}`}
                 onClick={() => setTab("my")}
               >
-                Đã nhận
+                Accepted
               </button>
               <button
                 className={`rounded-xl px-3 py-2 text-sm border ${tab === "waiting" ? "border-primary bg-primary/10 text-primary" : "border-gray-200 dark:border-gray-700"}`}
                 onClick={() => setTab("waiting")}
               >
-                Đang chờ
+                Waiting
               </button>
             </div>
 
@@ -603,7 +598,7 @@ export default function ChatDashboardPage() {
                       }
                     }}
                   >
-                    Tin nhắn mới ({unreadCount})
+                    New messages ({unreadCount})
                   </button>
                 </div>
               ) : null}
@@ -703,7 +698,7 @@ export default function ChatDashboardPage() {
                   icon={<Mic className="h-4 w-4" />} />
               </div>
               {isListening ? (
-                <div className="mt-2 text-xs text-red-600">Đang nghe… nhấn mic để dừng</div>
+                <div className="mt-2 text-xs text-red-600">Listening… press mic to stop</div>
               ) : null}
             </div>
           </section>

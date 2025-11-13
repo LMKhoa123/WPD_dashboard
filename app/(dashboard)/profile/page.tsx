@@ -27,7 +27,7 @@ export default function ProfilePage() {
       const res = await api.getProfile()
       setProfile(res.data)
     } catch (e: any) {
-      toast({ title: "Lỗi tải profile", description: e?.message || "Failed to load profile", variant: "destructive" })
+      toast({ title: "Failed to load profile", description: e?.message || "Failed to load profile", variant: "destructive" })
     } finally {
       setLoading(false)
     }
@@ -35,11 +35,11 @@ export default function ProfilePage() {
 
   // Format for display
   const formatDateForDisplay = (isoDate: string | null): string => {
-    if (!isoDate) return "Chưa cập nhật"
+    if (!isoDate) return "Not updated"
     try {
       return formatDateFull(isoDate)
     } catch {
-      return "Không hợp lệ"
+      return "Invalid"
     }
   }
 
@@ -55,7 +55,7 @@ export default function ProfilePage() {
     return (
       <Card>
         <CardContent className="pt-6">
-          <p className="text-muted-foreground">Không thể tải thông tin profile.</p>
+          <p className="text-muted-foreground">Unable to load profile information.</p>
         </CardContent>
       </Card>
     )
@@ -65,15 +65,15 @@ export default function ProfilePage() {
     <div className="space-y-6 p-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
-        <p className="text-muted-foreground">Quản lý thông tin cá nhân và tài khoản của bạn</p>
+        <p className="text-muted-foreground">Manage your personal information and account</p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
         {/* Account Info Card */}
         <Card className="md:col-span-1">
           <CardHeader>
-            <CardTitle>Thông tin tài khoản</CardTitle>
-            <CardDescription>Thông tin hệ thống</CardDescription>
+            <CardTitle>Account Information</CardTitle>
+            <CardDescription>System information</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-3">
@@ -100,7 +100,7 @@ export default function ProfilePage() {
                 title={profile.isOnline ? "Online" : "Offline"}
               />
               <div className="flex-1">
-                <p className="text-sm font-medium">Trạng thái</p>
+                <p className="text-sm font-medium">Status</p>
                 <p className="text-sm text-muted-foreground">{profile.isOnline ? "Online" : "Offline"}</p>
               </div>
             </div>
@@ -112,24 +112,24 @@ export default function ProfilePage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Thông tin cá nhân</CardTitle>
-                <CardDescription>Thông tin được quản lý bởi Admin</CardDescription>
+                <CardTitle>Personal Information</CardTitle>
+                <CardDescription>Information managed by Admin</CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Họ và tên</Label>
+                <Label htmlFor="name">Full Name</Label>
                 <div className="rounded-md border border-input bg-muted/50 px-3 py-2 text-sm">
-                  {profile.name || <span className="text-muted-foreground">Chưa cập nhật</span>}
+                  {profile.name || <span className="text-muted-foreground">Not updated</span>}
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="dateOfBirth" className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-                  Ngày sinh
+                  Date of Birth
                 </Label>
                 <div className="rounded-md border border-input bg-muted/50 px-3 py-2 text-sm">
                   {formatDateForDisplay(profile.dateOfBirth)}
@@ -139,10 +139,10 @@ export default function ProfilePage() {
               <div className="space-y-2">
                 <Label htmlFor="certification" className="flex items-center gap-2">
                   <Award className="h-4 w-4" />
-                  Chứng chỉ
+                  Certification
                 </Label>
                 <div className="rounded-md border border-input bg-muted/50 px-3 py-2 text-sm">
-                  {profile.certification || <span className="text-muted-foreground">Chưa có chứng chỉ</span>}
+                  {profile.certification || <span className="text-muted-foreground">No certification</span>}
                 </div>
               </div>
             </div>
@@ -163,11 +163,11 @@ export default function ProfilePage() {
             <strong>Profile ID:</strong> {profile._id}
           </p>
           <p>
-            <strong>Ngày tạo:</strong>{" "}
+            <strong>Created At:</strong>{" "}
             {formatDateTime(profile.createdAt)}
           </p>
           <p>
-            <strong>Cập nhật lần cuối:</strong>{" "}
+            <strong>Last Updated:</strong>{" "}
             {formatDateTime(profile.updatedAt)}
           </p>
         </CardContent>

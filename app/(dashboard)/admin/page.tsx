@@ -39,11 +39,11 @@ export default function AdminHomePage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Admin Home</h1>
-            <p className="text-muted-foreground">Lối tắt theo flow thiết lập và vận hành trung tâm.</p>
+            <p className="text-muted-foreground">Shortcuts for center setup and operations workflow.</p>
           </div>
         </div>
 
-        <Section title="Thiết lập ban đầu" desc="Thực hiện 1 lần hoặc khi có thay đổi">
+        <Section title="Initial Setup" desc="Perform once or when there are changes">
           <Tile href="/centers" icon={MapPin} label="Service Centers" />
           <Tile href="/auto-parts" icon={Package} label="Auto Parts Catalog" />
           <Tile href="/center-auto-parts" icon={Grid3X3} label="Center Inventory" />
@@ -52,7 +52,7 @@ export default function AdminHomePage() {
           <Tile href="/staff" icon={UserCog} label="Staff Profiles & Workshifts" />
         </Section>
 
-        <Section title="Vận hành mỗi ngày" desc="Tiếp nhận lịch, phân công, theo dõi tiến độ">
+        <Section title="Daily Operations" desc="Appointment intake, assignment, progress tracking">
           <Tile href="/appointments" icon={Calendar} label="Appointments & Intake" />
           <Tile href="/shift-assignments" icon={Calendar} label="Shift Assignments" />
           <Tile href="/service-records" icon={FileText} label="Service Records" />
@@ -60,7 +60,7 @@ export default function AdminHomePage() {
           <Tile href="/chat" icon={MessageSquare} label="Live Chat with Customers" />
         </Section>
 
-        <Section title="Tài chính & Báo cáo" desc="Báo giá, thanh toán, thống kê">
+        <Section title="Finance & Reports" desc="Quotes, payments, statistics">
           <Tile href="/payments" icon={CreditCard} label="Payments & Invoices" />
           <Tile href="/reports" icon={FileText} label="Reports & Analytics" />
           <Tile href="/vehicles" icon={Car} label="Vehicles Registry" />

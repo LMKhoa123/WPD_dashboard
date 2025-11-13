@@ -42,7 +42,7 @@ export default function StaffHomePage() {
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Staff Home</h1>
-          <p className="text-muted-foreground">Flow thao tác hàng ngày cho nhân viên tiếp nhận.</p>
+          <p className="text-muted-foreground">Daily workflow for intake staff.</p>
         </div>
 
         {/* My Shifts Calendar - Only show if profile is loaded */}
@@ -50,29 +50,29 @@ export default function StaffHomePage() {
           <MyShiftsCalendar systemUserId={profile._id} />
         )}
 
-        <Section title="1) Tiếp nhận & đặt lịch" desc="Tạo lịch hẹn, nhận yêu cầu đặt lịch">
+        <Section title="1) Intake & Scheduling" desc="Create appointments, receive booking requests">
           <Tile href="/appointments" icon={Calendar} label="Appointments" />
           <Tile href="/customers" icon={Users} label="Customers" />
           <Tile href="/vehicles" icon={Car} label="Vehicles" />
         </Section>
 
-        <Section title="2) Phân công & quản lý hàng chờ" desc="Phân công kỹ thuật viên theo ca/lịch">
+        <Section title="2) Assignment & Queue Management" desc="Assign technicians by shift/schedule">
           <Tile href="/shift-assignments" icon={Timer} label="Shift Assignments" />
           <Tile href="/service-records" icon={FileText} label="Service Records" />
           <Tile href="/service-records/board" icon={FileText} label="Status Board (Kanban)" />
         </Section>
 
-        <Section title="3) Checklist & tình trạng xe" desc="Ghi nhận tình trạng, checklist EV">
+        <Section title="3) Checklist & Vehicle Status" desc="Record condition, EV checklist">
           <Tile href="/service-checklists" icon={ClipboardCheck} label="Service Checklists" />
           <Tile href="/chat" icon={MessageSquare} label="Live Chat with Customer" />
         </Section>
 
-        <Section title="4) Phụ tùng & tồn kho" desc="Theo dõi tồn, kiểm soát min stock">
+        <Section title="4) Parts & Inventory" desc="Track stock, control min stock">
           <Tile href="/center-auto-parts" icon={Package} label="Center Inventory" />
           <Tile href="/inventory" icon={Package} label="Inventory Overview + AI" />
         </Section>
 
-        <Section title="5) Thanh toán" desc="Báo giá → hóa đơn → thanh toán">
+        <Section title="5) Payment" desc="Quote → invoice → payment">
           <Tile href="/payments" icon={CreditCard} label="Payments" />
         </Section>
       </div>

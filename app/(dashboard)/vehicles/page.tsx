@@ -16,6 +16,7 @@ import { toast } from "@/components/ui/use-toast"
 import { VehicleDialog } from "@/components/vehicles/vehicle-dialog"
 import { AssignVehicleDialog } from "@/components/vehicles/assign-vehicle-dialog"
 import { formatVND, formatNumber } from "@/lib/utils"
+import { DataPagination } from "@/components/ui/data-pagination"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,22 +39,33 @@ export default function VehiclesPage() {
   const isAdmin = useIsAdmin()
   const isStaff = useIsStaff()
 
-  useEffect(() => {
-    const run = async () => {
-      try {
-        setLoading(true)
-        const api = getApiClient()
-        const list = await api.getVehicles({ limit: 200 })
-        setVehicles(Array.isArray(list) ? list : [])
-      } catch (e: any) {
-        toast({ title: "Lỗi tải danh sách xe", description: e?.message || "Failed to load vehicles", variant: "destructive" })
-        setVehicles([])
-      } finally {
-        setLoading(false)
-      }
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const limit = 20
+
+  const loadVehicles = async (page: number) => {
+    try {
+      setLoading(true)
+      const api = getApiClient()
+      const res = await api.getVehicles({ page, limit })
+      const list = Array.isArray(res) ? res : (res as any).data?.vehicles || []
+      setVehicles(list)
+      const total = Array.isArray(res) ? list.length : (res as any).data?.total || list.length
+      setTotalItems(total)
+      setTotalPages(Math.ceil(total / limit))
+    } catch (e: any) {
+      toast({ title: "Failed to load vehicles", description: e?.message || "Failed to load vehicles", variant: "destructive" })
+      setVehicles([])
+    } finally {
+      setLoading(false)
     }
-    run()
-  }, [])
+  }
+
+  useEffect(() => {
+    loadVehicles(currentPage)
+  }, [currentPage])
 
   const filteredVehicles = useMemo(() => {
     if (!Array.isArray(vehicles)) return []
@@ -95,12 +107,12 @@ export default function VehiclesPage() {
       await api.deleteVehicle(vehicleToDelete._id)
       
       setVehicles((prev) => prev.filter((v) => v._id !== vehicleToDelete._id))
-      toast({ title: "Xóa xe thành công" })
+      toast({ title: "Vehicle deleted" })
       setDeleteDialogOpen(false)
       setVehicleToDelete(null)
     } catch (e: any) {
       toast({
-        title: "Xóa thất bại",
+        title: "Delete failed",
         description: e?.message || "Failed to delete vehicle",
         variant: "destructive",
       })
@@ -247,7 +259,7 @@ export default function VehiclesPage() {
                                 vehicleId={v._id}
                                 vehicleName={v.vehicleName}
                                 trigger={
-                                  <Button variant="ghost" size="icon" title="Gán xe cho khách hàng">
+                                  <Button variant="ghost" size="icon" title="Assign vehicle to customer">
                                     <UserPlus className="h-4 w-4 text-blue-600" />
                                   </Button>
                                 }
@@ -308,6 +320,14 @@ export default function VehiclesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      <div className="mt-4">
+        <DataPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
+      </div>
     </div>
     </AdminOrStaffOnly>
   )

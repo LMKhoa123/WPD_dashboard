@@ -23,6 +23,7 @@ import { useIsAdmin } from "@/components/auth-provider"
 import { getApiClient, type CustomerRecord } from "@/lib/api"
 import { toast } from "@/components/ui/use-toast"
 import { formatDate } from "@/lib/utils"
+import { DataPagination } from "@/components/ui/data-pagination"
 
 export default function CustomersPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -32,22 +33,31 @@ export default function CustomersPage() {
   const [customerToDelete, setCustomerToDelete] = useState<CustomerRecord | null>(null)
   const [deleting, setDeleting] = useState(false)
   const isAdmin = useIsAdmin()
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const limit = 20
+
+  const loadCustomers = async (page: number) => {
+    try {
+      setLoading(true)
+      const api = getApiClient()
+      const custRes = await api.getCustomers({ page, limit })
+      setCustomers(custRes.data.customers)
+      setTotalItems(custRes.data.total || customers.length)
+      setTotalPages(Math.ceil((custRes.data.total || customers.length) / limit))
+    } catch (e: any) {
+      toast({ title: "Failed to load customers", description: e?.message || "Failed to load customers", variant: "destructive" })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const run = async () => {
-      try {
-        setLoading(true)
-        const api = getApiClient()
-        const custRes = await api.getCustomers({ page: 1, limit: 50 })
-        setCustomers(custRes.data.customers)
-      } catch (e: any) {
-        toast({ title: "Lỗi tải danh sách khách hàng", description: e?.message || "Failed to load customers", variant: "destructive" })
-      } finally {
-        setLoading(false)
-      }
-    }
-    run()
-  }, [])
+    loadCustomers(currentPage)
+  }, [currentPage])
 
   const filteredCustomers = useMemo(() => {
     const q = searchQuery.toLowerCase()
@@ -73,12 +83,12 @@ export default function CustomersPage() {
       await api.deleteCustomer(customerToDelete._id)
       
       setCustomers((prev) => prev.filter((c) => c._id !== customerToDelete._id))
-      toast({ title: "Xóa khách hàng thành công" })
+      toast({ title: "Customer deleted" })
       setDeleteDialogOpen(false)
       setCustomerToDelete(null)
     } catch (e: any) {
       toast({
-        title: "Xóa thất bại",
+        title: "Delete failed",
         description: e?.message || "Failed to delete customer",
         variant: "destructive",
       })
@@ -177,6 +187,14 @@ export default function CustomersPage() {
                 )})}
               </TableBody>
             </Table>
+          </div>
+
+          <div className="mt-4">
+            <DataPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
           </div>
           </>
           )}

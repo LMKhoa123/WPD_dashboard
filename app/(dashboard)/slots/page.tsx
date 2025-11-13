@@ -15,6 +15,7 @@ import { SlotDetailDialog } from "@/components/slots/slot-detail-dialog"
 import { GenerateSlotsDialog } from "@/components/staff/generate-slots-dialog"
 import { WorkshiftSlotWizard } from "@/components/slots/workshift-slot-wizard"
 import { formatDate, formatDateTime } from "@/lib/utils"
+import { DataPagination } from "@/components/ui/data-pagination"
 
 export default function SlotsManagementPage() {
   const [slots, setSlots] = useState<SlotRecord[]>([])
@@ -26,6 +27,10 @@ export default function SlotsManagementPage() {
   const [generateSlotsOpen, setGenerateSlotsOpen] = useState(false)
   const [wizardOpen, setWizardOpen] = useState(false)
 
+  // Pagination state (client-side)
+  const [currentPage, setCurrentPage] = useState(1)
+  const limit = 20
+
   const api = useMemo(() => getApiClient(), [])
 
   const loadCenters = useCallback(async () => {
@@ -36,7 +41,7 @@ export default function SlotsManagementPage() {
         setSelectedCenter(res.data.centers[0]._id)
       }
     } catch (e: any) {
-      toast.error("Không thể tải danh sách trung tâm: " + (e?.message || "Unknown error"))
+      toast.error("Failed to load centers: " + (e?.message || "Unknown error"))
     }
   }, [api])
 
@@ -47,7 +52,7 @@ export default function SlotsManagementPage() {
       const data = await api.getSlots(selectedCenter)
       setSlots(data)
     } catch (e: any) {
-      toast.error("Không thể tải danh sách slots: " + (e?.message || "Unknown error"))
+      toast.error("Failed to load slots: " + (e?.message || "Unknown error"))
     } finally {
       setLoading(false)
     }
@@ -70,26 +75,30 @@ export default function SlotsManagementPage() {
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
-      active: { variant: "default", label: "Hoạt động" },
-      inactive: { variant: "secondary", label: "Không hoạt động" },
-      full: { variant: "destructive", label: "Đã đầy" },
+      active: { variant: "default", label: "Active" },
+      inactive: { variant: "secondary", label: "Inactive" },
+      full: { variant: "destructive", label: "Full" },
     }
     const config = variants[status] || { variant: "outline", label: status }
     return <Badge variant={config.variant}>{config.label}</Badge>
   }
+
+  // Client-side pagination
+  const totalPages = Math.ceil(slots.length / limit)
+  const paginatedSlots = slots.slice((currentPage - 1) * limit, currentPage * limit)
 
   return (
     <AdminOnly>
       <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Quản lý Slots</h1>
-              <p className="text-muted-foreground">Xem và quản lý các slot đặt lịch theo trung tâm</p>
+              <h1 className="text-3xl font-bold tracking-tight">Slots Management</h1>
+              <p className="text-muted-foreground">View and manage scheduling slots by center</p>
             </div>
             <div className="flex items-center gap-2">
               <Button onClick={() => setWizardOpen(true)} variant="default" size="sm">
                 <Workflow className="mr-2 h-4 w-4" />
-                Flow: Ca → Slots
+                Create Slots Wizard
               </Button>
               <Button onClick={() => setGenerateSlotsOpen(true)} variant="secondary" size="sm">
                 <CalendarClock className="mr-2 h-4 w-4" />
@@ -97,7 +106,7 @@ export default function SlotsManagementPage() {
               </Button>
               <Button onClick={loadSlots} variant="outline" size="sm">
                 <RefreshCw className="h-4 w-4 mr-2" />
-                Làm mới
+                Refresh
               </Button>
             </div>
           </div>
@@ -106,8 +115,8 @@ export default function SlotsManagementPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Danh sách Slots</CardTitle>
-                <CardDescription>Chọn trung tâm để xem slots</CardDescription>
+                <CardTitle>Slots List</CardTitle>
+                <CardDescription>Select a center to view slots</CardDescription>
               </div>
               <div className="w-[300px]">
                 <Select value={selectedCenter} onValueChange={setSelectedCenter}>
@@ -133,25 +142,26 @@ export default function SlotsManagementPage() {
               </div>
             ) : slots.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                Không có slot nào cho trung tâm này
+                No slots available for this center
               </div>
             ) : (
+              <>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Ngày</TableHead>
-                    <TableHead>Giờ bắt đầu</TableHead>
-                    <TableHead>Giờ kết thúc</TableHead>
-                    <TableHead className="text-center">Sức chứa</TableHead>
-                    <TableHead className="text-center">Đã đặt</TableHead>
-                    <TableHead className="text-center">Còn trống</TableHead>
-                    <TableHead>Trạng thái</TableHead>
-                    <TableHead>Cập nhật</TableHead>
-                    <TableHead className="text-right">Thao tác</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Start Time</TableHead>
+                    <TableHead>End Time</TableHead>
+                    <TableHead className="text-center">Capacity</TableHead>
+                    <TableHead className="text-center">Booked</TableHead>
+                    <TableHead className="text-center">Available</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Updated</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {slots.map((slot) => {
+                  {paginatedSlots.map((slot) => {
                     const available = slot.capacity - slot.booked_count
                     return (
                       <TableRow key={slot._id}>
@@ -190,6 +200,17 @@ export default function SlotsManagementPage() {
                   })}
                 </TableBody>
               </Table>
+              
+              {slots.length > 0 && (
+                <div className="mt-4">
+                  <DataPagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                  />
+                </div>
+              )}
+              </>
             )}
           </CardContent>
         </Card>

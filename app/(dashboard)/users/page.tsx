@@ -15,11 +15,18 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { formatDate } from "@/lib/utils"
+import { DataPagination } from "@/components/ui/data-pagination"
 
 export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [loading, setLoading] = useState(true)
   const [users, setUsers] = useState<UserAccount[]>([])
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const limit = 20
 
   // Edit/Delete dialog state
   const [openEdit, setOpenEdit] = useState(false)
@@ -34,21 +41,25 @@ export default function UsersPage() {
   const [formIsDeleted, setFormIsDeleted] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    const run = async () => {
-      try {
-        setLoading(true)
-        const api = getApiClient()
-        const list = await api.getUsers({ limit: 200 })
-        setUsers(list)
-      } catch (e: any) {
-        toast({ title: "Lỗi tải danh sách users", description: e?.message || "Failed to load users", variant: "destructive" })
-      } finally {
-        setLoading(false)
-      }
+  const loadUsers = async (page: number) => {
+    try {
+      setLoading(true)
+      const api = getApiClient()
+      const list = await api.getUsers({ page, limit })
+      setUsers(list)
+      // Note: Backend should return pagination info, but we estimate it for now
+      setTotalItems(list.length >= limit ? page * limit + 1 : (page - 1) * limit + list.length)
+      setTotalPages(list.length >= limit ? page + 1 : page)
+    } catch (e: any) {
+      toast({ title: "Failed to load users", description: e?.message || "Failed to load users", variant: "destructive" })
+    } finally {
+      setLoading(false)
     }
-    run()
-  }, [])
+  }
+
+  useEffect(() => {
+    loadUsers(currentPage)
+  }, [currentPage])
 
   const openEditDialog = (u: UserAccount) => {
     setEditingUser(u)
@@ -78,9 +89,10 @@ export default function UsersPage() {
       const updated = await api.updateUser(editingUser._id, payload)
       setUsers((prev) => prev.map((x) => (x._id === updated._id ? { ...x, ...updated } : x)))
       setOpenEdit(false)
-      toast({ title: "Đã cập nhật user", description: updated.email || updated._id })
+      toast({ title: "User updated", description: updated.email || updated._id })
+      loadUsers(currentPage) // Reload current page
     } catch (e: any) {
-      toast({ title: "Cập nhật thất bại", description: e?.message || "Update user failed", variant: "destructive" })
+      toast({ title: "Update failed", description: e?.message || "Update user failed", variant: "destructive" })
     } finally {
       setSaving(false)
     }
@@ -94,9 +106,10 @@ export default function UsersPage() {
       await api.deleteUser(deletingUser._id)
       setUsers((prev) => prev.filter((x) => x._id !== deletingUser._id))
       setOpenDelete(false)
-      toast({ title: "Đã xóa user", description: deletingUser.email || deletingUser._id })
+      toast({ title: "User deleted", description: deletingUser.email || deletingUser._id })
+      loadUsers(currentPage) // Reload current page
     } catch (e: any) {
-      toast({ title: "Xóa thất bại", description: e?.message || "Delete user failed", variant: "destructive" })
+      toast({ title: "Delete failed", description: e?.message || "Delete user failed", variant: "destructive" })
     } finally {
       setSaving(false)
     }
@@ -174,6 +187,14 @@ export default function UsersPage() {
                     </TableBody>
                   </Table>
                 </div>
+
+                <div className="mt-4">
+                  <DataPagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                  />
+                </div>
               </>
             )}
           </CardContent>
@@ -182,7 +203,7 @@ export default function UsersPage() {
       <Dialog open={openEdit} onOpenChange={setOpenEdit}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Chỉnh sửa User</DialogTitle>
+            <DialogTitle>Edit User</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -190,14 +211,14 @@ export default function UsersPage() {
               <Input value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="email@example.com" />
             </div>
             <div className="space-y-2">
-              <Label>Mật khẩu (để trống nếu không đổi)</Label>
+              <Label>Password (leave blank to keep current)</Label>
               <Input type="password" value={formPassword} onChange={(e) => setFormPassword(e.target.value)} placeholder="••••••••" />
             </div>
             <div className="space-y-2">
               <Label>Role</Label>
               <Select value={formRole} onValueChange={(v) => setFormRole(v as any)}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Chọn role" />
+                  <SelectValue placeholder="Select role" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ADMIN">Admin</SelectItem>
@@ -209,18 +230,18 @@ export default function UsersPage() {
             </div>
             <div className="flex items-center justify-between rounded-md border p-3">
               <div className="space-y-1">
-                <Label>Vô hiệu hóa (isDeleted)</Label>
-                <p className="text-xs text-muted-foreground">Bật để vô hiệu hóa tài khoản.</p>
+                <Label>Disable (isDeleted)</Label>
+                <p className="text-xs text-muted-foreground">Turn on to disable the account.</p>
               </div>
               <Switch checked={formIsDeleted} onCheckedChange={setFormIsDeleted} />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenEdit(false)} disabled={saving}>
-              Hủy
+              Cancel
             </Button>
             <Button onClick={handleSaveEdit} disabled={saving}>
-              {saving ? "Đang lưu..." : "Lưu"}
+              {saving ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -230,15 +251,15 @@ export default function UsersPage() {
       <Dialog open={openDelete} onOpenChange={setOpenDelete}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Xóa user?</DialogTitle>
+            <DialogTitle>Delete user?</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">Hành động này không thể hoàn tác. Bạn chắc chắn muốn xóa tài khoản này?</p>
+          <p className="text-sm text-muted-foreground">This action cannot be undone. Are you sure you want to delete this account?</p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenDelete(false)} disabled={saving}>
-              Hủy
+              Cancel
             </Button>
             <Button variant="destructive" onClick={handleConfirmDelete} disabled={saving}>
-              {saving ? "Đang xóa..." : "Xóa"}
+              {saving ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>

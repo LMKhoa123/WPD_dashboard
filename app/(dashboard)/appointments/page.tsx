@@ -20,6 +20,8 @@ import { AssignStaffDialog } from "@/components/appointments/assign-staff-dialog
 import { AssignTechnicianDialog } from "@/components/appointments/assign-technician-dialog"
 import { formatDateTime, formatDate } from "@/lib/utils"
 import { toast } from "sonner"
+import { DataPagination } from "@/components/ui/data-pagination"
+
 const statusColors: Record<AppointmentStatus, string> = {
   pending: "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20",
   confirmed: "bg-cyan-500/10 text-cyan-500 hover:bg-cyan-500/20",
@@ -41,12 +43,18 @@ export default function AppointmentsPage() {
   const { user } = useAuth()
   const { toast } = useToast()
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const limit = 20
+
   const api = useMemo(() => getApiClient(), [])
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (page: number) => {
     try {
       setLoading(true)
-      const params: { limit: number; technician_id?: string; centerId?: string } = { limit: 500 }
+      const params: { page: number; limit: number; technician_id?: string; centerId?: string } = { page, limit }
       const centerId = user?.centerId ?? null
       if (centerId) params.centerId = centerId
       // Technicians should only see their own appointments
@@ -62,19 +70,22 @@ export default function AppointmentsPage() {
       }
       const res = await api.getAppointments(params)
       setAppointments(res.data.appointments)
+      setTotalItems(res.data.total || res.data.appointments.length)
+      setTotalPages(Math.ceil((res.data.total || res.data.appointments.length) / limit))
     } catch (e: any) {
-      toast({ title: "Không tải được danh sách lịch hẹn", description: e?.message || "Failed to load appointments", variant: "destructive" })
+      toast({ title: "Failed to load appointments", description: e?.message || "Failed to load appointments", variant: "destructive" })
     } finally {
       setLoading(false)
     }
   }, [api, isAdmin, isStaff, user?.email, user?.centerId, toast])
 
   useEffect(() => {
-    load()
-  }, [load])
+    load(currentPage)
+  }, [load, currentPage])
 
   const handleCreated = (apt: AppointmentRecord) => {
     setAppointments((prev) => [apt, ...prev])
+    load(currentPage) // Reload current page
   }
 
   const handleUpdated = (apt: AppointmentRecord) => {
@@ -86,12 +97,17 @@ export default function AppointmentsPage() {
       setDeletingId(id)
       await api.deleteAppointment(id)
       setAppointments((prev) => prev.filter((a) => a._id !== id))
-      toast({ title: "Đã xóa lịch hẹn" })
+      toast({ title: "Appointment deleted" })
+      load(currentPage) // Reload current page
     } catch (e: any) {
-      toast({ title: "Xóa thất bại", description: e?.message || "Failed to delete", variant: "destructive" })
+      toast({ title: "Delete failed", description: e?.message || "Failed to delete", variant: "destructive" })
     } finally {
       setDeletingId(null)
     }
+  }
+  
+  const handleReload = () => {
+    load(currentPage)
   }
 
   const filteredAppointments = appointments.filter((apt) => {
@@ -150,13 +166,14 @@ export default function AppointmentsPage() {
             {loading ? (
               <div className="flex items-center gap-2 text-muted-foreground"><Spinner /> Loading...</div>
             ) : filteredAppointments.length === 0 ? (
-              <div className="text-muted-foreground">Chưa có lịch hẹn nào.</div>
+              <div className="text-muted-foreground">No appointments.</div>
             ) : (
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Customer</TableHead>
+              <>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Customer</TableHead>
                       <TableHead>Vehicle</TableHead>
                       <TableHead>Service Center</TableHead>
 
@@ -212,7 +229,7 @@ export default function AppointmentsPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                title="Xem chi tiết"
+                                title="View details"
                                 onClick={() => router.push(`/appointments/${apt._id}`)}
                               >
                                 <Eye className="h-4 w-4" />
@@ -233,14 +250,14 @@ export default function AppointmentsPage() {
                                     appointmentId={apt._id}
                                     slotId={typeof apt.slot_id === 'string' ? apt.slot_id : (apt.slot_id?._id as string | undefined)}
                                     centerId={apt.center_id}
-                                    onAssigned={load}
+                                    onAssigned={handleReload}
                                     trigger={<Button variant="ghost" size="sm">Assign Staff</Button>}
                                   />
 
                                   <AssignTechnicianDialog
                                     appointmentId={apt._id}
                                     slotId={typeof apt.slot_id === 'string' ? apt.slot_id : (apt.slot_id?._id as string | undefined)}
-                                    onAssigned={load}
+                                    onAssigned={handleReload}
                                     trigger={<Button variant="ghost" size="sm">Assign Tech</Button>}
                                   />
                                 </>
@@ -254,9 +271,9 @@ export default function AppointmentsPage() {
                                   </AlertDialogTrigger>
                                   <AlertDialogContent>
                                     <AlertDialogHeader>
-                                      <AlertDialogTitle>Xóa lịch hẹn?</AlertDialogTitle>
+                                      <AlertDialogTitle>Delete appointment?</AlertDialogTitle>
                                       <AlertDialogDescription>
-                                        Hành động này không thể hoàn tác. Lịch hẹn sẽ bị xóa vĩnh viễn.
+                                        This action cannot be undone. The appointment will be permanently deleted.
                                       </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
@@ -276,6 +293,15 @@ export default function AppointmentsPage() {
                   </TableBody>
                 </Table>
               </div>
+
+              <div className="mt-4">
+                <DataPagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
+              </div>
+              </>
             )}
           </CardContent>
         </Card>

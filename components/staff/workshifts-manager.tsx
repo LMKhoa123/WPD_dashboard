@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast"
 import { getApiClient, type CenterRecord, type WorkshiftRecord } from "@/lib/api"
 import { WorkshiftDialog } from "./workshift-dialog"
 import { GenerateSlotsDialog } from "./generate-slots-dialog"
+import { DataPagination } from "@/components/ui/data-pagination"
 
 export default function WorkshiftsManager() {
   const { toast } = useToast()
@@ -19,8 +20,9 @@ export default function WorkshiftsManager() {
   const [centers, setCenters] = useState<CenterRecord[]>([])
   const [search, setSearch] = useState("")
   const [centerFilter, setCenterFilter] = useState<string>("all")
-  const [page, setPage] = useState(1)
-  const [limit, setLimit] = useState(20)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const limit = 20
   const [dialogOpen, setDialogOpen] = useState(false)
   const [generateSlotsOpen, setGenerateSlotsOpen] = useState(false)
   const [editing, setEditing] = useState<WorkshiftRecord | null>(null)
@@ -32,17 +34,19 @@ export default function WorkshiftsManager() {
     try {
       const api = getApiClient()
       const [ws, cs] = await Promise.all([
-        api.getWorkshifts({ center_id: centerFilter !== "all" ? centerFilter : undefined, page, limit }),
+        api.getWorkshifts({ center_id: centerFilter !== "all" ? centerFilter : undefined, page: currentPage, limit }),
         api.getCenters({ page: 1, limit: 200 }),
       ])
       setWorkshifts(ws)
       setCenters(cs.data.centers)
+      // Assume we need to calculate total pages (API might return total)
+      setTotalPages(Math.ceil(ws.length / limit) || 1)
     } catch (e: any) {
-      toast({ title: "Không thể tải dữ liệu ca làm", description: e?.message || "Error", variant: "destructive" })
+  toast({ title: "Failed to load work shifts", description: e?.message || "Error", variant: "destructive" })
     } finally {
       setLoading(false)
     }
-  }, [toast, centerFilter, page, limit])
+  }, [toast, centerFilter, currentPage])
 
   useEffect(() => { load() }, [load])
 
@@ -58,59 +62,49 @@ export default function WorkshiftsManager() {
   const onEdit = (ws: WorkshiftRecord) => { setEditing(ws); setDialogOpen(true) }
 
   const onDelete = async (ws: WorkshiftRecord) => {
-    if (!confirm(`Xóa ca ${ws.shift_id}?`)) return
+  if (!confirm(`Delete shift ${ws.shift_id}?`)) return
     try {
       const api = getApiClient()
       await api.deleteWorkshift(ws._id)
-      toast({ title: "Đã xóa" })
+  toast({ title: "Shift deleted" })
       await load()
     } catch (e: any) {
-      toast({ title: "Xóa thất bại", description: e?.message || "Error", variant: "destructive" })
+  toast({ title: "Delete failed", description: e?.message || "Error", variant: "destructive" })
     }
   }
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <CardTitle>Quản lý ca làm việc</CardTitle>
+  <CardTitle>Work Shift Management</CardTitle>
         <div className="flex gap-2">
-          <Input placeholder="Tìm theo mã ca" value={search} onChange={(e) => setSearch(e.target.value)} className="w-52" />
+          <Input placeholder="Search by shift code" value={search} onChange={(e) => setSearch(e.target.value)} className="w-52" />
           <Select value={centerFilter} onValueChange={setCenterFilter}>
             <SelectTrigger className="w-48">
-              <SelectValue placeholder="Lọc trung tâm" />
+              <SelectValue placeholder="Filter center" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tất cả trung tâm</SelectItem>
+              <SelectItem value="all">All centers</SelectItem>
               {centers.map(c => <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Select value={String(limit)} onValueChange={(v) => { setPage(1); setLimit(parseInt(v, 10) || 20) }}>
-            <SelectTrigger className="w-28">
-              <SelectValue placeholder="Số dòng" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="10">10 / trang</SelectItem>
-              <SelectItem value="20">20 / trang</SelectItem>
-              <SelectItem value="50">50 / trang</SelectItem>
-            </SelectContent>
-          </Select>
           
-          <Button onClick={onCreate}>Tạo ca</Button>
+          <Button onClick={onCreate}>Create shift</Button>
         </div>
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div className="text-sm text-muted-foreground">Đang tải...</div>
+          <div className="text-sm text-muted-foreground">Loading...</div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Mã ca</TableHead>
-                <TableHead>Ngày</TableHead>
-                <TableHead>Giờ</TableHead>
-                <TableHead>Trạng thái</TableHead>
-                <TableHead>Trung tâm</TableHead>
-                <TableHead className="text-right">Hành động</TableHead>
+                <TableHead>Shift Code</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Time</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Center</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -129,27 +123,27 @@ export default function WorkshiftsManager() {
                     </TableCell>
                     <TableCell>{centerName(ws.center_id)}</TableCell>
                     <TableCell className="text-right space-x-2">
-                      <Button size="sm" variant="outline" onClick={() => onEdit(ws)}>Sửa</Button>
-                      <Button size="sm" variant="destructive" onClick={() => onDelete(ws)}>Xóa</Button>
+                      <Button size="sm" variant="outline" onClick={() => onEdit(ws)}>Edit</Button>
+                      <Button size="sm" variant="destructive" onClick={() => onDelete(ws)}>Delete</Button>
                     </TableCell>
                   </TableRow>
                 )
               })}
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">Không có dữ liệu</TableCell>
+                  <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">No data</TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
         )}
-        {!loading && (
-          <div className="flex items-center justify-between mt-4">
-            <div className="text-xs text-muted-foreground">Trang {page} · Hiển thị {filtered.length} mục</div>
-            <div className="space-x-2">
-              <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Trước</Button>
-              <Button variant="outline" size="sm" disabled={workshifts.length < limit} onClick={() => setPage(p => p + 1)}>Sau</Button>
-            </div>
+        {!loading && workshifts.length > 0 && (
+          <div className="mt-4">
+            <DataPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
           </div>
         )}
       </CardContent>

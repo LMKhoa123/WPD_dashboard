@@ -30,7 +30,7 @@ export default function TechnicianShiftsPage() {
       const sorted = [...res].sort((a, b) => new Date(a.shift_date).getTime() - new Date(b.shift_date).getTime())
       setItems(sorted)
     } catch (e: any) {
-      toast({ title: "Không tải được lịch làm việc", description: e?.message || "Failed to load shifts", variant: "destructive" })
+      toast({ title: "Failed to load work schedule", description: e?.message || "Failed to load shifts", variant: "destructive" })
     } finally {
       setLoading(false)
     }
@@ -43,18 +43,18 @@ export default function TechnicianShiftsPage() {
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">My Shifts</h1>
-          <p className="text-muted-foreground">Xem các ca làm việc được phân công</p>
+          <p className="text-muted-foreground">View assigned work shifts</p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Lịch phân ca</CardTitle>
+            <CardTitle>Shift Schedule</CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
               <div className="flex items-center gap-2 text-muted-foreground"><Spinner /> Loading...</div>
             ) : items.length === 0 ? (
-              <div className="text-muted-foreground">Chưa có ca làm việc nào.</div>
+              <div className="text-muted-foreground">No work shifts yet.</div>
             ) : (
               <div className="divide-y">
                 {items.map((s) => (
