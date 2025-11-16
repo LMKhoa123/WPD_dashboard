@@ -71,11 +71,11 @@ export function GenerateSlotsDialog({ open, onOpenChange, centers, onSuccess }: 
 
   const handleGenerate = async () => {
     if (selectedCenterIds.length === 0) {
-      toast({ title: "Vui lòng chọn ít nhất một trung tâm", variant: "destructive" })
+      toast({ title: "Please select at least one center", variant: "destructive" })
       return
     }
     if (selectedDates.length === 0) {
-      toast({ title: "Vui lòng chọn ít nhất một ngày", variant: "destructive" })
+      toast({ title: "Please select at least one date", variant: "destructive" })
       return
     }
 
@@ -83,7 +83,7 @@ export function GenerateSlotsDialog({ open, onOpenChange, centers, onSuccess }: 
     const startMin = hhmmToMinutes(startTime)
     const endMin = hhmmToMinutes(endTime)
     if (!Number.isFinite(startMin) || !Number.isFinite(endMin) || startMin >= endMin) {
-      toast({ title: "Khoảng giờ không hợp lệ", description: "Giờ bắt đầu phải trước giờ kết thúc", variant: "destructive" })
+      toast({ title: "Invalid time range", description: "Start time must be before end time", variant: "destructive" })
       return
     }
 
@@ -94,7 +94,7 @@ export function GenerateSlotsDialog({ open, onOpenChange, centers, onSuccess }: 
         .map((d) => format(d, "yyyy-MM-dd"))
     ))
     if (dates.length === 0) {
-      toast({ title: "Ngày không hợp lệ", description: "Vui lòng chọn lại ngày hợp lệ", variant: "destructive" })
+      toast({ title: "Invalid date", description: "Please select valid dates", variant: "destructive" })
       return
     }
 
@@ -113,15 +113,15 @@ export function GenerateSlotsDialog({ open, onOpenChange, centers, onSuccess }: 
 
       setResult(response.data)
       toast({ 
-        title: "Tạo slots thành công", 
-        description: `Đã tạo ${response.data.created} slots, bỏ qua ${response.data.skipped} slots trùng lặp` 
+        title: "Slots created successfully", 
+        description: `Created ${response.data.created} slots, skipped ${response.data.skipped} duplicate slots` 
       })
       
       if (onSuccess) onSuccess()
     } catch (error: any) {
       toast({ 
-        title: "Tạo slots thất bại", 
-        description: error?.message || "Đã có lỗi xảy ra", 
+        title: "Failed to create slots", 
+        description: error?.message || "An error occurred", 
         variant: "destructive" 
       })
     } finally {
@@ -145,16 +145,16 @@ export function GenerateSlotsDialog({ open, onOpenChange, centers, onSuccess }: 
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Tạo Slots Tự Động</DialogTitle>
+          <DialogTitle>Generate Slots Automatically</DialogTitle>
           <DialogDescription>
-            Tạo các time slots cho appointment dựa trên ca làm việc đã thiết lập
+            Create time slots for appointments based on the configured work shifts
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
           {/* Center Selection */}
           <div className="space-y-2">
-            <Label>Chọn Trung Tâm *</Label>
+            <Label>Select Center *</Label>
             <div className="grid grid-cols-2 gap-2">
               {centers.map(center => (
                 <div
@@ -177,21 +177,21 @@ export function GenerateSlotsDialog({ open, onOpenChange, centers, onSuccess }: 
             </div>
             {selectedCenterIds.length > 0 && (
               <p className="text-xs text-muted-foreground">
-                Đã chọn {selectedCenterIds.length} trung tâm
+                Selected {selectedCenterIds.length} centers
               </p>
             )}
           </div>
 
           {/* Date Selection */}
           <div className="space-y-2">
-            <Label>Chọn Ngày *</Label>
+            <Label>Select Date *</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="w-full justify-start text-left font-normal">
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {selectedDates.length === 0 
-                    ? "Chọn ngày..." 
-                    : `Đã chọn ${selectedDates.length} ngày`
+                    ? "Select date..." 
+                    : `Selected ${selectedDates.length} dates`
                   }
                 </Button>
               </PopoverTrigger>
@@ -232,7 +232,7 @@ export function GenerateSlotsDialog({ open, onOpenChange, centers, onSuccess }: 
           {/* Time Range */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="startTime">Giờ Bắt Đầu *</Label>
+              <Label htmlFor="startTime">Start Time *</Label>
               <Input
                 id="startTime"
                 type="time"
@@ -241,7 +241,7 @@ export function GenerateSlotsDialog({ open, onOpenChange, centers, onSuccess }: 
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="endTime">Giờ Kết Thúc *</Label>
+              <Label htmlFor="endTime">End Time *</Label>
               <Input
                 id="endTime"
                 type="time"
@@ -253,16 +253,16 @@ export function GenerateSlotsDialog({ open, onOpenChange, centers, onSuccess }: 
 
           {/* Duration */}
           <div className="space-y-2">
-            <Label htmlFor="duration">Thời Lượng Mỗi Slot (phút) *</Label>
+            <Label htmlFor="duration">Duration Per Slot (minutes) *</Label>
             <Select value={duration} onValueChange={setDuration}>
               <SelectTrigger id="duration">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="30">30 phút</SelectItem>
-                <SelectItem value="60">60 phút</SelectItem>
-                <SelectItem value="90">90 phút</SelectItem>
-                <SelectItem value="120">120 phút</SelectItem>
+                <SelectItem value="30">30 minutes</SelectItem>
+                <SelectItem value="60">60 minutes</SelectItem>
+                <SelectItem value="90">90 minutes</SelectItem>
+                <SelectItem value="120">120 minutes</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -271,11 +271,11 @@ export function GenerateSlotsDialog({ open, onOpenChange, centers, onSuccess }: 
           {result && (
             <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4">
               <h4 className="font-semibold text-green-900 dark:text-green-100 mb-2">
-                Kết quả
+                Result
               </h4>
               <div className="space-y-1 text-sm text-green-800 dark:text-green-200">
-                <p>✓ Đã tạo: <span className="font-semibold">{result.created}</span> slots</p>
-                <p>⊘ Bỏ qua: <span className="font-semibold">{result.skipped}</span> slots (đã tồn tại)</p>
+                <p>✓ Created: <span className="font-semibold">{result.created}</span> slots</p>
+                <p>⊘ Skipped: <span className="font-semibold">{result.skipped}</span> slots (already exist)</p>
               </div>
             </div>
           )}
@@ -283,12 +283,12 @@ export function GenerateSlotsDialog({ open, onOpenChange, centers, onSuccess }: 
 
         <DialogFooter>
           <Button variant="outline" onClick={handleClose} disabled={loading}>
-            {result ? "Đóng" : "Hủy"}
+            {result ? "Close" : "Cancel"}
           </Button>
           {!result && (
             <Button onClick={handleGenerate} disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {loading ? "Đang tạo..." : "Tạo Slots"}
+              {loading ? "Creating..." : "Generate Slots"}
             </Button>
           )}
         </DialogFooter>

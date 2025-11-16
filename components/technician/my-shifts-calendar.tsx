@@ -51,9 +51,9 @@ function getShiftTimeColor(startTime: string): { bg: string; border: string; tex
 
 function getShiftTypeBadge(startTime: string): { label: string; variant: string } {
   const hour = parseInt(startTime.split(":")[0] || "0", 10)
-  if (hour >= 7 && hour < 13) return { label: "Ca sáng", variant: "amber" }
-  if (hour >= 13 && hour < 18) return { label: "Ca chiều", variant: "blue" }
-  return { label: "Ca tối", variant: "purple" }
+  if (hour >= 7 && hour < 13) return { label: "Morning Shift", variant: "amber" }
+  if (hour >= 13 && hour < 18) return { label: "Afternoon Shift", variant: "blue" }
+  return { label: "Night Shift", variant: "purple" }
 }
 
 export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
@@ -72,7 +72,7 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
       setShifts(res)
     } catch (e: any) {
       toast({
-        title: "Không tải được lịch làm việc",
+        title: "Failed to load shifts",
         description: e?.message || "Failed to load shifts",
         variant: "destructive"
       })
@@ -136,11 +136,11 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Lịch làm việc của tôi</CardTitle>
+          <CardTitle>My Work Schedule</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2 text-muted-foreground">
-            <Spinner /> Đang tải...
+            <Spinner /> Loading...
           </div>
         </CardContent>
       </Card>
@@ -151,13 +151,13 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>Lịch làm việc của tôi</CardTitle>
+          <CardTitle>My Work Schedule</CardTitle>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={goToPreviousWeek}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <Button variant="outline" size="sm" onClick={goToToday}>
-              Hôm nay
+              Today
             </Button>
             <Button variant="outline" size="sm" onClick={goToNextWeek}>
               <ChevronRight className="h-4 w-4" />
@@ -167,15 +167,15 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
         <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
           <div className="flex items-center gap-2">
             <div className="h-3 w-3 rounded-full bg-amber-400"></div>
-            <span>Ca sáng (7:00-13:00)</span>
+            <span>Morning Shift (7:00-13:00)</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="h-3 w-3 rounded-full bg-blue-400"></div>
-            <span>Ca chiều (13:00-18:00)</span>
+            <span>Afternoon Shift (13:00-18:00)</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="h-3 w-3 rounded-full bg-purple-400"></div>
-            <span>Ca tối (18:00+)</span>
+            <span>Night Shift (18:00+)</span>
           </div>
         </div>
       </CardHeader>
@@ -207,7 +207,7 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
                   </div>
                   
                   {dayShifts.length === 0 ? (
-                    <div className="text-xs text-muted-foreground">Không có ca</div>
+                    <div className="text-xs text-muted-foreground">No shifts</div>
                   ) : (
                     <div className="space-y-2">
                       {dayShifts.map((shift) => {
@@ -243,7 +243,7 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
         {/* All shifts list */}
         {shifts.length > 0 && (
           <div>
-            <div className="text-sm font-medium mb-3">Tất cả ca làm việc</div>
+            <div className="text-sm font-medium mb-3">All Shifts</div>
             <div className="space-y-2 max-h-[300px] overflow-y-auto">
               {shifts
                 .sort((a, b) => new Date(a.shift_date).getTime() - new Date(b.shift_date).getTime())

@@ -149,7 +149,7 @@ const adminNav = [
     icon: Calendar,
   },
   {
-    title: "Ca làm việc",
+    title: "Workshifts",
     url: "/workshifts",
     icon: Calendar,
   },
