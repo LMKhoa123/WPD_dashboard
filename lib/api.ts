@@ -2100,6 +2100,47 @@ export class ApiClient {
   async cancelPayment(orderCode: number | string): Promise<{ success: boolean; message?: string; data?: any }> {
     return this.fetchJson<{ success: boolean; message?: string; data?: any }>(`/payments/cancel/${orderCode}`, { method: "PUT", body: JSON.stringify({}) })
   }
+  
+  // Statistics APIs
+  async getTotalRevenue(): Promise<number> {
+    const res = await this.fetchJson<TotalRevenueResponse>(`/statistics/revenue/total`, { method: "GET" })
+    return res.data.totalRevenue
+  }
+
+  async getTotalRevenueBySubscription(): Promise<number> {
+    const res = await this.fetchJson<TotalRevenueResponse>(`/statistics/revenue/total/subscription`, { method: "GET" })
+    return res.data.totalRevenue
+  }
+
+  async getTotalRevenueByServiceCompletion(): Promise<number> {
+    const res = await this.fetchJson<TotalRevenueResponse>(`/statistics/revenue/total/service-completion`, { method: "GET" })
+    return res.data.totalRevenue
+  }
+
+  async getMonthlyRevenue(year: number): Promise<MonthlyRevenueData[]> {
+    const res = await this.fetchJson<MonthlyRevenueResponse>(`/statistics/revenue/monthly?year=${year}`, { method: "GET" })
+    return res.data
+  }
+
+  async getMonthlyRevenueBySubscription(year: number): Promise<MonthlyRevenueData[]> {
+    const res = await this.fetchJson<MonthlyRevenueResponse>(`/statistics/revenue/monthly/subscription?year=${year}`, { method: "GET" })
+    return res.data
+  }
+
+  async getMonthlyRevenueByServiceCompletion(year: number): Promise<MonthlyRevenueData[]> {
+    const res = await this.fetchJson<MonthlyRevenueResponse>(`/statistics/revenue/monthly/service-completion?year=${year}`, { method: "GET" })
+    return res.data
+  }
+
+  async getSubscriptionCountByPackage(params?: { month?: number; year?: number }): Promise<SubscriptionPackageCount[]> {
+    const queryParams = new URLSearchParams()
+    if (params?.month) queryParams.append("month", String(params.month))
+    if (params?.year) queryParams.append("year", String(params.year))
+    const query = queryParams.toString() ? `?${queryParams.toString()}` : ""
+    const res = await this.fetchJson<SubscriptionCountByPackageResponse>(`/statistics/subscriptions/count-by-package${query}`, { method: "GET" })
+    return res.data
+  }
+  
   // getNotifications removed: notifications now delivered only via websocket events
 }
 
@@ -2228,7 +2269,34 @@ export interface CreatePaymentRequest {
   cancelUrl?: string
 }
 
+// Statistics API types
+export interface TotalRevenueResponse {
+  success: boolean
+  data: {
+    totalRevenue: number
+  }
+}
 
+export interface MonthlyRevenueData {
+  month: number
+  revenue: number
+}
+
+export interface MonthlyRevenueResponse {
+  success: boolean
+  data: MonthlyRevenueData[]
+}
+
+export interface SubscriptionPackageCount {
+  packageId: string
+  packageName: string
+  count: number
+}
+
+export interface SubscriptionCountByPackageResponse {
+  success: boolean
+  data: SubscriptionPackageCount[]
+}
 
 async function safeErrorMessage(res: Response): Promise<string> {
   try {

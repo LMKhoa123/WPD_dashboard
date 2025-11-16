@@ -48,9 +48,9 @@ function getShiftTimeColor(startTime: string): { bg: string; border: string; tex
 
 function getShiftTypeBadge(startTime: string): { label: string; variant: string } {
   const hour = parseInt(startTime.split(":")[0] || "0", 10)
-  if (hour >= 7 && hour < 13) return { label: "Ca sáng", variant: "amber" }
-  if (hour >= 13 && hour < 18) return { label: "Ca chiều", variant: "blue" }
-  return { label: "Ca tối", variant: "purple" }
+  if (hour >= 7 && hour < 13) return { label: "Morning", variant: "amber" }
+  if (hour >= 13 && hour < 18) return { label: "Afternoon", variant: "blue" }
+  return { label: "Night", variant: "purple" }
 }
 
 export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
@@ -72,7 +72,7 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
       const data = await api.getShiftAssignmentsByUser(systemUserId)
       setShifts(data)
     } catch (error: any) {
-      toast.error("Không thể tải lịch làm việc: " + error.message)
+      toast.error("Unable to load shifts: " + error.message)
     } finally {
       setLoading(false)
     }
@@ -102,15 +102,15 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
     }
     return (
       <Badge variant={variants[status] || "outline"} className="text-xs">
-        {status === "active" && "Hoạt động"}
-        {status === "completed" && "Hoàn thành"}
-        {status === "cancelled" && "Đã hủy"}
+        {status === "active" && "Active"}
+        {status === "completed" && "Completed"}
+        {status === "cancelled" && "Cancelled"}
         {!["active", "completed", "cancelled"].includes(status) && status}
       </Badge>
     )
   }
 
-  // Generate 7 days starting from selectedWeekStart
+  
   const weekDays = Array.from({ length: 7 }, (_, i) =>
     addDays(selectedWeekStart, i)
   )
@@ -131,20 +131,20 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Lịch làm việc của tôi
+            My Work Schedule
           </CardTitle>
           <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-amber-400"></div>
-              <span>Ca sáng (7:00-13:00)</span>
+              <span>Morning Shift (7:00-13:00)</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-blue-400"></div>
-              <span>Ca chiều (13:00-18:00)</span>
+              <span>Afternoon Shift (13:00-18:00)</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-purple-400"></div>
-              <span>Ca tối (18:00+)</span>
+              <span>Night Shift (18:00+)</span>
             </div>
           </div>
         </CardHeader>
@@ -153,7 +153,7 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
             <div className="text-center py-12">
               <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">
-                Bạn chưa được phân công ca làm việc nào
+                You have not been assigned any shifts
               </p>
             </div>
           ) : (
@@ -166,7 +166,7 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
                   }
                   className="text-sm text-muted-foreground hover:text-foreground"
                 >
-                  ← Tuần trước
+                  ← Previous Week
                 </button>
                 <div className="font-medium">
                   {format(selectedWeekStart, "dd/MM/yyyy", { locale: vi })} -{" "}
@@ -180,7 +180,7 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
                   }
                   className="text-sm text-muted-foreground hover:text-foreground"
                 >
-                  Tuần sau →
+                  Next Week →
                 </button>
               </div>
 
@@ -232,7 +232,7 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
                         </div>
                       ) : (
                         <div className="text-xs text-muted-foreground text-center py-2">
-                          Không có ca
+                          No shifts available
                         </div>
                       )}
                     </div>
@@ -243,7 +243,7 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
               {/* All shifts list */}
               <div className="border-t pt-4">
                 <h3 className="font-semibold mb-3">
-                  Tất cả ca làm việc ({shifts.length})
+                  All Shifts ({shifts.length})
                 </h3>
                 <div className="space-y-2 max-h-[300px] overflow-y-auto">
                   {shifts

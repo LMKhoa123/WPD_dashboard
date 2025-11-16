@@ -36,9 +36,9 @@ const shiftColors: Record<ShiftType, string> = {
 }
 
 const shiftLabels: Record<ShiftType, string> = {
-  "morning": "Ca sáng",
-  "evening": "Ca chiều",
-  "night": "Ca tối"
+  "morning": "Morning Shift",
+  "evening": "Afternoon Shift",
+  "night": "Night Shift"
 }
 
 const shiftTimeRanges: Record<ShiftType, { start: string; end: string }> = {
@@ -211,8 +211,8 @@ export function CalendarShiftView() {
     } catch (err) {
       console.error("Error loading staff for center:", err)
       toast({
-        title: "Lỗi",
-        description: "Không thể tải danh sách nhân viên",
+        title: "Error",
+        description: "Unable to load staff list",
         variant: "destructive"
       })
     }
@@ -376,7 +376,7 @@ export function CalendarShiftView() {
     if (!selectedDate || selectedStaff.length === 0) {
       toast({
         title: "Validation Error",
-        description: "Vui lòng chọn ngày và ít nhất một nhân viên",
+        description: "Please select date and at least one staff member",
         variant: "destructive"
       })
       return
@@ -385,7 +385,7 @@ export function CalendarShiftView() {
     if (!assignCenterId || assignCenterId === "all") {
       toast({
         title: "Validation Error",
-        description: "Vui lòng chọn một trung tâm cụ thể",
+        description: "Please select a specific center",
         variant: "destructive"
       })
       return
@@ -394,7 +394,7 @@ export function CalendarShiftView() {
     if (selectedWorkshiftIds.length === 0) {
       toast({
         title: "Validation Error",
-        description: "Vui lòng chọn ít nhất một ca làm việc",
+        description: "Please select at least one workshift",
         variant: "destructive"
       })
       return
@@ -413,8 +413,8 @@ export function CalendarShiftView() {
       }
       
       toast({
-        title: "Thành công",
-        description: `Đã phân công ${selectedStaff.length} nhân viên vào ${selectedWorkshiftIds.length} ca làm việc`
+        title: "Success",
+        description: `Assigned ${selectedStaff.length} staff members to ${selectedWorkshiftIds.length} workshifts`
       })
       
       // Reset and reload
@@ -428,8 +428,8 @@ export function CalendarShiftView() {
       
     } catch (err: any) {
       toast({
-        title: "Lỗi",
-        description: err?.message || "Không thể tạo phân công ca làm việc",
+        title: "Error",
+        description: err?.message || "Unable to create shift assignment",
         variant: "destructive"
       })
     } finally {
@@ -460,8 +460,8 @@ export function CalendarShiftView() {
     } catch (err: any) {
       console.error('Failed loading workshifts for dialog', err)
       toast({
-        title: "Lỗi",
-        description: "Không thể tải danh sách ca làm việc",
+        title: "Error",
+        description: "Unable to load workshift list",
         variant: "destructive"
       })
     }
@@ -494,8 +494,8 @@ export function CalendarShiftView() {
       )
       if (!candidate) {
         toast({
-          title: 'Không tìm thấy ca làm việc',
-          description: 'Hãy tạo trước workshift tương ứng trước khi cập nhật.',
+          title: 'Workshift Not Found',
+          description: 'Please create the corresponding workshift before updating.',
           variant: 'destructive'
         })
         setSaving(false)
@@ -560,8 +560,8 @@ export function CalendarShiftView() {
       }
       
       toast({
-        title: "Thành công",
-        description: "Đã xóa phân công ca làm việc"
+        title: "Success",
+        description: "Shift assignment deleted successfully"
       })
       
       setDeleteDialogOpen(false)
@@ -600,7 +600,7 @@ export function CalendarShiftView() {
               <SelectValue placeholder="Tất cả trung tâm" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tất cả trung tâm</SelectItem>
+              <SelectItem value="all">All Centers</SelectItem>
               {centers.map((center) => (
                 <SelectItem key={center._id} value={center._id}>
                   {center.name}
@@ -651,30 +651,30 @@ export function CalendarShiftView() {
 
       {/* Legend */}
       <div className="flex items-center gap-6 text-sm bg-white border rounded-lg p-3 shadow-sm">
-        <span className="font-semibold text-gray-700">Ca làm việc:</span>
+        <span className="font-semibold text-gray-700">Workshifts:</span>
         <div className="flex items-center gap-2">
           <span className="inline-block w-3 h-3 rounded bg-yellow-400" />
-          <span>Sáng (Morning)</span>
+          <span>Morning</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="inline-block w-3 h-3 rounded bg-orange-400" />
-          <span>Chiều (Afternoon)</span>
+          <span>Afternoon</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="inline-block w-3 h-3 rounded bg-purple-400" />
-          <span>Tối (Night)</span>
+          <span>Night</span>
         </div>
         <div className="ml-8 flex items-center gap-2">
           <span className="inline-block w-4 h-4 rounded border border-yellow-400 bg-yellow-50" />
-          <span className="text-xs">Chỉ ca sáng</span>
+          <span className="text-xs">Morning only</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="inline-block w-4 h-4 rounded border border-orange-400 bg-orange-50" />
-          <span className="text-xs">Chỉ ca chiều</span>
+          <span className="text-xs">Afternoon only</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="inline-block w-4 h-4 rounded border border-purple-400 bg-purple-50" />
-          <span className="text-xs">Nhiều ca</span>
+          <span className="text-xs">Multiple shifts</span>
         </div>
       </div>
 
@@ -971,9 +971,9 @@ export function CalendarShiftView() {
       <Dialog open={newShiftModalOpen} onOpenChange={setNewShiftModalOpen}>
         <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Phân công ca làm việc</DialogTitle>
+            <DialogTitle>Shift Assignment</DialogTitle>
             <DialogDescription>
-              Chọn trung tâm, ngày và các ca làm việc, sau đó chọn nhân viên cần phân công
+              Select center, date, and workshifts, then choose the staff to assign
             </DialogDescription>
           </DialogHeader>
           
@@ -982,7 +982,7 @@ export function CalendarShiftView() {
             <div className="space-y-2 border-b pb-4">
               <Label className="text-base font-semibold flex items-center gap-2">
                 <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm">1</span>
-                Chọn trung tâm
+                Select Center
               </Label>
               <Select 
                 value={assignCenterId || undefined} 
@@ -1014,12 +1014,12 @@ export function CalendarShiftView() {
             <div className="space-y-4 border-b pb-4">
               <Label className="text-base font-semibold flex items-center gap-2">
                 <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm">2</span>
-                Chọn ngày và ca làm việc
+                Select Date & Workshifts
               </Label>
               
               {/* Date Picker */}
               <div className="space-y-2">
-                <Label className="text-sm">Ngày làm việc</Label>
+                <Label className="text-sm">Work Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -1031,7 +1031,7 @@ export function CalendarShiftView() {
                       disabled={!assignCenterId}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {selectedDate ? format(selectedDate, "PPP") : <span>Chọn ngày</span>}
+                      {selectedDate ? format(selectedDate, "PPP") : <span>Select date</span>}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -1054,7 +1054,7 @@ export function CalendarShiftView() {
               {/* Workshifts Selection */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm">Ca làm việc ({selectedWorkshiftIds.length} đã chọn)</Label>
+                  <Label className="text-sm">Workshifts ({selectedWorkshiftIds.length} selected)</Label>
                   {selectedWorkshiftIds.length > 0 && (
                     <Button 
                       variant="ghost" 
@@ -1062,18 +1062,18 @@ export function CalendarShiftView() {
                       onClick={() => setSelectedWorkshiftIds([])}
                       className="h-7 text-xs"
                     >
-                      Bỏ chọn tất cả
+                      Deselect All
                     </Button>
                   )}
                 </div>
                 
                 {!assignCenterId || !selectedDate ? (
                   <div className="border rounded-lg p-8 text-center text-muted-foreground">
-                    Vui lòng chọn trung tâm và ngày trước
+                    Please select a center and date first
                   </div>
                 ) : availableWorkshifts.length === 0 ? (
                   <div className="border rounded-lg p-8 text-center text-muted-foreground">
-                    Không có ca làm việc nào cho ngày này
+                    No workshifts available for this date
                   </div>
                 ) : (
                   <div className="border rounded-lg p-4 max-h-[200px] overflow-y-auto space-y-2">
@@ -1125,7 +1125,7 @@ export function CalendarShiftView() {
             <div className="space-y-4">
               <Label className="text-base font-semibold flex items-center gap-2">
                 <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm">3</span>
-                Chọn nhân viên ({selectedStaff.length} đã chọn)
+                Select Staff ({selectedStaff.length} selected)
               </Label>
               
               {selectedStaff.length > 0 && (
@@ -1135,7 +1135,7 @@ export function CalendarShiftView() {
                   onClick={() => setSelectedStaff([])}
                   className="h-7 text-xs"
                 >
-                  Bỏ chọn tất cả
+                  Deselect All
                 </Button>
               )}
               
@@ -1144,14 +1144,14 @@ export function CalendarShiftView() {
                 <div className="border rounded-lg p-4 space-y-3">
                   <div className="flex items-center gap-2 pb-2 border-b">
                     <User className="w-4 h-4 text-blue-600" />
-                    <h4 className="font-semibold text-sm">Nhân viên (Staff)</h4>
+                    <h4 className="font-semibold text-sm">Staff</h4>
                     <Badge variant="secondary" className="ml-auto">
                       {staff.length}
                     </Badge>
                   </div>
                   <div className="max-h-[250px] overflow-y-auto space-y-2">
                     {staff.length === 0 ? (
-                      <p className="text-sm text-gray-500 text-center py-4">Không có nhân viên</p>
+                      <p className="text-sm text-gray-500 text-center py-4">No staff available</p>
                     ) : (
                       staff.map(user => (
                         <label 
@@ -1194,14 +1194,14 @@ export function CalendarShiftView() {
                 <div className="border rounded-lg p-4 space-y-3">
                   <div className="flex items-center gap-2 pb-2 border-b">
                     <User className="w-4 h-4 text-orange-600" />
-                    <h4 className="font-semibold text-sm">Kỹ thuật viên (Technician)</h4>
+                    <h4 className="font-semibold text-sm">Technician</h4>
                     <Badge variant="secondary" className="ml-auto">
                       {technicians.length}
                     </Badge>
                   </div>
                   <div className="max-h-[250px] overflow-y-auto space-y-2">
                     {technicians.length === 0 ? (
-                      <p className="text-sm text-gray-500 text-center py-4">Không có kỹ thuật viên</p>
+                      <p className="text-sm text-gray-500 text-center py-4">No technicians available</p>
                     ) : (
                       technicians.map(user => (
                         <label 
@@ -1245,13 +1245,13 @@ export function CalendarShiftView() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setNewShiftModalOpen(false)} disabled={saving}>
-              Hủy
+              Cancel
             </Button>
             <Button 
               onClick={handleCreateShift} 
               disabled={saving || selectedStaff.length === 0 || selectedWorkshiftIds.length === 0}
             >
-              {saving ? "Đang phân công..." : `Phân công ${selectedStaff.length} người vào ${selectedWorkshiftIds.length} ca`}
+              {saving ? "Assigning..." : `Assign ${selectedStaff.length} staff to ${selectedWorkshiftIds.length} shifts`}
             </Button>
           </DialogFooter>
         </DialogContent>

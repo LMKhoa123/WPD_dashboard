@@ -57,7 +57,6 @@ export function AssignShiftDialog({
 
   const api = getApiClient()
 
-  // Phân loại system users thành Staff và Technician
   const staffUsers = useMemo(() => {
     return systemUsers.filter((user) => {
       const role =
@@ -74,7 +73,7 @@ export function AssignShiftDialog({
     })
   }, [systemUsers])
 
-  // Filter workshifts by selected center
+
   const filteredWorkshifts = useMemo(() => {
     if (selectedCenter === "all") return workshifts
     return workshifts.filter((ws) => ws.center_id === selectedCenter)
@@ -108,11 +107,11 @@ export function AssignShiftDialog({
 
   async function handleSubmit() {
     if (!selectedUserId) {
-      toast.error("Vui lòng chọn nhân viên")
+      toast.error("Please select a user")
       return
     }
     if (selectedWorkshiftIds.length === 0) {
-      toast.error("Vui lòng chọn ít nhất một ca làm việc")
+      toast.error("Please select at least one workshift")
       return
     }
 
@@ -122,12 +121,12 @@ export function AssignShiftDialog({
         system_user_id: selectedUserId,
         workshift_ids: selectedWorkshiftIds,
       })
-      toast.success(`Đã phân công ${selectedWorkshiftIds.length} ca làm việc`)
+      toast.success(`Assigned ${selectedWorkshiftIds.length} workshifts`)
       resetForm()
       onOpenChange(false)
       onSuccess()
     } catch (error: any) {
-      toast.error("Không thể phân công: " + error.message)
+      toast.error("Unable to assign workshifts: " + error.message)
     } finally {
       setSubmitting(false)
     }
@@ -137,7 +136,7 @@ export function AssignShiftDialog({
     if (users.length === 0) {
       return (
         <div className="text-center py-8 text-muted-foreground text-sm">
-          Không có nhân viên nào
+          No users available
         </div>
       )
     }
@@ -174,25 +173,25 @@ export function AssignShiftDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Phân công ca làm việc</DialogTitle>
+          <DialogTitle>Assign Workshifts</DialogTitle>
           <DialogDescription>
-            Chọn nhân viên hoặc kỹ thuật viên và các ca làm việc cần phân công
+            Select a staff member or technician and the workshifts to assign
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Chọn nhân viên */}
+          {/* Select user */}
           <div className="space-y-3">
-            <Label>1. Chọn nhân viên</Label>
+            <Label>1. Select user</Label>
             <Tabs defaultValue="staff" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="staff">
                   <Users className="h-4 w-4 mr-2" />
-                  Nhân viên ({staffUsers.length})
+                  Staff ({staffUsers.length})
                 </TabsTrigger>
                 <TabsTrigger value="technician">
                   <UserCog className="h-4 w-4 mr-2" />
-                  Kỹ thuật viên ({technicianUsers.length})
+                  Technician ({technicianUsers.length})
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="staff" className="mt-4">
@@ -204,15 +203,15 @@ export function AssignShiftDialog({
             </Tabs>
           </div>
 
-          {/* Lọc theo trung tâm */}
+          
           <div className="space-y-2">
-            <Label>2. Lọc theo trung tâm (tùy chọn)</Label>
+            <Label>2. Filter by center (optional)</Label>
             <Select value={selectedCenter} onValueChange={setSelectedCenter}>
               <SelectTrigger>
-                <SelectValue placeholder="Chọn trung tâm" />
+                <SelectValue placeholder="Select center" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tất cả trung tâm</SelectItem>
+                <SelectItem value="all">All centers</SelectItem>
                 {centers.map((center) => (
                   <SelectItem key={center._id} value={center._id}>
                     {center.name}
@@ -222,14 +221,14 @@ export function AssignShiftDialog({
             </Select>
           </div>
 
-          {/* Chọn ca làm việc */}
+         
           <div className="space-y-2">
-            <Label>3. Chọn ca làm việc</Label>
+            <Label>3. Select workshifts</Label>
             <ScrollArea className="h-[300px] border rounded-md">
               <div className="p-4 space-y-2">
                 {filteredWorkshifts.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground text-sm">
-                    Không có ca làm việc nào
+                    No workshifts available
                   </div>
                 ) : (
                   filteredWorkshifts.map((ws) => (
@@ -278,7 +277,7 @@ export function AssignShiftDialog({
             </ScrollArea>
             {selectedWorkshiftIds.length > 0 && (
               <div className="text-sm text-muted-foreground">
-                Đã chọn {selectedWorkshiftIds.length} ca làm việc
+                Selected {selectedWorkshiftIds.length} workshifts
               </div>
             )}
           </div>
@@ -293,11 +292,11 @@ export function AssignShiftDialog({
             }}
             disabled={submitting}
           >
-            Hủy
+            Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={submitting}>
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Phân công
+            Assign
           </Button>
         </DialogFooter>
       </DialogContent>
