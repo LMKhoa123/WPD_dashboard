@@ -79,12 +79,6 @@ const staffNav = [
     url: "/service-records",
     icon: FileText,
   },
-  // {
-  //   title: "Status Board",
-  //   url: "/service-records/board",
-  //   icon: ClipboardCheck,
-  // },
-
   {
     title: "Customers",
     url: "/customers",
@@ -128,9 +122,10 @@ const staffNav = [
 ]
 
 const adminNav = [
-  {
-    title: "Appointments",
-    url: "/appointments",
+  
+   {
+    title: "Workshifts",
+    url: "/workshifts",
     icon: Calendar,
   },
   {
@@ -143,9 +138,9 @@ const adminNav = [
     url: "/shift-assignments",
     icon: Calendar,
   },
-  {
-    title: "Workshifts",
-    url: "/workshifts",
+ {
+    title: "Appointments",
+    url: "/appointments",
     icon: Calendar,
   },
   {
@@ -153,26 +148,18 @@ const adminNav = [
     url: "/service-records",
     icon: FileText,
   },
+    
   {
-    title: "Status Board",
-    url: "/service-records/board",
-    icon: ClipboardCheck,
+    title: "Vehicles",
+    url: "/vehicles",
+    icon: Car,
   },
   {
     title: "Service Checklists",
     url: "/service-checklists",
     icon: ClipboardCheck,
   },
-  {
-    title: "Customers",
-    url: "/customers",
-    icon: Users,
-  },
-  {
-    title: "Vehicles",
-    url: "/vehicles",
-    icon: Car,
-  },
+
   {
     title: "Inventory",
     url: "/inventory",
@@ -208,20 +195,26 @@ const adminNav = [
     url: "/users", 
     icon: Users 
   },
+  {
+    title: "Customers",
+    url: "/customers",
+    icon: Users,
+  },
   { 
     title: "Staff", 
     url: "/staff", 
     icon: UserCog 
   },
-  { 
-    title: "Reports", 
-    url: "/reports", 
-    icon: FileText 
-  },
+  
   {
     title: "Payments",
     url: "/payments",
     icon: CreditCard,
+  },
+  { 
+    title: "Reports", 
+    url: "/reports", 
+    icon: FileText 
   },
  
 ]

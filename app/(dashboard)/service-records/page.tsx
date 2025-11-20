@@ -34,7 +34,7 @@ export default function ServiceRecordsPage() {
   const [loading, setLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
-  const [activeTab, setActiveTab] = useState<ServiceRecordStatus | "all">("all")
+  const [activeTab, setActiveTab] = useState<ServiceRecordStatus>("pending")
   const [confirmingStatus, setConfirmingStatus] = useState<{
     id: string
     newStatus: ServiceRecordStatus
@@ -48,7 +48,6 @@ export default function ServiceRecordsPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({
-    all: 0,
     pending: 0,
     "in-progress": 0,
     completed: 0,
@@ -58,7 +57,7 @@ export default function ServiceRecordsPage() {
 
   const api = useMemo(() => getApiClient(), [])
 
-  const load = useCallback(async (page: number, status?: ServiceRecordStatus | "all") => {
+  const load = useCallback(async (page: number, status?: ServiceRecordStatus) => {
     try {
       setLoading(true)
       const params: any = { page, limit }
@@ -68,8 +67,8 @@ export default function ServiceRecordsPage() {
         params.center_id = user.centerId
       }
       
-      // Filter by status if not "all"
-      if (status && status !== "all") {
+      // Filter by status
+      if (status) {
         params.status = status
       }
       
@@ -96,10 +95,12 @@ export default function ServiceRecordsPage() {
       setTotalPages(Math.ceil(total / limit))
       
       // Update count for current tab
-      setStatusCounts(prev => ({
-        ...prev,
-        [status || "all"]: total
-      }))
+      if (status) {
+        setStatusCounts(prev => ({
+          ...prev,
+          [status]: total
+        }))
+      }
     } catch (e: any) {
       toast.error(e?.message || "Failed to load service records")
     } finally {
@@ -139,12 +140,9 @@ export default function ServiceRecordsPage() {
       }
 
       try {
-        const statuses: (ServiceRecordStatus | "all")[] = ["all", "pending", "in-progress", "completed", "cancelled"]
+        const statuses: ServiceRecordStatus[] = ["pending", "in-progress", "completed", "cancelled"]
         const countPromises = statuses.map(async (status) => {
-          const params = { ...baseParams, page: 1, limit: 1 }
-          if (status !== "all") {
-            params.status = status
-          }
+          const params = { ...baseParams, page: 1, limit: 1, status }
           try {
             const res = await api.getServiceRecords(params)
             return { status, count: res.data.total || 0 }
@@ -261,7 +259,7 @@ export default function ServiceRecordsPage() {
     return matchesSearch
   })
 
-  const getStatusCount = (status: ServiceRecordStatus | "all") => {
+  const getStatusCount = (status: ServiceRecordStatus) => {
     return statusCounts[status] || 0
   }
 
@@ -282,13 +280,9 @@ export default function ServiceRecordsPage() {
             <CardDescription>View and manage all service work records</CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as ServiceRecordStatus | "all")} className="space-y-6">
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as ServiceRecordStatus)} className="space-y-6">
               <div className="border-b pb-4">
                 <TabsList className="inline-flex h-10 items-center justify-start gap-1 rounded-lg bg-muted/50 p-1">
-                  <TabsTrigger value="all" className="gap-2 data-[state=active]:shadow-sm">
-                    <span className="font-medium">All</span>
-                    <Badge variant="secondary" className="ml-1 h-5 min-w-[1.25rem] px-1.5">{getStatusCount("all")}</Badge>
-                  </TabsTrigger>
                   <TabsTrigger value="pending" className="gap-2 data-[state=active]:shadow-sm">
                     <span className="font-medium">Pending</span>
                     <Badge className="ml-1 h-5 min-w-[1.25rem] px-1.5 bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20 border-yellow-200/50">{getStatusCount("pending")}</Badge>
@@ -337,6 +331,7 @@ export default function ServiceRecordsPage() {
                       <TableHead>End Time</TableHead>
                       <TableHead>Description</TableHead>
                       <TableHead>Status</TableHead>
+                      {(isAdmin || isStaff) && <TableHead>Change Status</TableHead>}
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -362,20 +357,21 @@ export default function ServiceRecordsPage() {
                             {rec.description}
                           </TableCell>
                           <TableCell>
-                            {(isAdmin || isStaff) ? (
-                              (() => {
+                            <Badge
+                              variant="secondary"
+                              className={`${statusColors[rec.status as ServiceRecordStatus] || statusColors.pending} font-medium px-3 py-1 capitalize border`}
+                            >
+                              {rec.status.replace("-", " ")}
+                            </Badge>
+                          </TableCell>
+                          {(isAdmin || isStaff) && (
+                            <TableCell>
+                              {(() => {
                                 const availableStatuses = getAvailableStatuses(rec.status as ServiceRecordStatus)
                                 const isTerminalState = availableStatuses.length === 0
                                 
                                 if (isTerminalState) {
-                                  return (
-                                    <Badge
-                                      variant="secondary"
-                                      className={`${statusColors[rec.status as ServiceRecordStatus] || statusColors.pending} font-medium px-3 py-1 capitalize border`}
-                                    >
-                                      {rec.status.replace("-", " ")}
-                                    </Badge>
-                                  )
+                                  return <span className="text-muted-foreground text-sm">-</span>
                                 }
                                 
                                 return (
@@ -404,15 +400,9 @@ export default function ServiceRecordsPage() {
                                   </div>
                                 )
                               })()
-                            ) : (
-                              <Badge
-                                variant="secondary"
-                                className={`${statusColors[rec.status as ServiceRecordStatus] || statusColors.pending} font-medium px-3 py-1 capitalize border`}
-                              >
-                                {rec.status.replace("-", " ")}
-                              </Badge>
-                            )}
-                          </TableCell>
+                            }
+                            </TableCell>
+                          )}
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
                               <ServiceDetailsDialog
