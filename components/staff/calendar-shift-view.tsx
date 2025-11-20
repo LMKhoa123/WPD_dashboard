@@ -86,9 +86,9 @@ export function CalendarShiftView() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth())
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear())
-  const [selectedCenterId, setSelectedCenterId] = useState<string>("all")
+  const [selectedCenterId, setSelectedCenterId] = useState<string>("")
   // Workshifts fetched via React Query (cached)
-  const centerFilter = selectedCenterId === "all" ? undefined : selectedCenterId
+  const centerFilter = selectedCenterId || undefined
   const { data: allWorkshifts, isLoading: workshiftLoading, isError: workshiftError } = useWorkShifts(centerFilter)
   const [workshifts, setWorkshifts] = useState<WorkshiftRecord[]>([])
   const [shiftAssignments, setShiftAssignments] = useState<ShiftAssignment[]>([])
@@ -131,6 +131,11 @@ export function CalendarShiftView() {
       // Load centers first
       const centersRes = await api.getCenters({ limit: 100 })
       setCenters(centersRes.data.centers)
+      
+      // Set first center as default if not set
+      if (!selectedCenterId && centersRes.data.centers[0]) {
+        setSelectedCenterId(centersRes.data.centers[0]._id)
+      }
       
       // Load system users (staff profiles) and user accounts for role mapping
       const [sysUsersResp, allUsers] = await Promise.all([
@@ -554,7 +559,6 @@ export function CalendarShiftView() {
               <SelectValue placeholder="Tất cả trung tâm" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Centers</SelectItem>
               {centers.map((center) => (
                 <SelectItem key={center._id} value={center._id}>
                   {center.name}

@@ -231,7 +231,7 @@ export default function AppointmentsPage() {
   }
   
   const handleReload = () => {
-    load(currentPage)
+    load(currentPage, activeTab)
   }
 
   const handleStatusChange = async (id: string, newStatus: AppointmentStatus, currentStatus: AppointmentStatus) => {
@@ -385,7 +385,7 @@ export default function AppointmentsPage() {
                         <TableHead>Start Time</TableHead>
                         <TableHead>End Time</TableHead>
                         <TableHead>Status</TableHead>
-                        {(isAdmin || isStaff) && <TableHead>Change Status</TableHead>}
+                        {isStaff && <TableHead>Change Status</TableHead>}
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -429,7 +429,7 @@ export default function AppointmentsPage() {
                               {apt.status.replace("-", " ")}
                             </Badge>
                           </TableCell>
-                          {(isAdmin || isStaff) && (
+                          {isStaff && (
                             <TableCell>
                               {(() => {
                                 const availableStatuses = getAvailableStatuses(apt.status as AppointmentStatus)
@@ -478,31 +478,37 @@ export default function AppointmentsPage() {
                                 <Eye className="h-4 w-4" />
                               </Button>
                               {(isAdmin || isStaff) && (
-                                <>
-                                  <AppointmentDialog
-                                    appointment={apt}
-                                    onUpdated={handleUpdated}
-                                    trigger={
-                                      <Button variant="ghost" size="icon" title="Edit appointment">
-                                        <Pencil className="h-4 w-4" />
-                                      </Button>
-                                    }
-                                  />
-                                  <AssignStaffDialog
-                                    appointmentId={apt._id}
-                                    slotId={typeof apt.slot_id === 'string' ? apt.slot_id : (apt.slot_id?._id as string | undefined)}
-                                    centerId={apt.center_id}
-                                    onAssigned={handleReload}
-                                    trigger={<Button variant="ghost" size="sm">Assign Staff</Button>}
-                                  />
-
-                                  {/* <AssignTechnicianDialog
-                                    appointmentId={apt._id}
-                                    slotId={typeof apt.slot_id === 'string' ? apt.slot_id : (apt.slot_id?._id as string | undefined)}
-                                    onAssigned={handleReload}
-                                    trigger={<Button variant="ghost" size="sm">Assign Tech</Button>}
-                                  /> */}
-                                </>
+                                <AppointmentDialog
+                                  appointment={apt}
+                                  onUpdated={handleUpdated}
+                                  trigger={
+                                    <Button variant="ghost" size="icon" title="Edit appointment">
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                  }
+                                />
+                              )}
+                              {isAdmin && (
+                                <AssignStaffDialog
+                                  appointmentId={apt._id}
+                                  slotId={typeof apt.slot_id === 'string' ? apt.slot_id : (apt.slot_id?._id as string | undefined)}
+                                  centerId={apt.center_id}
+                                  onAssigned={handleReload}
+                                  trigger={
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      disabled={
+                                        apt.status === "in-progress" || 
+                                        apt.status === "completed" || 
+                                        apt.status === "cancelled" ||
+                                        !!(apt.staffId && apt.staffId !== "")
+                                      }
+                                    >
+                                      Assign Staff
+                                    </Button>
+                                  }
+                                />
                               )}
                               {(isAdmin || isStaff) && (
                                 <AlertDialog>

@@ -18,7 +18,6 @@ export function formatNumber(num: number): string {
   return num.toLocaleString('vi-VN')
 }
 
-// Format ngày giờ đầy đủ theo múi giờ Việt Nam (Asia/Ho_Chi_Minh)
 export function formatDateTime(date: string | Date): string {
   const d = typeof date === 'string' ? new Date(date) : date
   return d.toLocaleString('vi-VN', {
@@ -33,7 +32,6 @@ export function formatDateTime(date: string | Date): string {
   })
 }
 
-// Format ngày (không có giờ) theo múi giờ Việt Nam
 export function formatDate(date: string | Date): string {
   const d = typeof date === 'string' ? new Date(date) : date
   return d.toLocaleDateString('vi-VN', {
@@ -44,7 +42,6 @@ export function formatDate(date: string | Date): string {
   })
 }
 
-// Format ngày dạng đầy đủ (ví dụ: Thứ Hai, 11 tháng 11, 2025)
 export function formatDateFull(date: string | Date): string {
   const d = typeof date === 'string' ? new Date(date) : date
   return d.toLocaleDateString('vi-VN', {

@@ -18,7 +18,7 @@ export default function WorkshiftsManager() {
   const [workshifts, setWorkshifts] = useState<WorkshiftRecord[]>([])
   const [centers, setCenters] = useState<CenterRecord[]>([])
   const [search, setSearch] = useState("")
-  const [centerFilter, setCenterFilter] = useState<string>("all")
+  const [centerFilter, setCenterFilter] = useState<string>("")
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const limit = 20
@@ -32,12 +32,17 @@ export default function WorkshiftsManager() {
     setLoading(true)
     try {
       const api = getApiClient()
-      const [ws, cs] = await Promise.all([
-        api.getWorkshifts({ center_id: centerFilter !== "all" ? centerFilter : undefined, page: currentPage, limit }),
-        api.getCenters({ page: 1, limit: 200 }),
-      ])
-      setWorkshifts(ws)
+      const cs = await api.getCenters({ page: 1, limit: 200 })
       setCenters(cs.data.centers)
+      
+      // Set first center as default if not set
+      const filterToUse = centerFilter || cs.data.centers[0]?._id
+      if (!centerFilter && cs.data.centers[0]) {
+        setCenterFilter(cs.data.centers[0]._id)
+      }
+      
+      const ws = await api.getWorkshifts({ center_id: filterToUse, page: currentPage, limit })
+      setWorkshifts(ws)
       // Assume we need to calculate total pages (API might return total)
       setTotalPages(Math.ceil(ws.length / limit) || 1)
     } catch (e: any) {
@@ -50,12 +55,12 @@ export default function WorkshiftsManager() {
   useEffect(() => { load() }, [load])
 
   const filtered = useMemo(() => {
+    // Center filter already applied server-side in load(), only filter search client-side
     return workshifts.filter(ws => {
       const matchSearch = !search || ws.shift_id.toLowerCase().includes(search.toLowerCase())
-      const matchCenter = centerFilter === "all" || ws.center_id === centerFilter
-      return matchSearch && matchCenter
+      return matchSearch
     })
-  }, [workshifts, search, centerFilter])
+  }, [workshifts, search])
 
   const onCreate = () => { setEditing(null); setDialogOpen(true) }
   const onEdit = (ws: WorkshiftRecord) => { setEditing(ws); setDialogOpen(true) }
@@ -77,13 +82,13 @@ export default function WorkshiftsManager() {
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
   <CardTitle>Work Shift Management</CardTitle>
         <div className="flex gap-2">
-          <Input placeholder="Search by shift code" value={search} onChange={(e) => setSearch(e.target.value)} className="w-52" />
+          {/* <Input placeholder="Search by shift code" value={search} onChange={(e) => setSearch(e.target.value)} className="w-52" /> */}
           <Select value={centerFilter} onValueChange={setCenterFilter}>
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Filter center" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All centers</SelectItem>
+              {/* <SelectItem value="all">All centers</SelectItem> */}
               {centers.map(c => <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>)}
             </SelectContent>
           </Select>
@@ -98,7 +103,7 @@ export default function WorkshiftsManager() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Shift Code</TableHead>
+                {/* <TableHead>Shift Code</TableHead> */}
                 <TableHead>Date</TableHead>
                 <TableHead>Time</TableHead>
                 <TableHead>Status</TableHead>
@@ -112,7 +117,7 @@ export default function WorkshiftsManager() {
                 const dateLabel = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
                 return (
                   <TableRow key={ws._id}>
-                    <TableCell className="font-medium">{ws.shift_id}</TableCell>
+                    {/* <TableCell className="font-medium">{ws.shift_id}</TableCell> */}
                     <TableCell>{dateLabel}</TableCell>
                     <TableCell>{ws.start_time} - {ws.end_time}</TableCell>
                     <TableCell>
