@@ -255,7 +255,12 @@ export default function VehiclesPage() {
                                 vehicleId={v._id}
                                 vehicleName={v.vehicleName}
                                 trigger={
-                                  <Button variant="ghost" size="icon" title="Assign vehicle to customer">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    title="Assign vehicle to customer"
+                                    disabled={!!(typeof v.customerId === "object" && v.customerId)}
+                                  >
                                     <UserPlus className="h-4 w-4 text-blue-600" />
                                   </Button>
                                 }

@@ -38,16 +38,16 @@ const technicianNav = [
     url: "/technician/shifts",
     icon: Calendar,
   },
-  {
-    title: "Service Centers",
-    url: "/centers",
-    icon: MapPin,
-  },
-  {
-    title: "Center Inventory",
-    url: "/center-auto-parts",
-    icon: Package,
-  },
+  // {
+  //   title: "Service Centers",
+  //   url: "/centers",
+  //   icon: MapPin,
+  // },
+  // {
+  //   title: "Center Inventory",
+  //   url: "/center-auto-parts",
+  //   icon: Package,
+  // },
 ]
 
 const customerNav = [
@@ -64,31 +64,31 @@ const staffNav = [
     url: "/appointments",
     icon: Calendar,
   },
-  {
-    title: "Shift Calendar",
-    url: "/shift-assignments",
-    icon: Calendar,
-  },
-  {
-    title: "Workshifts",
-    url: "/workshifts",
-    icon: Calendar,
-  },
+  // {
+  //   title: "Shift Calendar",
+  //   url: "/shift-assignments",
+  //   icon: Calendar,
+  // },
+  // {
+  //   title: "Workshifts",
+  //   url: "/workshifts",
+  //   icon: Calendar,
+  // },
   {
     title: "Service Records",
     url: "/service-records",
     icon: FileText,
   },
-  {
-    title: "Customers",
-    url: "/customers",
-    icon: Users,
-  },
-  {
-    title: "Vehicles",
-    url: "/vehicles",
-    icon: Car,
-  },
+  // {
+  //   title: "Customers",
+  //   url: "/customers",
+  //   icon: Users,
+  // },
+  // {
+  //   title: "Vehicles",
+  //   url: "/vehicles",
+  //   icon: Car,
+  // },
   {
     title: "Inventory",
     url: "/inventory",
@@ -109,16 +109,16 @@ const staffNav = [
     url: "/center-auto-parts",
     icon: Package,
   },
-  {
-    title: "Service Packages",
-    url: "/service-packages",
-    icon: Package
-  },
-  {
-    title: "Vehicle Subscriptions",
-    url: "/vehicle-subscriptions",
-    icon: Car
-  },
+  // {
+  //   title: "Service Packages",
+  //   url: "/service-packages",
+  //   icon: Package
+  // },
+  // {
+  //   title: "Vehicle Subscriptions",
+  //   url: "/vehicle-subscriptions",
+  //   icon: Car
+  // },
   {
     title: "Chat",
     url: "/chat",

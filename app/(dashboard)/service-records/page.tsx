@@ -43,6 +43,7 @@ export default function ServiceRecordsPage() {
   const isAdmin = useIsAdmin()
   const isStaff = useIsStaff()
   const { user } = useAuth()
+  const isTechnician = !isAdmin && !isStaff
 
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -219,6 +220,9 @@ export default function ServiceRecordsPage() {
       await api.updateServiceRecord(id, updatePayload)
       setRecords(prev => prev.map(r => r._id === id ? { ...r, status: newStatus, ...updatePayload } : r))
       toast.success(`Status changed to ${statusLabels[newStatus as keyof typeof statusLabels] || newStatus}`)
+      
+      // Reload current tab to update counts and data
+      await load(currentPage, activeTab)
     } catch (e: any) {
       toast.error(e?.message || "Failed to update status")
     } finally {
@@ -331,7 +335,7 @@ export default function ServiceRecordsPage() {
                       <TableHead>End Time</TableHead>
                       <TableHead>Description</TableHead>
                       <TableHead>Status</TableHead>
-                      {(isAdmin || isStaff) && <TableHead>Change Status</TableHead>}
+                      {isTechnician && <TableHead>Change Status</TableHead>}
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -364,7 +368,7 @@ export default function ServiceRecordsPage() {
                               {rec.status.replace("-", " ")}
                             </Badge>
                           </TableCell>
-                          {(isAdmin || isStaff) && (
+                          {isTechnician && (
                             <TableCell>
                               {(() => {
                                 const availableStatuses = getAvailableStatuses(rec.status as ServiceRecordStatus)
@@ -405,23 +409,28 @@ export default function ServiceRecordsPage() {
                           )}
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
-                              <ServiceDetailsDialog
-                                recordId={rec._id}
-                                trigger={
-                                  <Button variant="ghost" size="icon" title="Details">
-                                    <ListTree className="h-4 w-4" />
-                                  </Button>
-                                }
-                              />
-                              <RecordChecklistsDialog
-                                recordId={rec._id}
-                                trigger={
-                                  <Button variant="ghost" size="icon" title="Checklists">
-                                    <ClipboardCheck className="h-4 w-4" />
-                                  </Button>
-                                }
-                              />
-                              <ServiceRecordDialog
+                              {isTechnician && (
+                                <>
+                                  {/* <ServiceDetailsDialog
+                                    recordId={rec._id}
+                                    trigger={
+                                      <Button variant="ghost" size="icon" title="Details">
+                                        <ListTree className="h-4 w-4" />
+                                      </Button>
+                                    }
+                                  /> */}
+                                  <RecordChecklistsDialog
+                                    recordId={rec._id}
+                                    trigger={
+                                      <Button variant="ghost" size="icon" title="Checklists">
+                                        <ClipboardCheck className="h-4 w-4" />
+                                      </Button>
+                                    }
+                                  />
+                                </>
+                              )}
+                              {(isAdmin || isStaff) && (
+                                <ServiceRecordDialog
                                 record={rec}
                                 onUpdated={handleUpdated}
                                 trigger={
@@ -429,7 +438,7 @@ export default function ServiceRecordsPage() {
                                     <Pencil className="h-4 w-4" />
                                   </Button>
                                 }
-                              />
+                              />)}
                               {isAdmin && (
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>

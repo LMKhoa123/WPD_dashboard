@@ -116,7 +116,7 @@ export default function SlotsManagementPage() {
                 <CardTitle>Slots List</CardTitle>
                 <CardDescription>Select a center to view slots</CardDescription>
               </div>
-              <div className="w-[300px]">
+              <div className="w-48">
                 <Select value={selectedCenter} onValueChange={setSelectedCenter}>
                   <SelectTrigger>
                     <SelectValue placeholder="Chọn trung tâm" />
