@@ -796,6 +796,34 @@ export interface ForecastInfoResponse {
   totalPages?: number
 }
 
+// Urgent Parts response for a center
+export interface UrgentPartAnalysis {
+  riskLevel: "HIGH" | "MEDIUM" | "LOW"
+  title: string
+  content: string
+  suggestedOrderQty: number
+}
+
+export interface UrgentPartItem {
+  _id: string
+  center_id: string | CenterRecord
+  part_id: string | AutoPartRecord
+  analysis: UrgentPartAnalysis
+  createdAt: string
+  updatedAt: string
+  __v?: number
+}
+
+export interface UrgentPartsResponse {
+  success: boolean
+  data: UrgentPartItem[]
+  total?: number
+  page?: number
+  limit?: number
+  totalPages?: number
+  message?: string
+}
+
 // Center Auto Parts (Inventory per center per part)
 export interface CenterAutoPartRecord {
   _id: string
@@ -1972,6 +2000,15 @@ export class ApiClient {
     const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
     if (!res.ok) throw new Error(await safeErrorMessage(res))
     return (await res.json()) as ForecastInfoResponse
+  }
+
+  // Forecast: get urgent parts for a center
+  async getUrgentParts(centerId: string, limit: number = 50): Promise<UrgentPartsResponse> {
+    const url = new URL(this.buildUrl(`/forecast/urgent/${centerId}`))
+    url.searchParams.set("limit", String(limit))
+    const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
+    if (!res.ok) throw new Error(await safeErrorMessage(res))
+    return (await res.json()) as UrgentPartsResponse
   }
 
   // Center Auto Parts: list
