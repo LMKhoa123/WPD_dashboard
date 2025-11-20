@@ -59,7 +59,14 @@ export default function TechnicianServiceRecordsPage() {
     
     try {
       setLoading(true)
-      const res = await api.getServiceRecords({ limit: 500 })
+      const params: any = { limit: 500 }
+      
+      // Filter by technician's center
+      if (user?.centerId) {
+        params.center_id = user.centerId
+      }
+      
+      const res = await api.getServiceRecords(params)
       const myRecords = res.data.records.filter(r => {
         const tid = typeof r.technician_id === 'string' ? r.technician_id : r.technician_id?._id
         return tid === technicianId

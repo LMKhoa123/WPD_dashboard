@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { getApiClient, type CenterAutoPartRecord, type ServiceDetailRecord, type CreateServiceDetailRequest, type UpdateServiceDetailRequest } from "@/lib/api"
 import { toast } from "sonner"
 import { Pencil, Trash2, Plus } from "lucide-react"
-import { useIsAdmin, useIsStaff, useRole } from "@/components/auth-provider"
+import { useAuth, useIsAdmin, useIsStaff, useRole } from "@/components/auth-provider"
 
 export interface ServiceDetailsDialogProps {
   recordId: string
@@ -34,6 +34,7 @@ export function ServiceDetailsDialog({ recordId, trigger }: ServiceDetailsDialog
 
   const api = useMemo(() => getApiClient(), [])
   
+  const { user } = useAuth()
   const isAdmin = useIsAdmin()
   const isStaff = useIsStaff()
   const role = useRole()
@@ -51,9 +52,16 @@ export function ServiceDetailsDialog({ recordId, trigger }: ServiceDetailsDialog
     if (!recordId) return
     try {
       setLoading(true)
+      const centerPartsParams: any = { page: 1, limit: 500 }
+      
+      // Filter by user's center for non-admin
+      if (user?.centerId) {
+        centerPartsParams.center_id = user.centerId
+      }
+      
       const [list, centerPartsRes] = await Promise.all([
         api.getServiceDetails({ page: 1, limit: 200, record_id: recordId }),
-        api.getCenterAutoParts({ page: 1, limit: 500 }),
+        api.getCenterAutoParts(centerPartsParams),
       ])
       setDetails(list.data.details)
       setCenterParts(centerPartsRes.data.items)
@@ -69,6 +77,22 @@ export function ServiceDetailsDialog({ recordId, trigger }: ServiceDetailsDialog
     else resetForm()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
+
+  // Auto-populate unit price when center part is selected
+  useEffect(() => {
+    if (!centerPartId || editing) return // Don't auto-fill when editing
+    
+    const selectedCenterPart = centerParts.find(cp => cp._id === centerPartId)
+    if (selectedCenterPart) {
+      const part = typeof selectedCenterPart.part_id === 'string' 
+        ? null 
+        : selectedCenterPart.part_id
+      
+      if (part && part.selling_price) {
+        setUnitPrice(String(part.selling_price))
+      }
+    }
+  }, [centerPartId, centerParts, editing])
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -171,8 +195,18 @@ export function ServiceDetailsDialog({ recordId, trigger }: ServiceDetailsDialog
                 <Input type="number" min="0" value={quantity} onChange={(e) => setQuantity(e.target.value)} required />
               </div>
               <div className="space-y-2">
-                <Label>Unit Price</Label>
-                <Input type="number" min="0" step="0.01" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} required />
+                <Label>Unit Price (from Auto Part)</Label>
+                <Input 
+                  type="number" 
+                  min="0" 
+                  step="0.01" 
+                  value={unitPrice} 
+                  onChange={(e) => setUnitPrice(e.target.value)} 
+                  disabled={!editing}
+                  className="bg-muted"
+                  placeholder="Auto-filled from part selling price"
+                  required 
+                />
               </div>
             </div>
 

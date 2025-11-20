@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner"
 import { Plus } from "lucide-react"
 import { getApiClient, type ServiceRecordRecord, type CreateServiceRecordRequest, type UpdateServiceRecordRequest, type AppointmentRecord, type SystemUserRecord } from "@/lib/api"
+import { useAuth } from "../auth-provider"
 
 export interface ServiceRecordDialogProps {
   record?: ServiceRecordRecord
@@ -39,7 +40,7 @@ export function ServiceRecordDialog({ record, trigger, onCreated, onUpdated }: S
   const [status, setStatus] = useState<string>("pending")
 
   const api = useMemo(() => getApiClient(), [])
-
+const { user } = useAuth()
   const [appointments, setAppointments] = useState<AppointmentRecord[]>([])
   const [technicians, setTechnicians] = useState<SystemUserRecord[]>([])
   const [loadingLists, setLoadingLists] = useState(false)
@@ -49,9 +50,18 @@ export function ServiceRecordDialog({ record, trigger, onCreated, onUpdated }: S
       const run = async () => {
         try {
           setLoadingLists(true)
+          const appointmentParams: any = { limit: 500 }
+          const userParams: any = { limit: 100 }
+          
+          // Filter by user's center for non-admin
+          if (user?.centerId) {
+            appointmentParams.center_id = user.centerId
+            userParams.centerId = user.centerId
+          }
+          
           const [apts, techs] = await Promise.all([
-            api.getAppointments({ limit: 500 }).then(r => r.data.appointments).catch(() => [] as AppointmentRecord[]),
-            api.getSystemUsers({ limit: 100 }).then(r => r.data.systemUsers).catch(() => [] as SystemUserRecord[]),
+            api.getAppointments(appointmentParams).then(r => r.data.appointments).catch(() => [] as AppointmentRecord[]),
+            api.getSystemUsers(userParams).then(r => r.data.systemUsers).catch(() => [] as SystemUserRecord[]),
           ])
           setAppointments(apts)
           setTechnicians(techs)

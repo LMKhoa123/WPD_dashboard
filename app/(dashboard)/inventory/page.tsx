@@ -11,14 +11,14 @@ import { getApiClient, type CenterAutoPartRecord, type CenterRecord, type AutoPa
 import { Search, Pencil, Trash2, Plus, AlertTriangle, Sparkles } from "lucide-react"
 import { ForecastResultsDialog } from "@/components/inventory/forecast-results-dialog"
 import { cn, formatVND } from "@/lib/utils"
-import { useIsAdmin } from "@/components/auth-provider"
+import { useAuth, useIsAdmin } from "@/components/auth-provider"
 import { toast } from "sonner"
 import { CenterAutoPartDialog } from "@/components/center-auto-parts/center-auto-part-dialog"
 
 export default function InventoryPage() {
   const isAdmin = useIsAdmin()
   const api = useMemo(() => getApiClient(), [])
-
+const { user } = useAuth()
   const [items, setItems] = useState<CenterAutoPartRecord[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -37,10 +37,17 @@ export default function InventoryPage() {
   const load = useCallback(async () => {
     try {
       setLoading(true)
+      const centerAutoPartsParams: any = { page: 1, limit: 200 }
+      
+      // Filter by user's center for non-admin
+      if (!isAdmin && user?.centerId) {
+        centerAutoPartsParams.center_id = user.centerId
+      }
+      
       const [centersRes, partsRes, listRes] = await Promise.all([
         api.getCenters({ limit: 200 }).then(r => r.data.centers),
         api.getAutoParts(1, 200).then(r => r.data.parts),
-        api.getCenterAutoParts({ page: 1, limit: 200 }),
+        api.getCenterAutoParts(centerAutoPartsParams),
       ])
       setCenters(centersRes)
       setParts(partsRes)

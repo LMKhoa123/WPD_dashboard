@@ -56,7 +56,7 @@ export default function AdminHomePage() {
           <Tile href="/appointments" icon={Calendar} label="Appointments & Intake" />
           <Tile href="/shift-assignments" icon={Calendar} label="Shift Assignments" />
           <Tile href="/service-records" icon={FileText} label="Service Records" />
-          <Tile href="/service-records/board" icon={FileText} label="Status Board (Kanban)" />
+          {/* <Tile href="/service-records/board" icon={FileText} label="Status Board (Kanban)" /> */}
           <Tile href="/chat" icon={MessageSquare} label="Live Chat with Customers" />
         </Section>
 

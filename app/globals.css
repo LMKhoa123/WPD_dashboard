@@ -131,8 +131,23 @@
   * {
     @apply border-border outline-ring/50;
   }
+  
+  html {
+    overflow-y: scroll !important;
+    overflow-x: hidden;
+  }
+  
   body {
     @apply bg-background text-foreground;
+    overflow-y: auto !important;
+    overflow-x: hidden;
+  }
+  
+  /* Prevent body scroll lock from Radix UI */
+  body[data-scroll-locked] {
+    overflow-y: auto !important;
+    margin-right: 0 !important;
+    padding-right: 0 !important;
   }
   
   /* Custom scrollbar styles */

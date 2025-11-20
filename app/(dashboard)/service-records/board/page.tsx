@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle2, AlertCircle, Clock, RefreshCw, Search } from "lucide-react"
 import { toast } from "sonner"
+import { useAuth, useIsAdmin } from "@/components/auth-provider"
 
 type ColKey = "pending" | "in-progress" | "completed" | "cancelled"
 
@@ -18,11 +19,19 @@ export default function ServiceStatusBoardPage() {
   const [records, setRecords] = useState<ServiceRecordRecord[]>([])
   const [q, setQ] = useState("")
   const [updatingId, setUpdatingId] = useState<string | null>(null)
-
+const { user } = useAuth()
+const isAdmin = useIsAdmin()
   const load = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await api.getServiceRecords({ limit: 500 })
+      const params: any = { limit: 500 }
+      
+      // Filter by center_id for non-admin
+      if (!isAdmin && user?.centerId) {
+        params.center_id = user.centerId
+      }
+      
+      const res = await api.getServiceRecords(params)
       setRecords(res.data.records)
     } catch (e: any) {
       toast.error(e?.message || "Failed to load service records")

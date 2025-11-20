@@ -73,7 +73,7 @@ export default function StaffDetailPage() {
       const api = getApiClient()
       await api.deleteSystemUser(systemUser._id)
       
-      toast.success("Xóa nhân viên thành công")
+      toast.success("Staff member deleted successfully")
       router.push("/staff")
     } catch (e: any) {
       toast.error(e?.message || "Failed to delete staff member")

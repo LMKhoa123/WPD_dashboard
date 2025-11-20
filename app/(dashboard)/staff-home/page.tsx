@@ -59,7 +59,7 @@ export default function StaffHomePage() {
         <Section title="2) Assignment & Queue Management" desc="Assign technicians by shift/schedule">
           <Tile href="/shift-assignments" icon={Timer} label="Shift Assignments" />
           <Tile href="/service-records" icon={FileText} label="Service Records" />
-          <Tile href="/service-records/board" icon={FileText} label="Status Board (Kanban)" />
+          {/* <Tile href="/service-records/board" icon={FileText} label="Status Board (Kanban)" /> */}
         </Section>
 
         <Section title="3) Checklist & Vehicle Status" desc="Record condition, EV checklist">

@@ -80,7 +80,7 @@ export default function VehicleDetailPage() {
       const api = getApiClient()
       await api.deleteVehicle(vehicle._id)
       
-      toast.success("Xóa xe thành công")
+      toast.success("Vehicle deleted successfully")
       router.push("/vehicles")
     } catch (e: any) {
       toast.error(e?.message || "Failed to delete vehicle")

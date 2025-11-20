@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react"
 import { getApiClient, type PaymentRecord } from "@/lib/api"
-import { useIsAdmin, useIsStaff } from "@/components/auth-provider"
+import { useAuth, useIsAdmin, useIsStaff } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -20,7 +20,7 @@ export default function PaymentsPage() {
   const isAdmin = useIsAdmin()
   const isStaff = useIsStaff()
   const api = useMemo(() => getApiClient(), [])
-
+const { user } = useAuth()
   const [items, setItems] = useState<PaymentRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [cancelCode, setCancelCode] = useState<number | null>(null)
@@ -33,7 +33,14 @@ export default function PaymentsPage() {
   const load = useCallback(async (page: number) => {
     try {
       setLoading(true)
-      const res = await api.getPayments({ page, limit })
+      const params: any = { page, limit }
+      
+      // Filter by user's center for non-admin
+      if (user?.role !== 'Admin' && user?.centerId) {
+        params.center_id = user.centerId
+      }
+      
+      const res = await api.getPayments(params)
       setItems(res.data.payments)
       setTotalItems(res.data.total || res.data.payments.length)
       setTotalPages(Math.ceil((res.data.total || res.data.payments.length) / limit))
