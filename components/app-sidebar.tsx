@@ -1,7 +1,7 @@
 "use client"
 
 import type * as React from "react"
-import { LayoutDashboard, Calendar, Users, Car, Package, UserCog, FileText, Zap, MessageSquare, MapPin, ClipboardCheck, Wrench, CreditCard, Clock } from "lucide-react"
+import { LayoutDashboard, Calendar, Users, Car, Package, UserCog, FileText, Zap, MessageSquare, MapPin, ClipboardCheck, Wrench, CreditCard, Clock, Receipt } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -100,19 +100,24 @@ const staffNav = [
     icon: CreditCard,
   },
   {
+    title: "Invoices",
+    url: "/invoices",
+    icon: Receipt,
+  },
+  {
     title: "Center Inventory",
     url: "/center-auto-parts",
     icon: Package,
   },
-  { 
-    title: "Service Packages", 
-    url: "/service-packages", 
-    icon: Package 
+  {
+    title: "Service Packages",
+    url: "/service-packages",
+    icon: Package
   },
-  { 
-    title: "Vehicle Subscriptions", 
-    url: "/vehicle-subscriptions", 
-    icon: Car 
+  {
+    title: "Vehicle Subscriptions",
+    url: "/vehicle-subscriptions",
+    icon: Car
   },
   {
     title: "Chat",
@@ -122,8 +127,8 @@ const staffNav = [
 ]
 
 const adminNav = [
-  
-   {
+
+  {
     title: "Workshifts",
     url: "/workshifts",
     icon: Calendar,
@@ -138,7 +143,7 @@ const adminNav = [
     url: "/shift-assignments",
     icon: Calendar,
   },
- {
+  {
     title: "Appointments",
     url: "/appointments",
     icon: Calendar,
@@ -148,7 +153,7 @@ const adminNav = [
     url: "/service-records",
     icon: FileText,
   },
-    
+
   {
     title: "Vehicles",
     url: "/vehicles",
@@ -165,58 +170,63 @@ const adminNav = [
     url: "/inventory",
     icon: Package,
   },
-  { 
-    title: "Service Packages", 
-    url: "/service-packages", 
-    icon: Package 
+  {
+    title: "Service Packages",
+    url: "/service-packages",
+    icon: Package
   },
-  { 
-    title: "Vehicle Subscriptions", 
-    url: "/vehicle-subscriptions", 
-    icon: Car 
+  {
+    title: "Vehicle Subscriptions",
+    url: "/vehicle-subscriptions",
+    icon: Car
   },
-  { 
-    title: "Service Centers", 
-    url: "/centers", 
-    icon: MapPin 
+  {
+    title: "Service Centers",
+    url: "/centers",
+    icon: MapPin
   },
-  { 
-    title: "Auto Parts", 
-    url: "/auto-parts", 
-    icon: Wrench 
+  {
+    title: "Auto Parts",
+    url: "/auto-parts",
+    icon: Wrench
   },
-  { 
-    title: "Center Inventory", 
-    url: "/center-auto-parts", 
-    icon: Package, 
+  {
+    title: "Center Inventory",
+    url: "/center-auto-parts",
+    icon: Package,
   },
-  { 
-    title: "Users", 
-    url: "/users", 
-    icon: Users 
+  {
+    title: "Users",
+    url: "/users",
+    icon: Users
   },
   {
     title: "Customers",
     url: "/customers",
     icon: Users,
   },
-  { 
-    title: "Staff", 
-    url: "/staff", 
-    icon: UserCog 
+  {
+    title: "Staff",
+    url: "/staff",
+    icon: UserCog
   },
-  
+
   {
     title: "Payments",
     url: "/payments",
     icon: CreditCard,
   },
-  { 
-    title: "Reports", 
-    url: "/reports", 
-    icon: FileText 
+  {
+    title: "Invoices",
+    url: "/invoices",
+    icon: Receipt,
   },
- 
+  {
+    title: "Reports",
+    url: "/reports",
+    icon: FileText
+  },
+
 ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {

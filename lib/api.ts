@@ -307,7 +307,7 @@ export interface UpdateCenterRequest {
 }
 
 // Appointments
-export type AppointmentStatus = "pending" |  "in-progress" | "completed" | "cancelled"
+export type AppointmentStatus = "pending" | "in-progress" | "completed" | "cancelled"
 
 export interface AppointmentRecord {
   _id: string
@@ -2105,7 +2105,54 @@ export class ApiClient {
   async cancelPayment(orderCode: number | string): Promise<{ success: boolean; message?: string; data?: any }> {
     return this.fetchJson<{ success: boolean; message?: string; data?: any }>(`/payments/cancel/${orderCode}`, { method: "PUT", body: JSON.stringify({}) })
   }
-  
+
+  // Invoices: get all (with filters and pagination)
+  async getInvoices(params?: { page?: number; limit?: number; payment_id?: string; status?: InvoiceStatus }): Promise<InvoicesListResponse> {
+    const url = new URL(this.buildUrl("/invoices"))
+    if (params?.page) url.searchParams.set("page", String(params.page))
+    if (params?.limit) url.searchParams.set("limit", String(params.limit))
+    if (params?.payment_id) url.searchParams.set("payment_id", params.payment_id)
+    if (params?.status) url.searchParams.set("status", params.status)
+    const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
+    if (!res.ok) throw new Error(await safeErrorMessage(res))
+    return (await res.json()) as InvoicesListResponse
+  }
+
+  // Invoices: get by id
+  async getInvoiceById(id: string): Promise<InvoiceRecord> {
+    const res = await this.fetchJson<InvoiceResponse>(`/invoices/${id}`, { method: "GET" })
+    return res.data
+  }
+
+  // Invoices: get by payment id
+  async getInvoiceByPaymentId(paymentId: string): Promise<InvoiceRecord> {
+    const res = await this.fetchJson<InvoiceResponse>(`/invoices/payment/${paymentId}`, { method: "GET" })
+    return res.data
+  }
+
+  // Invoices: create
+  async createInvoice(payload: CreateInvoiceRequest): Promise<InvoiceRecord> {
+    const res = await this.fetchJson<InvoiceResponse>(`/invoices`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+    return res.data
+  }
+
+  // Invoices: update
+  async updateInvoice(id: string, payload: UpdateInvoiceRequest): Promise<InvoiceRecord> {
+    const res = await this.fetchJson<InvoiceResponse>(`/invoices/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    })
+    return res.data
+  }
+
+  // Invoices: delete
+  async deleteInvoice(id: string): Promise<void> {
+    await this.fetchJson(`/invoices/${id}`, { method: "DELETE" })
+  }
+
   // Statistics APIs
   async getTotalRevenue(): Promise<number> {
     const res = await this.fetchJson<TotalRevenueResponse>(`/statistics/revenue/total`, { method: "GET" })
@@ -2145,8 +2192,57 @@ export class ApiClient {
     const res = await this.fetchJson<SubscriptionCountByPackageResponse>(`/statistics/subscriptions/count-by-package${query}`, { method: "GET" })
     return res.data
   }
-  
+
   // getNotifications removed: notifications now delivered only via websocket events
+}
+
+// Invoice types and APIs
+export type InvoiceType = 'Subscription Package' | 'Service Completion'
+export type InvoiceStatus = 'pending' | 'issued' | 'cancelled'
+
+export interface InvoiceRecord {
+  _id: string
+  payment_id: string | PaymentRecord
+  invoiceType: InvoiceType
+  minusAmount: number // Discount percentage (0-100)
+  totalAmount: number
+  status: InvoiceStatus
+  createdAt: string
+  updatedAt: string
+  __v?: number
+  // Related data from backend: array of service details or subscription object based on payment_type
+  data?: ServiceDetailRecord[] | VehicleSubscriptionRecord
+}
+
+export interface InvoicesListResponse {
+  success: boolean
+  data: {
+    invoices: InvoiceRecord[]
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
+
+export interface InvoiceResponse {
+  success: boolean
+  data: InvoiceRecord
+}
+
+export interface CreateInvoiceRequest {
+  payment_id: string
+  invoiceType: InvoiceType
+  minusAmount: number
+  totalAmount: number
+  status?: InvoiceStatus
+}
+
+export interface UpdateInvoiceRequest {
+  invoiceType?: InvoiceType
+  minusAmount?: number
+  totalAmount?: number
+  status?: InvoiceStatus
 }
 
 // Subscription types and APIs

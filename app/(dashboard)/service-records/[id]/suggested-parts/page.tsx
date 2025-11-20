@@ -59,10 +59,13 @@ export default function SuggestedPartsPage() {
 
             const existingLines: LineState[] = existingDetails.map((d: ServiceDetailRecord) => {
                 const centerpartId = typeof d.centerpart_id === "string" ? d.centerpart_id : (d.centerpart_id as any)?._id
+                const partName = typeof d.centerpart_id === "object" && d.centerpart_id?.part_id
+                    ? (typeof d.centerpart_id.part_id === "object" ? d.centerpart_id.part_id.name : "Added Part")
+                    : "Added Part"
                 return {
                     center_auto_part_id: centerpartId || "",
                     auto_part_id: "",
-                    name: d.description || "Added Part",
+                    name: partName,
                     selling_price: Number(d.unit_price ?? 0),
                     center_stock: 0,
                     total_suggested_quantity: 0,
@@ -172,11 +175,11 @@ export default function SuggestedPartsPage() {
             await api.createServiceDetail({
                 record_id: recordId,
                 centerpart_id: l.center_auto_part_id,
-                description: undefined as any, 
+                description: undefined as any,
                 quantity: l.quantity,
-                unit_price: undefined as any, 
+                unit_price: undefined as any,
             } as any)
-            
+
             setLines((prev) => prev.map((x) => x.center_auto_part_id === l.center_auto_part_id ? { ...x, confirmed: true } : x))
             toast.success("Confirmed part line")
             await run()
@@ -391,14 +394,38 @@ export default function SuggestedPartsPage() {
                     })}
 
                     <Separator />
+
+                    {/* Confirmed Items Summary */}
+                    {lines.filter(l => l.confirmed).length > 0 && (
+                        <div className="space-y-2 text-sm">
+                            <div className="font-semibold mb-2">Confirmed Items:</div>
+                            {lines.filter(l => l.confirmed).map((l) => {
+                                const paidQty = l.detail?.paid_qty ?? l.quantity
+                                const lineTotal = paidQty * l.selling_price
+                                return (
+                                    <div key={l.center_auto_part_id} className="flex items-center justify-between">
+                                        <span className="flex-1">{l.name}</span>
+                                        <span className="text-muted-foreground mx-2">({paidQty}x {VND(l.selling_price)})</span>
+                                        <span className="font-medium w-24 text-right">{VND(lineTotal)}</span>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    )}
+
                     <div className="space-y-2 text-sm">
                         <div className="flex items-center justify-between">
                             <div>Labor</div>
                             <div className="font-medium">{VND(labor)}</div>
                         </div>
-                        <div className="flex items-center justify-between">
+                        <Separator />
+                        <div className="flex items-center justify-between text-sm ">
+                            <div>Subtotal (before discount)</div>
+                            <div>{VND(partsTotal + labor)}</div>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
                             <div>Discount{submittingId ? null : <span className="text-muted-foreground"> {discountPercent ? `(${discountPercent}%)` : ""}</span>}</div>
-                            <div className="font-medium">{VND(discount)}</div>
+                            <div className="font-medium text-green-600">-{VND(discount)}</div>
                         </div>
                         <Separator />
                         <div className="flex items-center justify-between text-base">
