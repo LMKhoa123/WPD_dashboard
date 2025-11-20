@@ -7,21 +7,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { CenterDialog } from "@/components/centers/center-dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Spinner } from "@/components/ui/spinner"
-import { useToast } from "@/components/ui/use-toast"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { AdminStaffTechnicianOnly } from "@/components/role-guards"
 import { useIsAdmin } from "@/components/auth-provider"
 import { formatDateTime } from "@/lib/utils"
 import { DataPagination } from "@/components/ui/data-pagination"
+import { toast } from "sonner"
 
 export default function ServiceCentersPage() {
   const [centers, setCenters] = useState<CenterRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const { toast } = useToast()
+
   const isAdmin = useIsAdmin()
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
@@ -37,7 +36,7 @@ export default function ServiceCentersPage() {
       setTotalItems(res.data.total || res.data.centers.length)
       setTotalPages(Math.ceil((res.data.total || res.data.centers.length) / limit))
     } catch (e: any) {
-      toast({ title: "Failed to load centers", description: e?.message || "Failed to load centers", variant: "destructive" })
+      toast.error(e?.message || "Failed to load centers")
     } finally {
       setLoading(false)
     }
@@ -60,9 +59,9 @@ export default function ServiceCentersPage() {
       setDeletingId(id)
       await api.deleteCenter(id)
       setCenters((prev) => prev.filter((ct) => ct._id !== id))
-      toast({ title: "Service center deleted" })
+      toast.success("Deleted successfully")
     } catch (e: any) {
-      toast({ title: "Delete failed", description: e?.message || "Failed to delete", variant: "destructive" })
+      toast.error(e?.message || "Failed to delete")
     } finally {
       setDeletingId(null)
     }

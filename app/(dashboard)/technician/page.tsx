@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react"
 import { getApiClient, type ServiceRecordRecord } from "@/lib/api"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Spinner } from "@/components/ui/spinner"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { Clock, CheckCircle2, AlertCircle, FileText } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
@@ -14,13 +14,11 @@ import { MyShiftsCalendar } from "@/components/technician/my-shifts-calendar"
 export default function TechnicianDashboardPage() {
   const [records, setRecords] = useState<ServiceRecordRecord[]>([])
   const [loading, setLoading] = useState(true)
-  const { toast } = useToast()
   const { user } = useAuth()
   const router = useRouter()
 
   const api = useMemo(() => getApiClient(), [])
 
-  // Get technician ID from profile
   const [technicianId, setTechnicianId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -29,11 +27,7 @@ export default function TechnicianDashboardPage() {
         const profile = await api.getProfile()
         setTechnicianId(profile.data._id)
       } catch (e: any) {
-        toast({ 
-          title: "Failed to load profile", 
-          description: e?.message || "Failed to load profile", 
-          variant: "destructive" 
-        })
+        toast.error(e?.message || "Failed to load profile")
       }
     }
     loadProfile()
@@ -45,18 +39,13 @@ export default function TechnicianDashboardPage() {
     try {
       setLoading(true)
       const res = await api.getServiceRecords({ limit: 500 })
-      // Filter records for this technician only
       const myRecords = res.data.records.filter(r => {
         const tid = typeof r.technician_id === 'string' ? r.technician_id : r.technician_id?._id
         return tid === technicianId
       })
       setRecords(myRecords)
     } catch (e: any) {
-      toast({ 
-        title: "Failed to load service records", 
-        description: e?.message || "Failed to load service records", 
-        variant: "destructive" 
-      })
+      toast.error(e?.message || "Failed to load service records")
     } finally {
       setLoading(false)
     }

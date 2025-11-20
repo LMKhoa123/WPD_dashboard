@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { getApiClient, type SuggestedPartItem } from "@/lib/api"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Package, Download } from "lucide-react"
@@ -18,7 +18,6 @@ export function AllSuggestedPartsDialog({ recordId, trigger }: AllSuggestedParts
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [parts, setParts] = useState<SuggestedPartItem[]>([])
-  const { toast } = useToast()
   const api = useMemo(() => getApiClient(), [])
 
   useEffect(() => {
@@ -29,12 +28,8 @@ export function AllSuggestedPartsDialog({ recordId, trigger }: AllSuggestedParts
         const res = await api.getAllSuggestedParts(recordId)
         setParts(res.data || [])
       } catch (e: any) {
-        toast({ 
-          title: "Không tải được danh sách đề xuất", 
-          description: e?.message || "Failed to load suggested parts", 
-          variant: "destructive" 
-        })
-        setParts([]) // Set empty array on error
+        toast.error(e?.message || "Failed to load suggested parts")
+        setParts([])
       } finally {
         setLoading(false)
       }
@@ -53,9 +48,8 @@ export function AllSuggestedPartsDialog({ recordId, trigger }: AllSuggestedParts
   }, 0)
 
   const handleExport = () => {
-    // Simple export to text format (can be enhanced to CSV/PDF)
     const text = [
-      "DANH SÁCH LINH KIỆN ĐỀ XUẤT THAY THẾ",
+      "LIST OF SUGGESTED REPLACEMENT PARTS",
       "=" .repeat(60),
       "",
       ...parts.map(part => {
@@ -65,15 +59,15 @@ export function AllSuggestedPartsDialog({ recordId, trigger }: AllSuggestedParts
         const sellingPrice = partData?.selling_price || 0
         
         return `${partName}\n` +
-          `  Số lượng: ${part.quantity}\n` +
-          `  Giá vốn: ${costPrice.toLocaleString("vi-VN")} VNĐ/cái\n` +
-          `  Giá bán: ${sellingPrice.toLocaleString("vi-VN")} VNĐ/cái\n` +
-          `  Tổng giá bán: ${(sellingPrice * part.quantity).toLocaleString("vi-VN")} VNĐ\n`
+          `  Quantity: ${part.quantity}\n` +
+          `  Cost Price: ${costPrice.toLocaleString("vi-VN")} VND/unit\n` +
+          `  Selling Price: ${sellingPrice.toLocaleString("vi-VN")} VND/unit\n` +
+          `  Total Selling Price: ${(sellingPrice * part.quantity).toLocaleString("vi-VN")} VND\n`
       }),
       "",
       "=" .repeat(60),
-      `Tổng giá vốn: ${totalCost.toLocaleString("vi-VN")} VNĐ`,
-      `Tổng giá bán: ${totalSelling.toLocaleString("vi-VN")} VNĐ`,
+      `Total Cost: ${totalCost.toLocaleString("vi-VN")} VND`,
+      `Total Selling Price: ${totalSelling.toLocaleString("vi-VN")} VND`,
     ].join("\n")
 
     const blob = new Blob([text], { type: "text/plain" })
@@ -84,7 +78,7 @@ export function AllSuggestedPartsDialog({ recordId, trigger }: AllSuggestedParts
     a.click()
     URL.revokeObjectURL(url)
     
-    toast({ title: "Đã xuất file" })
+    toast.success("File exported")
   }
 
   return (
@@ -94,28 +88,28 @@ export function AllSuggestedPartsDialog({ recordId, trigger }: AllSuggestedParts
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
-            Linh kiện Technician đề xuất (cho Staff tạo Detail)
+            Suggested Parts by Technician (for Staff to create Service Detail)
           </DialogTitle>
           <DialogDescription>
-            Danh sách tất cả linh kiện được Technician đề xuất từ checklist. Staff xem để tạo Service Detail và chốt đơn.
+            List of all parts suggested by the Technician from the checklist. Staff can review to create Service Detail and finalize the order.
           </DialogDescription>
         </DialogHeader>
 
         <ScrollArea className="max-h-[500px]">
           {loading ? (
-            <div className="text-muted-foreground p-4">Đang tải...</div>
+            <div className="text-muted-foreground p-4">Loading...</div>
           ) : parts.length === 0 ? (
-            <div className="text-muted-foreground p-4">Chưa có linh kiện nào được đề xuất.</div>
+            <div className="text-muted-foreground p-4">No parts have been suggested yet.</div>
           ) : (
             <>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Tên linh kiện</TableHead>
-                    <TableHead className="text-center">Số lượng</TableHead>
-                    <TableHead className="text-right">Giá vốn/cái</TableHead>
-                    <TableHead className="text-right">Giá bán/cái</TableHead>
-                    <TableHead className="text-right">Tổng giá bán</TableHead>
+                    <TableHead>Part Name</TableHead>
+                    <TableHead className="text-center">Quantity</TableHead>
+                    <TableHead className="text-right">Cost Price/unit</TableHead>
+                    <TableHead className="text-right">Selling Price/unit</TableHead>
+                    <TableHead className="text-right">Total Selling Price</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -146,12 +140,12 @@ export function AllSuggestedPartsDialog({ recordId, trigger }: AllSuggestedParts
 
               <div className="border-t mt-4 pt-4 space-y-2 px-4">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Tổng giá vốn:</span>
-                  <span className="font-medium">{totalCost.toLocaleString("vi-VN")} VNĐ</span>
+                  <span className="text-muted-foreground">Total Cost:</span>
+                  <span className="font-medium">{totalCost.toLocaleString("vi-VN")} VND</span>
                 </div>
                 <div className="flex justify-between text-lg font-bold">
-                  <span>Tổng giá bán:</span>
-                  <span className="text-primary">{totalSelling.toLocaleString("vi-VN")} VNĐ</span>
+                  <span>Total Selling Price:</span>
+                  <span className="text-primary">{totalSelling.toLocaleString("vi-VN")} VND</span>
                 </div>
               </div>
             </>
@@ -162,11 +156,11 @@ export function AllSuggestedPartsDialog({ recordId, trigger }: AllSuggestedParts
           {parts.length > 0 && (
             <Button variant="outline" onClick={handleExport}>
               <Download className="h-4 w-4 mr-2" />
-              Xuất file
+              Export file
             </Button>
           )}
           <Button variant="outline" onClick={() => setOpen(false)}>
-            Đóng
+            Close
           </Button>
         </DialogFooter>
       </DialogContent>

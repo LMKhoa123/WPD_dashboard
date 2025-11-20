@@ -3,13 +3,12 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
 import type { AuthUser, UserRole } from "@/src/types"
 import { ApiClient, loadTokens, saveTokens, setGlobalApiClient, type Tokens } from "@/lib/api"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 
 interface AuthContextValue {
   user: AuthUser | null
   loading: boolean
-  // identifier can be either email or phone number
   loginWithCredentials: (identifier: string, password: string) => Promise<void>
   register: (email: string, password: string, role: UserRole, centerId: string) => Promise<void>
   logout: () => Promise<void>
@@ -20,7 +19,6 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 const USER_KEY = "evsc:user"
 
-// Map API role (e.g., "ADMIN") to UI role type ("Admin")
 function mapApiRoleToUi(role: string | undefined | null): UserRole {
   switch (role) {
     case "ADMIN":
@@ -30,7 +28,6 @@ function mapApiRoleToUi(role: string | undefined | null): UserRole {
     case "TECHNICIAN":
       return "Technician"
     default:
-      // Explicitly treat unknowns as Customer; backend may send "CUSTOMER"
       return "Customer"
   }
 }
@@ -46,31 +43,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
-  // Create API client with redirect callback
   const api = useMemo(
     () =>
       new ApiClient({
         getTokens: loadTokens,
         setTokens: saveTokens,
         onUnauthorized: () => {
-          // Clear user state
           setUser(null)
           try {
             localStorage.removeItem(USER_KEY)
           } catch {}
-          // Redirect to login
           router.replace("/login")
-          toast({
-            title: "Phiên đăng nhập hết hạn",
-            description: "Vui lòng đăng nhập lại",
-            variant: "destructive",
-          })
+          toast.warning("Session expired. Please log in again.")
         },
       }),
     [router]
   )
 
-  // Set as global API client
   useEffect(() => {
     setGlobalApiClient(api)
   }, [api])
@@ -88,30 +77,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const tokens = loadTokens()
         
         if (!tokens) {
-          // No tokens found, clear user
           localStorage.removeItem(USER_KEY)
           setLoading(false)
           return
         }
 
-        // Check if access token is expired or about to expire
         const now = Date.now()
         const isAccessTokenExpired = tokens.accessTokenExpiresAt <= now
 
         if (isAccessTokenExpired) {
-          // Try to refresh the token
           try {
             await api.refreshToken()
-            // Refresh successful, restore user
             setUser(storedUser)
           } catch (error) {
-            // Refresh failed - token is invalid
             console.error("Failed to refresh token on mount:", error)
             localStorage.removeItem(USER_KEY)
-            // Token will be cleared by handleUnauthorized in api.refreshToken
           }
         } else {
-          // Access token is still valid; refresh profile to update centerId if missing
           try {
             const profile = await api.getProfile()
             const centerId: string | null = (profile?.data as any)?.centerId ?? storedUser?.centerId ?? null
@@ -145,19 +127,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await api.login({ identifier, password })
       const role = mapApiRoleToUi(res.data.role)
-      // Fetch profile to obtain centerId
       let centerId: string | null = null
       try {
         const profile = await api.getProfile()
         centerId = (profile?.data as any)?.centerId ?? null
       } catch {}
-      // Derive a display name: if identifier looks like email use part before @ else use full identifier
       const name = identifier.includes("@") ? identifier.split("@")[0] : identifier
-      // Store identifier in email field; also persist centerId
       persistUser({ name, email: identifier, role, centerId })
-      toast({ title: "Đăng nhập thành công", description: res.message })
+      toast.success(res.message)
     } catch (e: any) {
-      toast({ title: "Đăng nhập thất bại", description: e?.message || "Login error" })
+      toast.error(e?.message || "Login error")
       throw e
     }
   }
@@ -166,9 +145,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const roleApi = mapUiRoleToApi(role)
       const res = await api.register({ email, password, role: roleApi, centerId })
-      toast({ title: "Đăng ký thành công", description: res.message })
+      toast.success(res.message)
     } catch (e: any) {
-      toast({ title: "Đăng ký thất bại", description: e?.message || "Register error" })
+      toast.error(e?.message || "Register error")
       throw e
     }
   }
@@ -177,7 +156,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await api.logout()
     } finally {
-      // Clear user regardless of API result
       persistUser(null)
     }
   }
@@ -192,13 +170,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [user, loading]
   )
   
-  // Show loading screen while checking auth
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
-          <p className="text-muted-foreground">Đang tải...</p>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     )

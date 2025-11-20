@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
 export interface ForecastInfoDialogProps {
@@ -19,7 +19,6 @@ export interface ForecastInfoDialogProps {
 
 export function ForecastInfoDialog({ open, onOpenChange, centerId, partId }: ForecastInfoDialogProps) {
     const api = useMemo(() => getApiClient(), [])
-    const { toast } = useToast()
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [result, setResult] = useState<ForecastResultItem | null>(null)
@@ -44,13 +43,13 @@ export function ForecastInfoDialog({ open, onOpenChange, centerId, partId }: For
             } catch (e: any) {
                 const msg = e?.message || "Failed to load forecast"
                 setError(msg)
-                toast({ title: "Không tải được forecast", description: msg, variant: "destructive" })
+                toast.error(msg)
             } finally {
                 setLoading(false)
             }
         }
         fetchData()
-    }, [open, centerId, partId, page, api, toast])
+    }, [open, centerId, partId, page, api])
 
     useEffect(() => {
         if (!open) {

@@ -7,14 +7,13 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { getApiClient, type CenterRecord, type WorkshiftRecord } from "@/lib/api"
 import { WorkshiftDialog } from "./workshift-dialog"
 import { GenerateSlotsDialog } from "./generate-slots-dialog"
 import { DataPagination } from "@/components/ui/data-pagination"
 
 export default function WorkshiftsManager() {
-  const { toast } = useToast()
   const [loading, setLoading] = useState(true)
   const [workshifts, setWorkshifts] = useState<WorkshiftRecord[]>([])
   const [centers, setCenters] = useState<CenterRecord[]>([])
@@ -42,11 +41,11 @@ export default function WorkshiftsManager() {
       // Assume we need to calculate total pages (API might return total)
       setTotalPages(Math.ceil(ws.length / limit) || 1)
     } catch (e: any) {
-  toast({ title: "Failed to load work shifts", description: e?.message || "Error", variant: "destructive" })
+  toast.error("Failed to load work shifts. Please try again.")
     } finally {
       setLoading(false)
     }
-  }, [toast, centerFilter, currentPage])
+  }, [centerFilter, currentPage])
 
   useEffect(() => { load() }, [load])
 
@@ -66,10 +65,10 @@ export default function WorkshiftsManager() {
     try {
       const api = getApiClient()
       await api.deleteWorkshift(ws._id)
-  toast({ title: "Shift deleted" })
+  toast.success("Shift deleted")
       await load()
     } catch (e: any) {
-  toast({ title: "Delete failed", description: e?.message || "Error", variant: "destructive" })
+  toast.error("Delete failed. Please try again.")
     }
   }
 

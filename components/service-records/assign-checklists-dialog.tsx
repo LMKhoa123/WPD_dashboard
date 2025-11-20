@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { getApiClient, type ServiceChecklistRecord } from "@/lib/api"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 
@@ -21,7 +21,6 @@ export function AssignChecklistsDialog({ recordId, trigger, onAssigned }: Assign
   const [templates, setTemplates] = useState<ServiceChecklistRecord[]>([])
   const [selected, setSelected] = useState<Record<string, boolean>>({})
   const [note, setNote] = useState("")
-  const { toast } = useToast()
   const api = useMemo(() => getApiClient(), [])
 
   useEffect(() => {
@@ -32,13 +31,13 @@ export function AssignChecklistsDialog({ recordId, trigger, onAssigned }: Assign
         const res = await api.getServiceChecklists(1, 200)
         setTemplates(res.data.checklists)
       } catch (e: any) {
-        toast({ title: "Không tải được checklist", description: e?.message || "Failed to load checklists", variant: "destructive" })
+        toast.error(e?.message || "Failed to load checklists" )
       } finally {
         setLoading(false)
       }
     }
     run()
-  }, [open, api, toast])
+  }, [open, api])
 
   const toggle = (id: string) => setSelected((prev) => ({ ...prev, [id]: !prev[id] }))
 
@@ -48,15 +47,14 @@ export function AssignChecklistsDialog({ recordId, trigger, onAssigned }: Assign
     if (ids.length === 0) return
     try {
       setSubmitting(true)
-      // When first creating, suggest should be empty array
       await api.createRecordChecklists({ record_id: recordId, checklist_ids: ids, status: "pending", note, suggest: [] })
-      toast({ title: "Đã gán checklist" })
+      toast.success("Assigned checklist")
       setOpen(false)
       setSelected({})
       setNote("")
       onAssigned?.()
     } catch (e: any) {
-      toast({ title: "Gán thất bại", description: e?.message || "Failed to assign", variant: "destructive" })
+      toast.error(e?.message || "Failed to assign checklist")
     } finally {
       setSubmitting(false)
     }
@@ -68,14 +66,14 @@ export function AssignChecklistsDialog({ recordId, trigger, onAssigned }: Assign
       <DialogContent>
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Gán checklist cho hồ sơ</DialogTitle>
-            <DialogDescription>Chọn một hoặc nhiều mẫu checklist để áp dụng cho hồ sơ dịch vụ này.</DialogDescription>
+            <DialogTitle>Assign checklist to service record</DialogTitle>
+            <DialogDescription>Select one or more checklist templates to apply to this service record.</DialogDescription>
           </DialogHeader>
           <div className="max-h-72 overflow-auto space-y-3 py-3">
             {loading ? (
-              <div className="text-muted-foreground">Đang tải...</div>
+              <div className="text-muted-foreground">Loading...</div>
             ) : templates.length === 0 ? (
-              <div className="text-muted-foreground">Chưa có template checklist nào.</div>
+              <div className="text-muted-foreground">No checklist templates available.</div>
             ) : (
               templates.sort((a,b)=>a.order-b.order).map((tpl) => (
                 <label key={tpl._id} className="flex items-center gap-3">
@@ -86,12 +84,12 @@ export function AssignChecklistsDialog({ recordId, trigger, onAssigned }: Assign
             )}
           </div>
           <div className="pt-2">
-            <div className="text-sm text-muted-foreground mb-1">Ghi chú (tùy chọn)</div>
-            <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ghi chú cho các hạng mục..." />
+            <div className="text-sm text-muted-foreground mb-1">Note (optional)</div>
+            <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note for the items..." />
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={submitting}>Hủy</Button>
-            <Button type="submit" disabled={submitting}>{submitting ? "Đang gán..." : "Gán"}</Button>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={submitting}>Cancel</Button>
+            <Button type="submit" disabled={submitting}>{submitting ? "Assigning..." : "Assign"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

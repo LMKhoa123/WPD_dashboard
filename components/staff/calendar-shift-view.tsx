@@ -22,7 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { format } from "date-fns"
 import { Calendar as CalendarPicker } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
@@ -83,7 +83,6 @@ type Member = {
 }
 
 export function CalendarShiftView() {
-  const { toast } = useToast()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth())
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear())
@@ -210,11 +209,7 @@ export function CalendarShiftView() {
       setTechnicians(techList)
     } catch (err) {
       console.error("Error loading staff for center:", err)
-      toast({
-        title: "Error",
-        description: "Unable to load staff list",
-        variant: "destructive"
-      })
+      toast.error("Unable to load staff list")
     }
   }, [toast])
 
@@ -374,29 +369,17 @@ export function CalendarShiftView() {
   // Handle create new shift
   const handleCreateShift = async () => {
     if (!selectedDate || selectedStaff.length === 0) {
-      toast({
-        title: "Validation Error",
-        description: "Please select date and at least one staff member",
-        variant: "destructive"
-      })
+      toast.error("Please select date and at least one staff member")
       return
     }
 
     if (!assignCenterId || assignCenterId === "all") {
-      toast({
-        title: "Validation Error",
-        description: "Please select a specific center",
-        variant: "destructive"
-      })
+      toast.error("Please select a center for the assignment")
       return
     }
 
     if (selectedWorkshiftIds.length === 0) {
-      toast({
-        title: "Validation Error",
-        description: "Please select at least one workshift",
-        variant: "destructive"
-      })
+      toast.error("Please select at least one workshift to assign")
       return
     }
 
@@ -412,10 +395,7 @@ export function CalendarShiftView() {
         })
       }
       
-      toast({
-        title: "Success",
-        description: `Assigned ${selectedStaff.length} staff members to ${selectedWorkshiftIds.length} workshifts`
-      })
+      toast.success("Shift assignments created successfully")
       
       // Reset and reload
       setNewShiftModalOpen(false)
@@ -427,11 +407,7 @@ export function CalendarShiftView() {
       loadData()
       
     } catch (err: any) {
-      toast({
-        title: "Error",
-        description: err?.message || "Unable to create shift assignment",
-        variant: "destructive"
-      })
+      toast.error(err?.message || "Failed to create shift assignments")
     } finally {
       setSaving(false)
     }
@@ -459,11 +435,7 @@ export function CalendarShiftView() {
       setAvailableWorkshifts(shiftsForDate)
     } catch (err: any) {
       console.error('Failed loading workshifts for dialog', err)
-      toast({
-        title: "Error",
-        description: "Unable to load workshift list",
-        variant: "destructive"
-      })
+      toast.error("Failed to load workshifts for selected date and center")
     }
   }
 
@@ -493,11 +465,7 @@ export function CalendarShiftView() {
         (selectedCenterId === 'all' || s.center_id === selectedCenterId)
       )
       if (!candidate) {
-        toast({
-          title: 'Workshift Not Found',
-          description: 'Please create the corresponding workshift before updating.',
-          variant: 'destructive'
-        })
+        toast.error("Please create the corresponding workshift before updating.")
         setSaving(false)
         return
       }
@@ -513,21 +481,14 @@ export function CalendarShiftView() {
         workshift_ids: [newWorkshiftId]
       })
       
-      toast({
-        title: "Success",
-        description: "Shift assignment updated successfully"
-      })
+      toast.success("Shift assignment updated successfully")
       
       setEditModalOpen(false)
       setEditingAssignment(null)
       loadData()
       
     } catch (err: any) {
-      toast({
-        title: "Error",
-        description: err?.message || "Failed to update assignment",
-        variant: "destructive"
-      })
+      toast.error(err?.message || "Failed to update assignment")
     } finally {
       setSaving(false)
     }
@@ -559,21 +520,14 @@ export function CalendarShiftView() {
         throw new Error("Assignment not found")
       }
       
-      toast({
-        title: "Success",
-        description: "Shift assignment deleted successfully"
-      })
+      toast.success("Shift assignment deleted successfully")
       
       setDeleteDialogOpen(false)
       setDeletingAssignment(null)
       loadData()
       
     } catch (err: any) {
-      toast({
-        title: "Error",
-        description: err?.message || "Failed to delete assignment",
-        variant: "destructive"
-      })
+      toast.error(err?.message || "Failed to delete assignment")
     } finally {
       setSaving(false)
     }

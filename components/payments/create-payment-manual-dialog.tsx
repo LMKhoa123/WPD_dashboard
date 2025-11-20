@@ -40,7 +40,7 @@ export function CreatePaymentManualDialog({ trigger, onCreated }: Props) {
 
   const submit = async () => {
     if (!refId || !amount || amount <= 0) {
-      toast.error("Thiếu dữ liệu", { description: "Nhập ID tham chiếu và số tiền hợp lệ" })
+      toast.error("Missing data", { description: "Enter a valid reference ID and amount" })
       return
     }
     try {
@@ -54,7 +54,6 @@ export function CreatePaymentManualDialog({ trigger, onCreated }: Props) {
       }
       if (type === 'service_record') {
         payload.service_record_id = refId
-        // Ensure customer_id is present: use input if provided, else try to resolve via service record -> appointment
         if (customerIdInput) {
           payload.customer_id = customerIdInput
         } else {
@@ -80,9 +79,9 @@ export function CreatePaymentManualDialog({ trigger, onCreated }: Props) {
   const paymentRes = await api.createPayment(payload)
   setCreated(paymentRes.payment)
   onCreated?.(paymentRes.payment)
-  toast.success("Đã tạo yêu cầu thanh toán", { description: `Order #${paymentRes.payment.order_code}` })
+  toast.success("Created payment request", { description: `Order #${paymentRes.payment.order_code}` })
     } catch (e: any) {
-      toast.error("Tạo thanh toán thất bại", { description: e?.message || "Create payment error" })
+      toast.error("Create payment failed", { description: e?.message || "Create payment error" })
     } finally {
       setCreating(false)
     }
@@ -91,22 +90,22 @@ export function CreatePaymentManualDialog({ trigger, onCreated }: Props) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        {trigger || <Button variant="secondary">Tạo thanh toán</Button>}
+        {trigger || <Button variant="secondary">Create Payment</Button>}
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Tạo thanh toán thủ công</DialogTitle>
-          <DialogDescription>Chọn loại và nhập ID tham chiếu</DialogDescription>
+          <DialogTitle>Create Manual Payment</DialogTitle>
+          <DialogDescription>Select type and enter reference ID</DialogDescription>
         </DialogHeader>
 
         {created ? (
           <div className="space-y-4">
-            <div className="text-sm">Đã tạo order <span className="font-semibold">#{created.order_code}</span> với số tiền <span className="font-semibold">{formatVND(created.amount)}</span></div>
+            <div className="text-sm">Created order <span className="font-semibold">#{created.order_code}</span> with amount <span className="font-semibold">{formatVND(created.amount)}</span></div>
             <div className="flex items-center gap-2">
               {created.payment_url ? (
-                <Button asChild size="sm" variant="secondary" title="Mở đường dẫn thanh toán">
+                <Button asChild size="sm" variant="secondary" title="Open payment link">
                   <a href={created.payment_url} target="_blank" rel="noreferrer">
-                    Mở link thanh toán <ExternalLink className="h-4 w-4 ml-2" />
+                    Open payment link <ExternalLink className="h-4 w-4 ml-2" />
                   </a>
                 </Button>
               ) : null}
@@ -117,10 +116,10 @@ export function CreatePaymentManualDialog({ trigger, onCreated }: Props) {
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-3">
               <div className="grid gap-2">
-                <Label>Loại thanh toán *</Label>
+                <Label>Payment Type *</Label>
                 <Select value={type} onValueChange={(v) => setType(v as any)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Chọn loại" />
+                    <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="service_record">Service Record</SelectItem>
@@ -134,17 +133,17 @@ export function CreatePaymentManualDialog({ trigger, onCreated }: Props) {
               </div>
               {type === 'service_record' && (
                 <div className="grid gap-2">
-                  <Label>Customer ID (tùy chọn)</Label>
-                  <Input value={customerIdInput} onChange={(e) => setCustomerIdInput(e.target.value)} placeholder="Nếu để trống, hệ thống sẽ cố suy ra từ Service Record" />
+                  <Label>Customer ID (optional)</Label>
+                  <Input value={customerIdInput} onChange={(e) => setCustomerIdInput(e.target.value)} placeholder="If left blank, the system will try to infer from Service Record" />
                 </div>
               )}
               <div className="grid gap-2">
-                <Label>Số tiền (VND) *</Label>
+                <Label>Amount (VND) *</Label>
                 <Input type="number" value={amount} onChange={(e) => setAmount(Number(e.target.value))} min={0} />
               </div>
               <div className="grid gap-2">
-                <Label>Mô tả</Label>
-                <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ghi chú thanh toán" />
+                <Label>Description</Label>
+                <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Payment notes" />
               </div>
             </div>
           </div>
@@ -152,9 +151,9 @@ export function CreatePaymentManualDialog({ trigger, onCreated }: Props) {
 
         <DialogFooter>
           {!created ? (
-            <Button onClick={submit} disabled={creating}>{creating ? "Đang tạo..." : "Tạo thanh toán"}</Button>
+            <Button onClick={submit} disabled={creating}>{creating ? "Creating..." : "Create Payment"}</Button>
           ) : (
-            <Button variant="secondary" onClick={() => setOpen(false)}>Đóng</Button>
+            <Button variant="secondary" onClick={() => setOpen(false)}>Close</Button>
           )}
         </DialogFooter>
       </DialogContent>

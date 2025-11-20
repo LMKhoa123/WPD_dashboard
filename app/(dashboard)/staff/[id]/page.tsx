@@ -18,7 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { getApiClient, type SystemUserRecord } from "@/lib/api"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { 
   ArrowLeft, 
   Mail, 
@@ -53,11 +53,7 @@ export default function StaffDetailPage() {
         const data = await api.getSystemUserById(systemUserId)
         setSystemUser(data)
       } catch (e: any) {
-        toast({
-          title: "Không tải được thông tin nhân viên",
-          description: e?.message || "Failed to load staff details",
-          variant: "destructive",
-        })
+        toast.error(e?.message || "Failed to load staff details")
       } finally {
         setLoading(false)
       }
@@ -77,14 +73,10 @@ export default function StaffDetailPage() {
       const api = getApiClient()
       await api.deleteSystemUser(systemUser._id)
       
-      toast({ title: "Xóa nhân viên thành công" })
+      toast.success("Xóa nhân viên thành công")
       router.push("/staff")
     } catch (e: any) {
-      toast({
-        title: "Xóa thất bại",
-        description: e?.message || "Failed to delete staff member",
-        variant: "destructive",
-      })
+      toast.error(e?.message || "Failed to delete staff member")
       setDeleting(false)
     }
   }
@@ -93,18 +85,13 @@ export default function StaffDetailPage() {
     if (updated) {
       setSystemUser(updated)
     } else {
-      // Reload data from API if no updated data provided
       const run = async () => {
         try {
           const api = getApiClient()
           const data = await api.getSystemUserById(systemUserId)
           setSystemUser(data)
         } catch (e: any) {
-          toast({
-            title: "Không tải được thông tin nhân viên",
-            description: e?.message || "Failed to load staff details",
-            variant: "destructive",
-          })
+          toast.error(e?.message || "Failed to load staff details")
         }
       }
       run()

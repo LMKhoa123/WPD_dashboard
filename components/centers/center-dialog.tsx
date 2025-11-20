@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { Plus } from "lucide-react"
 import { getApiClient, type CenterRecord } from "@/lib/api"
 
@@ -35,8 +35,6 @@ export function CenterDialog({ center, trigger, onCreated, onUpdated }: CenterDi
   const [phone, setPhone] = useState("")
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
-
-  const { toast } = useToast()
 
   useEffect(() => {
     if (open && isEditMode && center) {
@@ -74,23 +72,19 @@ export function CenterDialog({ center, trigger, onCreated, onUpdated }: CenterDi
 
       if (isEditMode && center) {
         const updated = await api.updateCenter(center._id, form)
-        toast({ title: "Cập nhật trung tâm dịch vụ thành công" })
+        toast.success("Updated service center successfully")
         setOpen(false)
         resetForm()
         onUpdated?.(updated)
       } else {
         const created = await api.createCenter(form)
-        toast({ title: "Tạo trung tâm dịch vụ thành công" })
+        toast.success("Created service center successfully")
         setOpen(false)
         resetForm()
         onCreated?.(created)
       }
     } catch (e: any) {
-      toast({
-        title: isEditMode ? "Cập nhật thất bại" : "Tạo thất bại",
-        description: e?.message || `Failed to ${isEditMode ? "update" : "create"} center`,
-        variant: "destructive",
-      })
+      toast.error(e?.message || `Failed to ${isEditMode ? "update" : "create"} center`)
     } finally {
       setSubmitting(false)
     }
@@ -111,7 +105,7 @@ export function CenterDialog({ center, trigger, onCreated, onUpdated }: CenterDi
           <DialogHeader>
             <DialogTitle>{isEditMode ? "Edit Service Center" : "New Service Center"}</DialogTitle>
             <DialogDescription>
-              {isEditMode ? "Cập nhật thông tin trung tâm dịch vụ" : "Tạo trung tâm dịch vụ mới"}
+              {isEditMode ? "Update service center information" : "Create a new service center"}
             </DialogDescription>
           </DialogHeader>
 

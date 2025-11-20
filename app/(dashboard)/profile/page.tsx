@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { useAuth } from "@/components/auth-provider"
 import { getApiClient, type ProfileData } from "@/lib/api"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { Calendar, Mail, Shield, Award, Loader2 } from "lucide-react"
 import { formatDateFull, formatDateTime } from "@/lib/utils"
 
@@ -27,13 +27,12 @@ export default function ProfilePage() {
       const res = await api.getProfile()
       setProfile(res.data)
     } catch (e: any) {
-      toast({ title: "Failed to load profile", description: e?.message || "Failed to load profile", variant: "destructive" })
+      toast.error(e?.message || "Failed to load profile")
     } finally {
       setLoading(false)
     }
   }
 
-  // Format for display
   const formatDateForDisplay = (isoDate: string | null): string => {
     if (!isoDate) return "Not updated"
     try {

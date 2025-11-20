@@ -8,13 +8,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle2, AlertCircle, Clock, RefreshCw, Search } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 
 type ColKey = "pending" | "in-progress" | "completed" | "cancelled"
 
 export default function ServiceStatusBoardPage() {
   const api = useMemo(() => getApiClient(), [])
-  const { toast } = useToast()
   const [loading, setLoading] = useState(true)
   const [records, setRecords] = useState<ServiceRecordRecord[]>([])
   const [q, setQ] = useState("")
@@ -26,7 +25,7 @@ export default function ServiceStatusBoardPage() {
       const res = await api.getServiceRecords({ limit: 500 })
       setRecords(res.data.records)
     } catch (e: any) {
-      toast({ title: "Failed to load service records", description: e?.message || "Failed to load records", variant: "destructive" })
+      toast.error(e?.message || "Failed to load service records")
     } finally {
       setLoading(false)
     }
@@ -63,7 +62,7 @@ export default function ServiceStatusBoardPage() {
       const next = await api.updateServiceRecord(id, { status: to })
       setRecords((prev) => prev.map((r) => (r._id === id ? next : r)))
     } catch (e: any) {
-      toast({ title: "Status update failed", description: e?.message || "Failed to update", variant: "destructive" })
+      toast.error(e?.message || "Failed to update service record status")
     } finally {
       setUpdatingId(null)
     }

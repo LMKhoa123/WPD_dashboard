@@ -51,7 +51,6 @@ const technicianNav = [
 ]
 
 const customerNav = [
-  // Minimal customer navigation. Extend later with "My Subscriptions" when page exists
   {
     title: "Chat",
     url: "/chat",
@@ -85,11 +84,7 @@ const staffNav = [
     url: "/service-records/board",
     icon: ClipboardCheck,
   },
-  // {
-  //   title: "Service Checklists",
-  //   url: "/service-checklists",
-  //   icon: ClipboardCheck,
-  // },
+
   {
     title: "Customers",
     url: "/customers",
@@ -228,11 +223,7 @@ const adminNav = [
     url: "/payments",
     icon: CreditCard,
   },
-  // {
-  //   title: "Center Inventory",
-  //   url: "/center-auto-parts",
-  //   icon: Package,
-  // },
+ 
 ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {

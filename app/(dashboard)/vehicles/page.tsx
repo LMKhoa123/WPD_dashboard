@@ -12,7 +12,7 @@ import { Search, Pencil, Trash2, Plus, Car, Eye, UserPlus } from "lucide-react"
 import { useIsAdmin, useIsStaff } from "@/components/auth-provider"
 import { AdminOrStaffOnly } from "@/components/role-guards"
 import { getApiClient, type VehicleRecord } from "@/lib/api"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { VehicleDialog } from "@/components/vehicles/vehicle-dialog"
 import { AssignVehicleDialog } from "@/components/vehicles/assign-vehicle-dialog"
 import { formatVND, formatNumber } from "@/lib/utils"
@@ -39,7 +39,7 @@ export default function VehiclesPage() {
   const isAdmin = useIsAdmin()
   const isStaff = useIsStaff()
 
-  // Pagination state
+  
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
@@ -56,7 +56,7 @@ export default function VehiclesPage() {
       setTotalItems(total)
       setTotalPages(Math.ceil(total / limit))
     } catch (e: any) {
-      toast({ title: "Failed to load vehicles", description: e?.message || "Failed to load vehicles", variant: "destructive" })
+      toast.error(e?.message || "Failed to load vehicles")
       setVehicles([])
     } finally {
       setLoading(false)
@@ -107,15 +107,11 @@ export default function VehiclesPage() {
       await api.deleteVehicle(vehicleToDelete._id)
       
       setVehicles((prev) => prev.filter((v) => v._id !== vehicleToDelete._id))
-      toast({ title: "Vehicle deleted" })
+      toast.success("Vehicle deleted")
       setDeleteDialogOpen(false)
       setVehicleToDelete(null)
     } catch (e: any) {
-      toast({
-        title: "Delete failed",
-        description: e?.message || "Failed to delete vehicle",
-        variant: "destructive",
-      })
+      toast.error(e?.message || "Failed to delete vehicle")
     } finally {
       setDeleting(false)
     }

@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { getApiClient, type CenterRecord } from "@/lib/api"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { Plus } from "lucide-react"
 
 interface AddStaffDialogProps {
@@ -52,11 +52,7 @@ export function AddStaffDialog({ trigger, onSuccess }: AddStaffDialogProps) {
       const response = await api.getCenters({ limit: 100 })
       setCenters(response.data.centers)
     } catch (error: any) {
-      toast({
-        title: "Error loading centers",
-        description: error.response?.data?.message || "Failed to load service centers",
-        variant: "destructive",
-      })
+      toast.error("Failed to load service centers. Please try again.")
     } finally {
       setLoadingCenters(false)
     }
@@ -76,10 +72,7 @@ export function AddStaffDialog({ trigger, onSuccess }: AddStaffDialogProps) {
         centerId: centerId === "__none__" ? "" : centerId,
       })
 
-      toast({
-        title: "Success",
-        description: "Staff member created successfully",
-      })
+      toast.success("Staff member created successfully")
       
       // Reset form
       setEmail("")
@@ -89,11 +82,7 @@ export function AddStaffDialog({ trigger, onSuccess }: AddStaffDialogProps) {
       setOpen(false)
       onSuccess?.()
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.response?.data?.message || "Failed to create staff member",
-        variant: "destructive",
-      })
+      toast.error("Failed to create staff member. Please try again.")
     } finally {
       setLoading(false)
     }

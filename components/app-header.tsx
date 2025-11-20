@@ -33,7 +33,6 @@ export function AppHeader() {
   useEffect(() => {
     const loadCenter = async () => {
       if (!user) return
-      // Only fetch for staff / technician roles with a centerId
       const roleLower = user.role?.toLowerCase()
       if ((roleLower === "staff" || roleLower === "technician") && (user as any).centerId) {
         try {
@@ -58,9 +57,7 @@ export function AppHeader() {
   const [notifications, setNotifications] = useState<Array<{ id: string; type: string; title: string; message: string; meta?: any; createdAt: string }>>([])
   const unreadCount = notifications.length
 
-  // No initial REST fetch; notifications come from websocket events only
 
-  // Socket listeners
   useEffect(() => {
     const handleNotification = (data: any) => {
       console.log('📢 Notification received:', data)
@@ -77,7 +74,6 @@ export function AppHeader() {
     on('notification:new', handleNotification)
 
     return () => {
-      // Cleanup handled by socket.io internally
     }
   }, [on])
 
@@ -116,10 +112,10 @@ export function AppHeader() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
-            <DropdownMenuLabel>Thông báo</DropdownMenuLabel>
+            <DropdownMenuLabel>Notifications</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {notifications.length === 0 && (
-              <div className="px-3 py-2 text-sm text-muted-foreground">Không có thông báo</div>
+              <div className="px-3 py-2 text-sm text-muted-foreground">No notifications</div>
             )}
             {notifications.map(n => (
               <DropdownMenuItem key={n.id} className="flex flex-col items-start gap-1 whitespace-normal">
@@ -140,11 +136,11 @@ export function AppHeader() {
           <div className="hidden md:flex items-center gap-1 px-2 py-1 rounded-md bg-muted text-xs font-medium max-w-[160px]" title={centerName || "Chưa có trung tâm"}>
             <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
             {centerLoading ? (
-              <span className="italic text-muted-foreground">Đang tải...</span>
+              <span className="italic text-muted-foreground">Loading...</span>
             ) : centerName ? (
               <span className="truncate">{centerName}</span>
             ) : (
-              <span className="text-muted-foreground">Chưa có trung tâm</span>
+              <span className="text-muted-foreground">No center assigned</span>
             )}
           </div>
         )}

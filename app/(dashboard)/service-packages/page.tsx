@@ -8,7 +8,7 @@ import { ServicePackageDialog } from "@/components/service-packages/service-pack
 import { ServicePackageDetailDialog } from "@/components/service-packages/service-package-detail-dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Spinner } from "@/components/ui/spinner"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { Eye } from "lucide-react"
 import { AdminOrStaffOnly } from "@/components/role-guards"
 import { formatVND, formatDateTime, formatNumber } from "@/lib/utils"
@@ -17,7 +17,6 @@ export default function ServicePackagesPage() {
   const [packages, setPackages] = useState<ServicePackageRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const { toast } = useToast()
 
   const api = useMemo(() => getApiClient(), [])
 
@@ -27,7 +26,7 @@ export default function ServicePackagesPage() {
       const list = await api.getServicePackages()
       setPackages(list)
     } catch (e: any) {
-      toast({ title: "Failed to load service packages", description: e?.message || "Failed to load service packages", variant: "destructive" })
+      toast.error(e?.message || "Failed to load service packages")
     } finally {
       setLoading(false)
     }
@@ -50,9 +49,9 @@ export default function ServicePackagesPage() {
       setDeletingId(id)
       await api.deleteServicePackage(id)
       setPackages((prev) => prev.filter((p) => p._id !== id))
-      toast({ title: "Service package deleted" })
+      toast.success("Service package deleted successfully")
     } catch (e: any) {
-      toast({ title: "Delete failed", description: e?.message || "Failed to delete", variant: "destructive" })
+      toast.error(e?.message || "Failed to delete service package")
     } finally {
       setDeletingId(null)
     }

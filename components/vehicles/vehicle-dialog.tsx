@@ -57,7 +57,7 @@ export function VehicleDialog({ vehicle, trigger, onCreated, onUpdated }: Vehicl
         const res = await api.getCustomers({ limit: 200 })
         setCustomers(res.data.customers)
       } catch (e: any) {
-        toast.error("Không tải được khách hàng", { description: e?.message || "Failed to load customers" })
+        toast.error("Cannot load customers", { description: e?.message || "Failed to load customers" })
       } finally {
         setLoadingCustomers(false)
       }
@@ -116,20 +116,20 @@ export function VehicleDialog({ vehicle, trigger, onCreated, onUpdated }: Vehicl
       if (isEditMode && vehicle) {
         // Update existing vehicle
         const updated = await api.updateVehicle(vehicle._id, form)
-  toast.success("Cập nhật xe thành công")
+  toast.success("Vehicle updated successfully")
         setOpen(false)
         resetForm()
         onUpdated?.(updated)
       } else {
         // Create new vehicle
         const created = await api.createVehicle(form)
-  toast.success("Tạo xe thành công")
+  toast.success("Vehicle created successfully")
         setOpen(false)
         resetForm()
         onCreated?.(created)
       }
     } catch (e: any) {
-      toast.error(isEditMode ? "Cập nhật xe thất bại" : "Tạo xe thất bại", { 
+      toast.error(isEditMode ? "Failed to update vehicle" : "Failed to create vehicle", { 
         description: e?.message || `Failed to ${isEditMode ? 'update' : 'create'} vehicle`
       })
     } finally {

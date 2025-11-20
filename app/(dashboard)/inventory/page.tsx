@@ -12,12 +12,11 @@ import { Search, Pencil, Trash2, Plus, AlertTriangle, Sparkles } from "lucide-re
 import { ForecastResultsDialog } from "@/components/inventory/forecast-results-dialog"
 import { cn, formatVND } from "@/lib/utils"
 import { useIsAdmin } from "@/components/auth-provider"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { CenterAutoPartDialog } from "@/components/center-auto-parts/center-auto-part-dialog"
 
 export default function InventoryPage() {
   const isAdmin = useIsAdmin()
-  const { toast } = useToast()
   const api = useMemo(() => getApiClient(), [])
 
   const [items, setItems] = useState<CenterAutoPartRecord[]>([])
@@ -47,7 +46,7 @@ export default function InventoryPage() {
       setParts(partsRes)
       setItems(listRes.data.items)
     } catch (e: any) {
-      toast({ title: "Không tải được dữ liệu", description: e?.message || "Failed to load data", variant: "destructive" })
+      toast.error(e?.message || "Failed to load data")
     } finally {
       setLoading(false)
     }
@@ -59,7 +58,6 @@ export default function InventoryPage() {
   const partsById = useMemo(() => new Map(parts.map((p) => [p._id, p])), [parts])
 
   const filtered = items.filter(it => {
-    // Skip items with null center_id or part_id
     if (!it.center_id || !it.part_id) return false
     
     const c = typeof it.center_id === 'string' ? it.center_id : it.center_id._id
@@ -81,9 +79,9 @@ export default function InventoryPage() {
       setDeletingId(id)
       await api.deleteCenterAutoPart(id)
       setItems(prev => prev.filter(x => x._id !== id))
-      toast({ title: "Đã xóa" })
+      toast.success("Deleted successfully")
     } catch (e: any) {
-      toast({ title: "Xóa thất bại", description: e?.message || "Failed to delete", variant: "destructive" })
+      toast.error(e?.message || "Failed to delete")
     } finally {
       setDeletingId(null)
     }
@@ -91,7 +89,7 @@ export default function InventoryPage() {
 
   type Row = {
     id: string
-    name: string // Part name
+    name: string 
     centerName: string
     quantity: number
     minStock: number
@@ -102,7 +100,7 @@ export default function InventoryPage() {
 
   const rows: Row[] = useMemo(() => {
     return items
-      .filter(it => it.center_id && it.part_id) // Skip items with null center_id or part_id
+      .filter(it => it.center_id && it.part_id) 
       .map((it) => {
         const centerId = typeof it.center_id === "string" ? it.center_id : it.center_id._id
         const partId = typeof it.part_id === "string" ? it.part_id : it.part_id._id
@@ -235,7 +233,6 @@ export default function InventoryPage() {
               </TableHeader>
               <TableBody>
                 {filtered.map((it) => {
-                  // Already filtered out null values, but add safe checks
                   const centerName = !it.center_id ? "—" : (typeof it.center_id === 'string' ? it.center_id : (it.center_id.name || ""))
                   const partName = !it.part_id ? "—" : (typeof it.part_id === 'string' ? it.part_id : (it.part_id.name || ""))
                   const partId = !it.part_id ? "" : (typeof it.part_id === 'string' ? it.part_id : it.part_id._id)

@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Spinner } from "@/components/ui/spinner"
 import { ChevronLeft, ChevronRight, Clock } from "lucide-react"
 import { getApiClient, type AssignedShiftInfo } from "@/lib/api"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
 interface MyShiftsCalendarProps {
@@ -58,7 +58,6 @@ function getShiftTypeBadge(startTime: string): { label: string; variant: string 
 
 export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
   const api = useMemo(() => getApiClient(), [])
-  const { toast } = useToast()
   const [shifts, setShifts] = useState<AssignedShiftInfo[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedWeekStart, setSelectedWeekStart] = useState(() => 
@@ -71,11 +70,7 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
       const res = await api.getShiftAssignmentsByUser(systemUserId)
       setShifts(res)
     } catch (e: any) {
-      toast({
-        title: "Failed to load shifts",
-        description: e?.message || "Failed to load shifts",
-        variant: "destructive"
-      })
+      toast.error("Failed to load shifts. Please try again.")
     } finally {
       setLoading(false)
     }

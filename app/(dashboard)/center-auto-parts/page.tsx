@@ -7,7 +7,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getApiClient, type CenterAutoPartRecord, type CenterRecord, type AutoPartRecord } from "@/lib/api"
-import { useToast } from "@/hooks/use-toast"
 import { useIsAdmin, useIsStaff } from "@/components/auth-provider"
 import { AdminStaffTechnicianOnly } from "@/components/role-guards"
 import { CenterAutoPartDialog } from "@/components/center-auto-parts/center-auto-part-dialog"
@@ -15,9 +14,9 @@ import { ForecastInfoDialog } from "@/components/center-auto-parts/forecast-info
 import { DataPagination } from "@/components/ui/data-pagination"
 import { Pencil, Plus, Trash2, Search, LineChart } from "lucide-react"
 import { formatDate } from "@/lib/utils"
+import { toast } from "sonner"
 
 export default function CenterAutoPartsPage() {
-	const { toast } = useToast()
 	const api = useMemo(() => getApiClient(), [])
 	const isAdmin = useIsAdmin()
 	const isStaff = useIsStaff()
@@ -35,14 +34,12 @@ export default function CenterAutoPartsPage() {
 	const [dialogOpen, setDialogOpen] = useState(false)
 	const [selected, setSelected] = useState<CenterAutoPartRecord | null>(null)
 
-	// Forecast dialog state
 	const [forecastOpen, setForecastOpen] = useState(false)
 	const [forecastCenterId, setForecastCenterId] = useState<string | null>(null)
 	const [forecastPartId, setForecastPartId] = useState<string | null>(null)
 
 	const [deletingId, setDeletingId] = useState<string | null>(null)
 
-	// Pagination state
 	const [currentPage, setCurrentPage] = useState(1)
 	const [totalPages, setTotalPages] = useState(1)
 	const [totalItems, setTotalItems] = useState(0)
@@ -62,7 +59,7 @@ export default function CenterAutoPartsPage() {
 			setTotalItems(listRes.data.total || listRes.data.items.length)
 			setTotalPages(Math.ceil((listRes.data.total || listRes.data.items.length) / limit))
 		} catch (e: any) {
-			toast({ title: "Failed to load data", description: e?.message || "Failed to load data", variant: "destructive" })
+			toast.error(e?.message || "Failed to load data")
 		} finally {
 			setLoading(false)
 		}
@@ -73,7 +70,6 @@ export default function CenterAutoPartsPage() {
 	}, [load, currentPage])
 
 	const filtered = items.filter(it => {
-		// Null check để tránh lỗi khi center_id hoặc part_id là null
 		if (!it.center_id || !it.part_id) return false
 
 		const c = typeof it.center_id === 'string' ? it.center_id : it.center_id._id
@@ -95,20 +91,19 @@ export default function CenterAutoPartsPage() {
 			setDeletingId(id)
 			await api.deleteCenterAutoPart(id)
 			setItems(prev => prev.filter(x => x._id !== id))
-			toast({ title: "Deleted" })
+			toast.success("Deleted successfully")
 		} catch (e: any) {
-			toast({ title: "Delete failed", description: e?.message || "Failed to delete", variant: "destructive" })
+			toast.error(e?.message || "Failed to delete")
 		} finally {
 			setDeletingId(null)
 		}
 	}
 
 	const openForecast = (rec: CenterAutoPartRecord) => {
-		// Normalize IDs from possible populated objects
 		const c = typeof rec.center_id === 'string' ? rec.center_id : rec.center_id?._id
 		const p = typeof rec.part_id === 'string' ? rec.part_id : rec.part_id?._id
 		if (!c || !p) {
-			toast({ title: "Missing data", description: "Center ID or Part ID not found", variant: "destructive" })
+			toast.error("Center ID or Part ID not found")
 			return
 		}
 		setForecastCenterId(c)

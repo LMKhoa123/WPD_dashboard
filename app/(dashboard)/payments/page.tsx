@@ -3,7 +3,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react"
 import { getApiClient, type PaymentRecord } from "@/lib/api"
 import { useIsAdmin, useIsStaff } from "@/components/auth-provider"
-import { useToast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -15,18 +14,17 @@ import { CreatePaymentManualDialog } from "@/components/payments/create-payment-
 import { Spinner } from "@/components/ui/spinner"
 import { formatVND, formatDateTime } from "@/lib/utils"
 import { DataPagination } from "@/components/ui/data-pagination"
+import { toast } from "sonner"
 
 export default function PaymentsPage() {
   const isAdmin = useIsAdmin()
   const isStaff = useIsStaff()
-  const { toast } = useToast()
   const api = useMemo(() => getApiClient(), [])
 
   const [items, setItems] = useState<PaymentRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [cancelCode, setCancelCode] = useState<number | null>(null)
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
@@ -40,7 +38,7 @@ export default function PaymentsPage() {
       setTotalItems(res.data.total || res.data.payments.length)
       setTotalPages(Math.ceil((res.data.total || res.data.payments.length) / limit))
     } catch (e: any) {
-      toast({ title: "Failed to load payments", description: e?.message || "Failed to load payments", variant: "destructive" })
+      toast.error(e?.message || "Failed to load payments")
     } finally {
       setLoading(false)
     }
@@ -75,14 +73,13 @@ export default function PaymentsPage() {
       setCancelCode(orderCode)
       const res = await api.cancelPayment(orderCode)
       if (res.success) {
-        toast({ title: "Transaction canceled", description: `Order ${orderCode} has been cancelled.` })
-        // Refresh list
+        toast.success("Transaction cancelled successfully")
         await load(currentPage)
       } else {
-        toast({ title: "Cancel failed", description: res.message || "Unknown error", variant: "destructive" })
+        toast.error(res.message || "Unknown error")
       }
     } catch (e: any) {
-      toast({ title: "Cancel failed", description: e?.message || "Cancel error", variant: "destructive" })
+      toast.error(e?.message || "Cancel error")
     } finally {
       setCancelCode(null)
     }

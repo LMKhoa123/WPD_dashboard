@@ -19,7 +19,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { getApiClient, type CustomerRecord, type VehicleRecord } from "@/lib/api"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { Mail, Phone, MapPin, Calendar, Car, ArrowLeft, Eye, AlertCircle, Pencil, Trash2 } from "lucide-react"
 import { CustomerDialog } from "@/components/customers/customer-dialog"
 import { useIsAdmin } from "@/components/auth-provider"
@@ -42,7 +42,6 @@ export default function CustomerDetailPage() {
         setLoading(true)
         const api = getApiClient()
         
-        // Load customer data and vehicles in parallel
         const [customerData, vehiclesData] = await Promise.all([
           api.getCustomerById(customerId),
           api.getVehiclesByCustomerId(customerId),
@@ -51,11 +50,7 @@ export default function CustomerDetailPage() {
         setCustomer(customerData)
         setVehicles(Array.isArray(vehiclesData) ? vehiclesData : [])
       } catch (e: any) {
-        toast({
-          title: "Không tải được thông tin khách hàng",
-          description: e?.message || "Failed to load customer details",
-          variant: "destructive",
-        })
+        toast.error(e?.message || "Failed to load customer data")
       } finally {
         setLoading(false)
       }
@@ -75,14 +70,10 @@ export default function CustomerDetailPage() {
       const api = getApiClient()
       await api.deleteCustomer(customer._id)
       
-      toast({ title: "Xóa khách hàng thành công" })
+      toast.success("Customer deleted successfully")
       router.push("/customers")
     } catch (e: any) {
-      toast({
-        title: "Xóa thất bại",
-        description: e?.message || "Failed to delete customer",
-        variant: "destructive",
-      })
+      toast.error(e?.message || "Failed to delete customer")
       setDeleting(false)
     }
   }
@@ -134,13 +125,11 @@ export default function CustomerDetailPage() {
     )
   }
 
-  // Guard against undefined vehicles
   const safeVehicles = Array.isArray(vehicles) ? vehicles : []
   const vehicleCount = safeVehicles.length
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => router.push("/customers")}>
@@ -172,7 +161,6 @@ export default function CustomerDetailPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Contact Information */}
         <Card>
           <CardHeader>
             <CardTitle>Contact Information</CardTitle>
@@ -204,7 +192,6 @@ export default function CustomerDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Statistics */}
         <Card>
           <CardHeader>
             <CardTitle>Statistics</CardTitle>
@@ -233,7 +220,6 @@ export default function CustomerDetailPage() {
         </Card>
       </div>
 
-      {/* Vehicles List */}
       <Card>
         <CardHeader>
           <CardTitle>Registered Vehicles ({vehicleCount})</CardTitle>
@@ -304,7 +290,6 @@ export default function CustomerDetailPage() {
         </CardContent>
       </Card>
 
-      {/* System Info */}
       <Card>
         <CardHeader>
           <CardTitle>System Information</CardTitle>

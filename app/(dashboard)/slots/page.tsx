@@ -27,7 +27,6 @@ export default function SlotsManagementPage() {
   const [generateSlotsOpen, setGenerateSlotsOpen] = useState(false)
   const [wizardOpen, setWizardOpen] = useState(false)
 
-  // Pagination state (client-side)
   const [currentPage, setCurrentPage] = useState(1)
   const limit = 20
 
@@ -83,7 +82,6 @@ export default function SlotsManagementPage() {
     return <Badge variant={config.variant}>{config.label}</Badge>
   }
 
-  // Client-side pagination
   const totalPages = Math.ceil(slots.length / limit)
   const paginatedSlots = slots.slice((currentPage - 1) * limit, currentPage * limit)
 
@@ -192,7 +190,7 @@ export default function SlotsManagementPage() {
                             onClick={() => handleViewDetail(slot)}
                           >
                             <Eye className="h-4 w-4 mr-2" />
-                            Chi tiết
+                            View Details
                           </Button>
                         </TableCell>
                       </TableRow>

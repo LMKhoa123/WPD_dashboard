@@ -5,7 +5,7 @@ import { TechnicianOnly } from "@/components/role-guards"
 import { getApiClient, type AssignedShiftInfo } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Spinner } from "@/components/ui/spinner"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 
 function getShiftType(startTime: string): "Morning" | "Afternoon" | "Night" {
   const hour = parseInt(startTime.split(":")[0] || "0", 10)
@@ -16,7 +16,6 @@ function getShiftType(startTime: string): "Morning" | "Afternoon" | "Night" {
 
 export default function TechnicianShiftsPage() {
   const api = useMemo(() => getApiClient(), [])
-  const { toast } = useToast()
   const [loading, setLoading] = useState(true)
   const [items, setItems] = useState<AssignedShiftInfo[]>([])
 
@@ -26,11 +25,10 @@ export default function TechnicianShiftsPage() {
       const profile = await api.getProfile()
       const myId = profile.data._id
       const res = await api.getShiftAssignmentsByUser(myId)
-      // Sort upcoming first by date/time
       const sorted = [...res].sort((a, b) => new Date(a.shift_date).getTime() - new Date(b.shift_date).getTime())
       setItems(sorted)
     } catch (e: any) {
-      toast({ title: "Failed to load work schedule", description: e?.message || "Failed to load shifts", variant: "destructive" })
+      toast.error(e?.message || "Failed to load shifts")
     } finally {
       setLoading(false)
     }

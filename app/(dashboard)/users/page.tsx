@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Search } from "lucide-react"
 import { getApiClient, type UserAccount, type UpdateUserRequest } from "@/lib/api"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { AdminOnly } from "@/components/role-guards"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
@@ -22,19 +22,16 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true)
   const [users, setUsers] = useState<UserAccount[]>([])
   
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
   const limit = 20
 
-  // Edit/Delete dialog state
   const [openEdit, setOpenEdit] = useState(false)
   const [openDelete, setOpenDelete] = useState(false)
   const [editingUser, setEditingUser] = useState<UserAccount | null>(null)
   const [deletingUser, setDeletingUser] = useState<UserAccount | null>(null)
 
-  // Edit form state
   const [formEmail, setFormEmail] = useState("")
   const [formPassword, setFormPassword] = useState("")
   const [formRole, setFormRole] = useState<UserAccount["role"]>("STAFF")
@@ -47,11 +44,10 @@ export default function UsersPage() {
       const api = getApiClient()
       const list = await api.getUsers({ page, limit })
       setUsers(list)
-      // Note: Backend should return pagination info, but we estimate it for now
       setTotalItems(list.length >= limit ? page * limit + 1 : (page - 1) * limit + list.length)
       setTotalPages(list.length >= limit ? page + 1 : page)
     } catch (e: any) {
-      toast({ title: "Failed to load users", description: e?.message || "Failed to load users", variant: "destructive" })
+      toast.error(e?.message || "Failed to load users")
     } finally {
       setLoading(false)
     }
@@ -89,10 +85,10 @@ export default function UsersPage() {
       const updated = await api.updateUser(editingUser._id, payload)
       setUsers((prev) => prev.map((x) => (x._id === updated._id ? { ...x, ...updated } : x)))
       setOpenEdit(false)
-      toast({ title: "User updated", description: updated.email || updated._id })
-      loadUsers(currentPage) // Reload current page
+      toast.success(updated.email || updated._id)
+      loadUsers(currentPage)  
     } catch (e: any) {
-      toast({ title: "Update failed", description: e?.message || "Update user failed", variant: "destructive" })
+      toast.error(e?.message || "Update user failed")
     } finally {
       setSaving(false)
     }
@@ -106,10 +102,10 @@ export default function UsersPage() {
       await api.deleteUser(deletingUser._id)
       setUsers((prev) => prev.filter((x) => x._id !== deletingUser._id))
       setOpenDelete(false)
-      toast({ title: "User deleted", description: deletingUser.email || deletingUser._id })
-      loadUsers(currentPage) // Reload current page
+      toast.success(deletingUser.email || deletingUser._id)
+      loadUsers(currentPage) 
     } catch (e: any) {
-      toast({ title: "Delete failed", description: e?.message || "Delete user failed", variant: "destructive" })
+      toast.error(e?.message || "Delete user failed")
     } finally {
       setSaving(false)
     }

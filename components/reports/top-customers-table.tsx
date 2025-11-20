@@ -19,7 +19,6 @@ export function TopCustomersTable() {
 
   const customers = customersData || []
 
-  // Get initials from customer name
   const getInitials = (name: string) => {
     if (!name || name.trim() === "") return "?"
     return name
@@ -31,7 +30,6 @@ export function TopCustomersTable() {
       .toUpperCase()
   }
 
-  // Display first 5 customers
   const displayCustomers = customers.slice(0, 5)
 
   return (
@@ -48,7 +46,7 @@ export function TopCustomersTable() {
             <TableHeader>
               <TableRow>
                 <TableHead>Customer</TableHead>
-                <TableHead>Email</TableHead>
+                {/* <TableHead>Email</TableHead> */}
                 <TableHead>Phone</TableHead>
                 <TableHead className="text-right">Registered</TableHead>
               </TableRow>
@@ -68,9 +66,9 @@ export function TopCustomersTable() {
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
+                  {/* <TableCell className="text-muted-foreground">
                     {typeof customer.userId === "object" ? customer.userId.email || "-" : "-"}
-                  </TableCell>
+                  </TableCell> */}
                   <TableCell className="text-muted-foreground">
                     {typeof customer.userId === "object" ? customer.userId.phone || "-" : "-"}
                   </TableCell>

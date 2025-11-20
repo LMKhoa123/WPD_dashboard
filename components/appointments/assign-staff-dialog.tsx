@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { getApiClient } from "@/lib/api"
 
 interface AssignStaffDialogProps {
@@ -26,7 +26,6 @@ export function AssignStaffDialog({ appointmentId, centerId, slotId, trigger, on
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState("")
   const [slotMeta, setSlotMeta] = useState<{ date: string; startTime: string; endTime: string; capacity: number; totalAppointments: number } | null>(null)
-  const { toast } = useToast()
   const api = useMemo(() => getApiClient(), [])
 
   useEffect(() => {
@@ -34,7 +33,6 @@ export function AssignStaffDialog({ appointmentId, centerId, slotId, trigger, on
     const run = async () => {
       try {
         setLoading(true)
-        // Prefer slot-specific availability if slotId is provided
         if (slotId) {
           const res = await api.getSlotStaffAndTechnician(slotId)
           setSlotMeta({
@@ -52,7 +50,6 @@ export function AssignStaffDialog({ appointmentId, centerId, slotId, trigger, on
           }))
           setStaffList(opts)
         } else {
-          // Fallback: list staff by center
           const centerIdStr = typeof centerId === 'string' ? centerId : centerId?._id
           const res = await api.getSystemUsers({ limit: 200, centerId: centerIdStr, role: 'STAFF' })
           const opts: StaffOption[] = res.data.systemUsers.map(s => ({
@@ -63,13 +60,13 @@ export function AssignStaffDialog({ appointmentId, centerId, slotId, trigger, on
           setStaffList(opts)
         }
       } catch (e: any) {
-        toast({ title: "Không tải được danh sách nhân viên", description: e?.message || "Failed to load staff", variant: "destructive" })
+        toast.error(e?.message || "Failed to load staff")
       } finally {
         setLoading(false)
       }
     }
     run()
-  }, [open, api, toast, centerId, slotId])
+  }, [open, api, centerId, slotId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -78,12 +75,12 @@ export function AssignStaffDialog({ appointmentId, centerId, slotId, trigger, on
       setSubmitting(true)
       const res = await api.assignAppointmentStaff(appointmentId, staffId)
       console.log(res)
-      toast({ title: "Đã gán nhân viên phụ trách" })
+      toast.success("Staff assigned successfully")
       setOpen(false)
       setStaffId("")
       onAssigned?.()
     } catch (e: any) {
-      toast({ title: "Gán thất bại", description: e?.message || "Failed to assign staff", variant: "destructive" })
+      toast.error(e?.message || "Failed to assign staff")
     } finally {
       setSubmitting(false)
     }
@@ -95,8 +92,8 @@ export function AssignStaffDialog({ appointmentId, centerId, slotId, trigger, on
       <DialogContent className="max-w-[420px] w-[calc(100%-2rem)] p-4">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Gán nhân viên phụ trách</DialogTitle>
-            <DialogDescription>Chọn một nhân viên (Staff) để phụ trách lịch hẹn này.</DialogDescription>
+            <DialogTitle>Assign Staff</DialogTitle>
+            <DialogDescription>Select a staff member to be responsible for this appointment.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 py-3">
             {slotMeta && (
@@ -105,10 +102,10 @@ export function AssignStaffDialog({ appointmentId, centerId, slotId, trigger, on
                   <div className="font-medium">{slotMeta.date}</div>
                   <div className="text-muted-foreground">{slotMeta.startTime} - {slotMeta.endTime}</div>
                 </div>
-                <Badge variant="outline">{slotMeta.totalAppointments}/{slotMeta.capacity} đặt</Badge>
+                <Badge variant="outline">{slotMeta.totalAppointments}/{slotMeta.capacity} booked</Badge>
               </div>
             )}
-            <Input placeholder={loading ? "Đang tải..." : "Tìm theo tên / email / phone"} value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input placeholder={loading ? "Loading..." : "Search by name / email / phone"} value={search} onChange={(e) => setSearch(e.target.value)} />
             <div className="max-h-60 overflow-auto rounded border divide-y">
               {staffList
                 .filter(s => !search || s.label.toLowerCase().includes(search.toLowerCase()))
@@ -130,21 +127,21 @@ export function AssignStaffDialog({ appointmentId, centerId, slotId, trigger, on
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          {s.assigned && <Badge variant="secondary">đã đc assigned</Badge>}
-                          {selected && <Badge>Đã chọn</Badge>}
+                          {s.assigned && <Badge variant="secondary">Assigned</Badge>}
+                          {selected && <Badge>Selected</Badge>}
                         </div>
                       </div>
                     </button>
                   )
                 })}
               {(!loading && staffList.length === 0) && (
-                <div className="p-3 text-sm text-muted-foreground">Không có nhân viên phù hợp.</div>
+                <div className="p-3 text-sm text-muted-foreground">No suitable staff found.</div>
               )}
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={submitting}>Hủy</Button>
-            <Button type="submit" disabled={submitting || !staffId}>{submitting ? "Đang gán..." : "Gán"}</Button>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={submitting}>Cancel</Button>
+            <Button type="submit" disabled={submitting || !staffId}>{submitting ? "Assigning..." : "Assign"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

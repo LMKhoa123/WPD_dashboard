@@ -21,7 +21,7 @@ import { Search, Pencil, Trash2, Eye } from "lucide-react"
 import { CustomerDialog } from "@/components/customers/customer-dialog"
 import { useIsAdmin } from "@/components/auth-provider"
 import { getApiClient, type CustomerRecord } from "@/lib/api"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { formatDate } from "@/lib/utils"
 import { DataPagination } from "@/components/ui/data-pagination"
 
@@ -34,7 +34,6 @@ export default function CustomersPage() {
   const [deleting, setDeleting] = useState(false)
   const isAdmin = useIsAdmin()
   
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
@@ -49,7 +48,7 @@ export default function CustomersPage() {
       setTotalItems(custRes.data.total || customers.length)
       setTotalPages(Math.ceil((custRes.data.total || customers.length) / limit))
     } catch (e: any) {
-      toast({ title: "Failed to load customers", description: e?.message || "Failed to load customers", variant: "destructive" })
+      toast.error(e?.message || "Failed to load customers")
     } finally {
       setLoading(false)
     }
@@ -83,15 +82,11 @@ export default function CustomersPage() {
       await api.deleteCustomer(customerToDelete._id)
       
       setCustomers((prev) => prev.filter((c) => c._id !== customerToDelete._id))
-      toast({ title: "Customer deleted" })
+      toast.success("Customer deleted")
       setDeleteDialogOpen(false)
       setCustomerToDelete(null)
     } catch (e: any) {
-      toast({
-        title: "Delete failed",
-        description: e?.message || "Failed to delete customer",
-        variant: "destructive",
-      })
+      toast.error(e?.message || "Failed to delete customer")
     } finally {
       setDeleting(false)
     }

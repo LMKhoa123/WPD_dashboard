@@ -80,13 +80,13 @@ export function VehicleSubscriptionDetailDialog({ subscription, trigger }: Vehic
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-2xl">Chi tiết đăng ký dịch vụ</DialogTitle>
+            <DialogTitle className="text-2xl">Vehicle Subscription Details</DialogTitle>
             <Badge className={getStatusColor(subscription.status)}>
               {subscription.status}
             </Badge>
           </div>
           <DialogDescription>
-            Thông tin chi tiết về đăng ký gói bảo dưỡng xe
+            Detailed information about the vehicle maintenance subscription
           </DialogDescription>
         </DialogHeader>
         
@@ -96,7 +96,7 @@ export function VehicleSubscriptionDetailDialog({ subscription, trigger }: Vehic
             <div className="border rounded-lg p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Car className="h-5 w-5 text-blue-600" />
-                <h3 className="font-semibold text-lg">Thông tin xe</h3>
+                <h3 className="font-semibold text-lg">Vehicle Information</h3>
               </div>
               {(vehicleFull?.image || (vehicle as any).image) && (
                 <div className="mb-4">
@@ -109,7 +109,7 @@ export function VehicleSubscriptionDetailDialog({ subscription, trigger }: Vehic
               )}
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <span className="text-muted-foreground">Tên xe:</span>
+                  <span className="text-muted-foreground">Vehicle Name:</span>
                   <p className="font-medium">{vehicle.vehicleName || "—"}</p>
                 </div>
                 <div>
@@ -129,16 +129,16 @@ export function VehicleSubscriptionDetailDialog({ subscription, trigger }: Vehic
             <div className="border rounded-lg p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Package className="h-5 w-5 text-purple-600" />
-                <h3 className="font-semibold text-lg">Gói dịch vụ</h3>
+                <h3 className="font-semibold text-lg">Service Package</h3>
               </div>
               <div className="space-y-3">
                 <div>
-                  <span className="text-muted-foreground text-sm">Tên gói:</span>
+                  <span className="text-muted-foreground text-sm">Package Name:</span>
                   <p className="font-semibold text-lg">{packageInfo.name || "—"}</p>
                 </div>
                 {packageInfo.description && (
                   <div>
-                    <span className="text-muted-foreground text-sm">Mô tả:</span>
+                    <span className="text-muted-foreground text-sm">Description:</span>
                     <p className="text-sm leading-relaxed mt-1">{packageInfo.description}</p>
                   </div>
                 )}
@@ -147,7 +147,7 @@ export function VehicleSubscriptionDetailDialog({ subscription, trigger }: Vehic
                     <CardContent className="pt-4 pb-3">
                       <div className="flex items-center gap-2 mb-1">
                         <DollarSign className="h-4 w-4 text-green-600" />
-                        <span className="text-xs text-muted-foreground">Giá</span>
+                        <span className="text-xs text-muted-foreground">Price</span>
                       </div>
                       <p className="font-bold text-green-600">
                         {packageInfo.price ? formatCurrency(packageInfo.price) : "—"}
@@ -158,10 +158,10 @@ export function VehicleSubscriptionDetailDialog({ subscription, trigger }: Vehic
                     <CardContent className="pt-4 pb-3">
                       <div className="flex items-center gap-2 mb-1">
                         <Clock className="h-4 w-4 text-blue-600" />
-                        <span className="text-xs text-muted-foreground">Thời gian</span>
+                        <span className="text-xs text-muted-foreground">Duration</span>
                       </div>
                       <p className="font-bold text-blue-600">
-                        {packageInfo.duration ? `${packageInfo.duration} ngày` : "—"}
+                        {packageInfo.duration ? `${packageInfo.duration} days` : "—"}
                       </p>
                     </CardContent>
                   </Card>
@@ -185,17 +185,17 @@ export function VehicleSubscriptionDetailDialog({ subscription, trigger }: Vehic
           <div className="border rounded-lg p-4">
             <div className="flex items-center gap-2 mb-3">
               <Calendar className="h-5 w-5 text-green-600" />
-              <h3 className="font-semibold text-lg">Thời gian đăng ký</h3>
+              <h3 className="font-semibold text-lg">Subscription Period</h3>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <span className="text-muted-foreground text-sm">Ngày bắt đầu:</span>
+                <span className="text-muted-foreground text-sm">Start Date:</span>
                 <p className="font-medium text-lg">{formatDate(subscription.start_date)}</p>
               </div>
               <div>
-                <span className="text-muted-foreground text-sm">Ngày kết thúc:</span>
+                <span className="text-muted-foreground text-sm">End Date:</span>
                 <p className="font-medium text-lg">
-                  {subscription.end_date ? formatDate(subscription.end_date) : "Không giới hạn"}
+                  {subscription.end_date ? formatDate(subscription.end_date) : "Unlimited"}
                 </p>
               </div>
             </div>
@@ -204,11 +204,11 @@ export function VehicleSubscriptionDetailDialog({ subscription, trigger }: Vehic
           {/* Metadata */}
           <div className="flex items-center justify-between text-xs text-muted-foreground pt-4 border-t">
             <div>
-              <span className="font-medium">Tạo lúc:</span>{" "}
+              <span className="font-medium">Created At:</span>{" "}
               {new Date(subscription.createdAt).toLocaleString("vi-VN")}
             </div>
             <div>
-              <span className="font-medium">Cập nhật:</span>{" "}
+              <span className="font-medium">Updated At:</span>{" "}
               {new Date(subscription.updatedAt).toLocaleString("vi-VN")}
             </div>
           </div>
