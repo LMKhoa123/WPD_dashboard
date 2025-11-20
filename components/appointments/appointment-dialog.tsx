@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus } from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
+import {toast} from "sonner"
 import { getApiClient, type AppointmentRecord, type CreateAppointmentRequest, type CreateAppointmentRequestV2, type UpdateAppointmentRequest, type VehicleRecord, type CenterRecord, type SystemUserRecord, type CustomerRecord, type SlotRecord } from "@/lib/api"
 import { useAuth } from "@/components/auth-provider"
 
@@ -42,7 +42,6 @@ export function AppointmentDialog({ appointment, trigger, onCreated, onUpdated }
   const [slotId, setSlotId] = useState("")
   const [status, setStatus] = useState<string>("pending")
 
-  const { toast } = useToast()
   const api = useMemo(() => getApiClient(), [])
 
   const [vehicles, setVehicles] = useState<VehicleRecord[]>([])
@@ -67,21 +66,19 @@ export function AppointmentDialog({ appointment, trigger, onCreated, onUpdated }
           setCenters(cs)
           setCustomers(cus)
         } catch (e: any) {
-          toast({ title: "Không tải được dữ liệu", description: e?.message || "Failed to load data", variant: "destructive" })
+          toast.error(e?.message || "Failed to load data")
         } finally {
           setLoadingLists(false)
         }
       }
       run()
     }
-  }, [open, api, toast])
+  }, [open, api])
 
-  // Default center to user's center if present when opening
   useEffect(() => {
     if (open && user?.centerId && !centerId) setCenterId(user.centerId)
   }, [open, user?.centerId, centerId])
 
-  // Fetch slots when center changes
   useEffect(() => {
     const run = async () => {
       if (!open || !centerId) return
@@ -93,15 +90,14 @@ export function AppointmentDialog({ appointment, trigger, onCreated, onUpdated }
     run()
   }, [open, centerId, api])
 
-  // Fetch staff when center changes
   useEffect(() => {
     const run = async () => {
       if (!open || !centerId) {
         setStaff([])
-        if (!isEditMode) setStaffId("") // Only clear in create mode
+        if (!isEditMode) setStaffId("")
         return
       }
-      // In create mode, clear staff when center changes
+      
       if (!isEditMode) setStaffId("")
       try {
         const result = await api.getSystemUsers({ limit: 100, centerId, role: "STAFF" })
@@ -113,12 +109,10 @@ export function AppointmentDialog({ appointment, trigger, onCreated, onUpdated }
     run()
   }, [open, centerId, api, isEditMode])
 
-  // When selecting customer, load vehicles for that customer
   useEffect(() => {
     const run = async () => {
       if (!open) return
       if (!customerId) {
-        // fallback to all
         try {
           const all = await api.getVehicles({ limit: 500 })
           setVehicles(all)
@@ -139,12 +133,10 @@ export function AppointmentDialog({ appointment, trigger, onCreated, onUpdated }
       setVehicleId(typeof appointment.vehicle_id === 'string' ? appointment.vehicle_id : appointment.vehicle_id?._id || "")
       setCenterId(typeof appointment.center_id === 'string' ? appointment.center_id : appointment.center_id?._id || "")
       setCustomerId(typeof appointment.customer_id === 'string' ? appointment.customer_id : (appointment.customer_id as any)?._id || "")
-      // If slot-based, extract slot_id
       const slotIdValue = appointment.slot_id
         ? (typeof appointment.slot_id === 'string' ? appointment.slot_id : appointment.slot_id._id)
         : ""
       setSlotId(slotIdValue)
-      // Set times as fallback
       setStartTime(appointment.startTime?.slice(0, 16) || "")
       setEndTime(appointment.endTime?.slice(0, 16) || "")
       setStatus(appointment.status || "pending")
@@ -177,7 +169,6 @@ export function AppointmentDialog({ appointment, trigger, onCreated, onUpdated }
           customer_id: customerId || null,
           status: status as any,
         }
-        // If using slot, send slot_id; otherwise send times
         if (slotId) {
           payload.slot_id = slotId
         } else {
@@ -185,7 +176,7 @@ export function AppointmentDialog({ appointment, trigger, onCreated, onUpdated }
           payload.endTime = endTime ? new Date(endTime).toISOString() : undefined
         }
         const updated = await api.updateAppointment(appointment._id, payload)
-        toast({ title: "Cập nhật lịch hẹn thành công" })
+        toast.success("Updated appointment successfully")
         setOpen(false)
         resetForm()
         onUpdated?.(updated)
@@ -212,17 +203,13 @@ export function AppointmentDialog({ appointment, trigger, onCreated, onUpdated }
           }
         }
         const created = await api.createAppointment(payload)
-        toast({ title: "Tạo lịch hẹn thành công" })
+        toast.success("Created appointment successfully")
         setOpen(false)
         resetForm()
         onCreated?.(created)
       }
     } catch (e: any) {
-      toast({
-        title: isEditMode ? "Cập nhật thất bại" : "Tạo thất bại",
-        description: e?.message || `Failed to ${isEditMode ? "update" : "create"} appointment`,
-        variant: "destructive",
-      })
+      toast.error(e?.message || `Failed to ${isEditMode ? "update" : "create"} appointment`)
     } finally {
       setSubmitting(false)
     }
@@ -243,7 +230,7 @@ export function AppointmentDialog({ appointment, trigger, onCreated, onUpdated }
           <DialogHeader>
             <DialogTitle>{isEditMode ? "Edit Appointment" : "New Appointment"}</DialogTitle>
             <DialogDescription>
-              {isEditMode ? "Cập nhật thông tin lịch hẹn" : "Tạo lịch hẹn dịch vụ mới"}
+              {isEditMode ? "Update appointment information" : "Create a new service appointment"}
             </DialogDescription>
           </DialogHeader>
 

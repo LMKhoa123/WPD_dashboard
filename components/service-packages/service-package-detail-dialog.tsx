@@ -33,13 +33,13 @@ export function ServicePackageDetailDialog({ servicePackage, trigger }: ServiceP
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-2xl">{servicePackage.name}</DialogTitle>
-          <DialogDescription>Chi tiết gói dịch vụ</DialogDescription>
+          <DialogDescription>Service package details</DialogDescription>
         </DialogHeader>
         
         <div className="space-y-6">
           {/* Description */}
           <div>
-            <h3 className="text-sm font-semibold text-muted-foreground mb-2">Mô tả</h3>
+            <h3 className="text-sm font-semibold text-muted-foreground mb-2">Description</h3>
             <p className="text-sm leading-relaxed">{servicePackage.description}</p>
           </div>
 
@@ -47,7 +47,7 @@ export function ServicePackageDetailDialog({ servicePackage, trigger }: ServiceP
           <div className="grid grid-cols-2 gap-4">
             <Card>
               <CardContent className="pt-6">
-                <div className="text-sm text-muted-foreground mb-1">Giá tiền</div>
+                <div className="text-sm text-muted-foreground mb-1">Price</div>
                 <div className="text-2xl font-bold text-primary">
                   {formatVND(servicePackage.price)}
                 </div>
@@ -55,9 +55,9 @@ export function ServicePackageDetailDialog({ servicePackage, trigger }: ServiceP
             </Card>
             <Card>
               <CardContent className="pt-6">
-                <div className="text-sm text-muted-foreground mb-1">Thời gian thực hiện</div>
+                <div className="text-sm text-muted-foreground mb-1">Duration</div>
                 <div className="text-2xl font-bold">
-                  {servicePackage.duration} <span className="text-base font-normal">ngày</span>
+                  {servicePackage.duration} <span className="text-base font-normal">days</span>
                 </div>
               </CardContent>
             </Card>
@@ -67,7 +67,7 @@ export function ServicePackageDetailDialog({ servicePackage, trigger }: ServiceP
           <div className="grid grid-cols-2 gap-4">
             <Card>
               <CardContent className="pt-6">
-                <div className="text-sm text-muted-foreground mb-1">Khoảng cách bảo dưỡng</div>
+                <div className="text-sm text-muted-foreground mb-1">Maintenance Distance</div>
                 <div className="text-2xl font-bold text-orange-600">
                   {formatNumber(servicePackage.km_interval)} <span className="text-base font-normal">km</span>
                 </div>
@@ -75,9 +75,9 @@ export function ServicePackageDetailDialog({ servicePackage, trigger }: ServiceP
             </Card>
             <Card>
               <CardContent className="pt-6">
-                <div className="text-sm text-muted-foreground mb-1">Chu kỳ bảo dưỡng</div>
+                <div className="text-sm text-muted-foreground mb-1">Maintenance Interval</div>
                 <div className="text-2xl font-bold text-blue-600">
-                  {servicePackage.service_interval_days} <span className="text-base font-normal">ngày</span>
+                  {servicePackage.service_interval_days} <span className="text-base font-normal">days</span>
                 </div>
               </CardContent>
             </Card>
@@ -86,11 +86,11 @@ export function ServicePackageDetailDialog({ servicePackage, trigger }: ServiceP
           {/* Metadata */}
           <div className="flex items-center justify-between text-sm text-muted-foreground pt-4 border-t">
             <div>
-              <span className="font-medium">Tạo lúc:</span>{" "}
+              <span className="font-medium">Created At:</span>{" "}
               {formatDateTime(servicePackage.createdAt)}
             </div>
             <div>
-              <span className="font-medium">Cập nhật:</span>{" "}
+              <span className="font-medium">Updated At:</span>{" "}
               {formatDateTime(servicePackage.updatedAt)}
             </div>
           </div>

@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ArrowLeft, Calendar, DollarSign, Gauge, Hash, MapPin, User, Car as CarIcon, AlertCircle, Pencil, Trash2 } from "lucide-react"
 import { getApiClient, type VehicleRecord } from "@/lib/api"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useIsAdmin, useIsStaff } from "@/components/auth-provider"
 import { AdminOrStaffOnly } from "@/components/role-guards"
@@ -44,13 +44,8 @@ export default function VehicleDetailPage() {
         const data = await api.getVehicleById(vehicleId)
         setVehicle(data)
       } catch (e: any) {
-        toast({
-          title: "Không tải được thông tin xe",
-          description: e?.message || "Failed to load vehicle details",
-          variant: "destructive",
-        })
-        // Optionally redirect back after error
-        // router.push("/vehicles")
+        toast.error(e?.message || "Failed to load vehicle")
+        
       } finally {
         setLoading(false)
       }
@@ -85,14 +80,10 @@ export default function VehicleDetailPage() {
       const api = getApiClient()
       await api.deleteVehicle(vehicle._id)
       
-      toast({ title: "Xóa xe thành công" })
+      toast.success("Xóa xe thành công")
       router.push("/vehicles")
     } catch (e: any) {
-      toast({
-        title: "Xóa thất bại",
-        description: e?.message || "Failed to delete vehicle",
-        variant: "destructive",
-      })
+      toast.error(e?.message || "Failed to delete vehicle")
       setDeleting(false)
     }
   }

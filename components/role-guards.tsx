@@ -66,7 +66,6 @@ export function AdminOrStaffOnly({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-// Allow Admin, Staff, or Technician
 export function AdminStaffTechnicianOnly({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   const router = useRouter()

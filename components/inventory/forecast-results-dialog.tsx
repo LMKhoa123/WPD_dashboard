@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { getApiClient, type ForecastResultItem, type CenterRecord, type AutoPartRecord } from "@/lib/api"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -24,10 +24,8 @@ export function ForecastResultsDialog({ trigger }: ForecastResultsDialogProps) {
   const [parts, setParts] = useState<AutoPartRecord[]>([])
   const [selectedCenter, setSelectedCenter] = useState<string>("")
   const [expandedId, setExpandedId] = useState<string | null>(null)
-  const { toast } = useToast()
   const api = useMemo(() => getApiClient(), [])
 
-  // Load centers on mount
   useEffect(() => {
     if (!open) return
     const loadCenters = async () => {
@@ -38,11 +36,7 @@ export function ForecastResultsDialog({ trigger }: ForecastResultsDialogProps) {
           setSelectedCenter(res.data.centers[0]._id)
         }
       } catch (e: any) {
-        toast({ 
-          title: "Failed to load centers", 
-          description: e?.message || "Failed to load centers", 
-          variant: "destructive" 
-        })
+        toast.error("Failed to load service centers. Please try again.")
       }
     }
     
@@ -59,7 +53,6 @@ export function ForecastResultsDialog({ trigger }: ForecastResultsDialogProps) {
     loadParts()
   }, [open, api, toast, selectedCenter])
 
-  // Load forecast results when center is selected
   useEffect(() => {
     if (!open || !selectedCenter) return
     const loadForecast = async () => {
@@ -68,18 +61,14 @@ export function ForecastResultsDialog({ trigger }: ForecastResultsDialogProps) {
         const res = await api.getForecastInfo(selectedCenter)
         setResults(res.results || [])
       } catch (e: any) {
-        toast({ 
-          title: "Failed to load forecast", 
-          description: e?.message || "Failed to load forecast results", 
-          variant: "destructive" 
-        })
+        toast.error(e?.message || "Failed to load forecast data")
         setResults([])
       } finally {
         setLoading(false)
       }
     }
     loadForecast()
-  }, [open, selectedCenter, api, toast])
+  }, [open, selectedCenter, api])
 
   const getRiskBadge = (riskLevel?: string) => {
     if (!riskLevel) return <Badge variant="outline">N/A</Badge>

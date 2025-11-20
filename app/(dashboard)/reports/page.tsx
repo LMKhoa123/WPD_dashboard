@@ -24,19 +24,17 @@ export default function ReportsPage() {
     to: new Date(2025, 0, 31),
   })
 
-  // Separate date states for cards and charts
   const [cardsDate, setCardsDate] = useState<Date>(new Date())
   const [monthlyChartDate, setMonthlyChartDate] = useState<Date>(new Date())
   const [serviceChartDate, setServiceChartDate] = useState<Date>(new Date())
 
   const api = getApiClient()
   const currentYear = new Date().getFullYear()
-  const currentMonth = new Date().getMonth() + 1 // 1-12
+  const currentMonth = new Date().getMonth() + 1 
   
   const cardsYear = cardsDate.getFullYear()
   const cardsMonth = cardsDate.getMonth() + 1
 
-  // Fetch total revenues
   const { data: totalRevenue = 0 } = useQuery({
     queryKey: ["totalRevenue"],
     queryFn: () => api.getTotalRevenue(),
@@ -60,7 +58,6 @@ export default function ReportsPage() {
     },
   })
 
-  // Fetch monthly revenues for percentage calculation
   const { data: monthlyRevenue = [] } = useQuery({
     queryKey: ["monthlyRevenue", cardsYear],
     queryFn: () => api.getMonthlyRevenue(cardsYear),
@@ -76,7 +73,6 @@ export default function ReportsPage() {
     queryFn: () => api.getMonthlyRevenueByServiceCompletion(cardsYear),
   })
 
-  // Calculate percentage changes
   const calculatePercentageChange = (data: { month: number; revenue: number }[], month: number) => {
     const currentMonthData = data.find(d => d.month === month)
     const lastMonthData = data.find(d => d.month === month - 1)

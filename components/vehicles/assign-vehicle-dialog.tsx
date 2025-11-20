@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { getApiClient } from "@/lib/api"
 import { UserPlus } from "lucide-react"
 
@@ -32,22 +32,14 @@ export function AssignVehicleDialog({ vehicleId, vehicleName, trigger }: AssignV
     e.preventDefault()
     
     if (!phone.trim()) {
-      toast({
-        title: "Lỗi",
-        description: "Vui lòng nhập số điện thoại",
-        variant: "destructive",
-      })
+      toast.error("please enter a phone number")
       return
     }
 
     // Validate phone number format (Vietnamese phone number)
     const phoneRegex = /^(0|\+84)[1-9][0-9]{8,9}$/
     if (!phoneRegex.test(phone.trim())) {
-      toast({
-        title: "Lỗi",
-        description: "Số điện thoại không hợp lệ",
-        variant: "destructive",
-      })
+      toast.error("Invalid phone number")
       return
     }
 
@@ -57,25 +49,14 @@ export function AssignVehicleDialog({ vehicleId, vehicleName, trigger }: AssignV
       const result = await api.assignVehicle(vehicleId, phone.trim())
       
       if (result.success) {
-        toast({
-          title: "Thành công",
-          description: result.message || "Đã gán xe cho khách hàng",
-        })
+        toast.success("Vehicle assigned successfully")
         setOpen(false)
         setPhone("")
       } else {
-        toast({
-          title: "Lỗi",
-          description: result.message || "Không thể gán xe",
-          variant: "destructive",
-        })
+        toast.error(result.message || "Failed to assign vehicle")
       }
     } catch (e: any) {
-      toast({
-        title: "Lỗi",
-        description: e?.message || "Không thể gán xe cho khách hàng",
-        variant: "destructive",
-      })
+      toast.error(e?.message || "Failed to assign vehicle")
     } finally {
       setLoading(false)
     }
@@ -87,21 +68,21 @@ export function AssignVehicleDialog({ vehicleId, vehicleName, trigger }: AssignV
         {trigger || (
           <Button variant="outline" size="sm">
             <UserPlus className="mr-2 h-4 w-4" />
-            Gán xe
+            Assign Vehicle
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Gán xe cho khách hàng</DialogTitle>
+            <DialogTitle>Assign Vehicle to Customer</DialogTitle>
             <DialogDescription>
-              Nhập số điện thoại của khách hàng để gán xe <strong>{vehicleName}</strong>
+              Enter the customer's phone number to assign the vehicle <strong>{vehicleName}</strong>
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="phone">Số điện thoại</Label>
+              <Label htmlFor="phone">Phone Number</Label>
               <Input
                 id="phone"
                 type="tel"
@@ -112,7 +93,7 @@ export function AssignVehicleDialog({ vehicleId, vehicleName, trigger }: AssignV
                 required
               />
               <p className="text-xs text-muted-foreground">
-                Nhập số điện thoại của khách hàng (10-11 số)
+                Enter the customer's phone number (10-11 digits)
               </p>
             </div>
           </div>
@@ -123,10 +104,10 @@ export function AssignVehicleDialog({ vehicleId, vehicleName, trigger }: AssignV
               onClick={() => setOpen(false)}
               disabled={loading}
             >
-              Hủy
+              Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? "Đang xử lý..." : "Gán xe"}
+              {loading ? "Processing..." : "Assign Vehicle"}
             </Button>
           </DialogFooter>
         </form>

@@ -32,7 +32,6 @@ export function EvChecklistDialog({ appointment }: { appointment: Appointment })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // Mock submit
     setOpen(false)
   }
 

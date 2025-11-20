@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { getApiClient, type SystemUserRecord } from "@/lib/api"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { Plus, X } from "lucide-react"
 
 interface Certificate {
@@ -81,18 +81,11 @@ export function CertificatesDialog({ systemUser, trigger, onSuccess }: Certifica
         certificates: certificates.map(({ _id, ...cert }) => cert)
       })
 
-      toast({
-        title: "Success",
-        description: "Certificates updated successfully",
-      })
+      toast.success("Certificates updated successfully")
       setOpen(false)
       onSuccess?.()
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.response?.data?.message || "Failed to update certificates",
-        variant: "destructive",
-      })
+      toast.error("Failed to update certificates. Please try again.")
     } finally {
       setLoading(false)
     }

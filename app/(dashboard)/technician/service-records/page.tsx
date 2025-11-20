@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ServiceRecordDialog } from "@/components/service-records/service-record-dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Spinner } from "@/components/ui/spinner"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { Search, Pencil, Trash2, Clock, CheckCircle2, XCircle, AlertCircle, ListTree } from "lucide-react"
 import { ServiceDetailsDialog } from "@/components/service-records/service-details-dialog"
 import { useAuth } from "@/components/auth-provider"
@@ -36,12 +36,10 @@ export default function TechnicianServiceRecordsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<ServiceRecordStatus | "all">("all")
-  const { toast } = useToast()
   const { user } = useAuth()
 
   const api = useMemo(() => getApiClient(), [])
 
-  // Get technician ID from profile
   const [technicianId, setTechnicianId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -50,11 +48,7 @@ export default function TechnicianServiceRecordsPage() {
         const profile = await api.getProfile()
         setTechnicianId(profile.data._id)
       } catch (e: any) {
-        toast({ 
-          title: "Không tải được profile", 
-          description: e?.message || "Failed to load profile", 
-          variant: "destructive" 
-        })
+        toast.error(e?.message || "Failed to load profile")
       }
     }
     loadProfile()
@@ -66,23 +60,17 @@ export default function TechnicianServiceRecordsPage() {
     try {
       setLoading(true)
       const res = await api.getServiceRecords({ limit: 500 })
-      // Filter records for this technician only
       const myRecords = res.data.records.filter(r => {
         const tid = typeof r.technician_id === 'string' ? r.technician_id : r.technician_id?._id
         return tid === technicianId
       })
       setRecords(myRecords)
     } catch (e: any) {
-      toast({ 
-        title: "Failed to load service records", 
-        description: e?.message || "Failed to load service records", 
-        variant: "destructive" 
-      })
+      toast.error(e?.message || "Failed to load service records")
     } finally {
       setLoading(false)
     }
-  }, [api, toast, technicianId])
-
+  }, [api, technicianId])
   useEffect(() => {
     load()
   }, [load])
@@ -100,13 +88,9 @@ export default function TechnicianServiceRecordsPage() {
       setDeletingId(id)
       await api.deleteServiceRecord(id)
       setRecords((prev) => prev.filter((rec) => rec._id !== id))
-      toast({ title: "Service record deleted" })
+      toast.success("Service record deleted")
     } catch (e: any) {
-      toast({ 
-        title: "Failed to delete", 
-        description: e?.message || "Failed to delete", 
-        variant: "destructive" 
-      })
+      toast.error(e?.message || "Failed to delete service record")
     } finally {
       setDeletingId(null)
     }

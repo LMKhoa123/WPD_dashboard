@@ -12,7 +12,6 @@ import { Search, Pencil, Trash2, Eye } from "lucide-react"
 import { AppointmentDialog } from "@/components/appointments/appointment-dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Spinner } from "@/components/ui/spinner"
-import { useToast } from "@/components/ui/use-toast"
 import { useAuth, useIsAdmin, useIsStaff } from "@/components/auth-provider"
 import { getApiClient, type AppointmentRecord, type AppointmentStatus } from "@/lib/api"
 import { AdminStaffTechnicianOnly } from "@/components/role-guards"
@@ -41,9 +40,8 @@ export default function AppointmentsPage() {
   const isAdmin = useIsAdmin()
   const isStaff = useIsStaff()
   const { user } = useAuth()
-  const { toast } = useToast()
 
-  // Pagination state
+
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
@@ -57,7 +55,6 @@ export default function AppointmentsPage() {
       const params: { page: number; limit: number; technician_id?: string; centerId?: string } = { page, limit }
       const centerId = user?.centerId ?? null
       if (centerId) params.centerId = centerId
-      // Technicians should only see their own appointments
       if (!isAdmin && !isStaff) {
         try {
           const su = await api.getSystemUsers({ limit: 1000 })
@@ -73,7 +70,7 @@ export default function AppointmentsPage() {
       setTotalItems(res.data.total || res.data.appointments.length)
       setTotalPages(Math.ceil((res.data.total || res.data.appointments.length) / limit))
     } catch (e: any) {
-      toast({ title: "Failed to load appointments", description: e?.message || "Failed to load appointments", variant: "destructive" })
+      toast.error(e?.message || "Failed to load appointments")
     } finally {
       setLoading(false)
     }
@@ -85,7 +82,7 @@ export default function AppointmentsPage() {
 
   const handleCreated = (apt: AppointmentRecord) => {
     setAppointments((prev) => [apt, ...prev])
-    load(currentPage) // Reload current page
+    load(currentPage) 
   }
 
   const handleUpdated = (apt: AppointmentRecord) => {
@@ -97,10 +94,10 @@ export default function AppointmentsPage() {
       setDeletingId(id)
       await api.deleteAppointment(id)
       setAppointments((prev) => prev.filter((a) => a._id !== id))
-      toast({ title: "Appointment deleted" })
-      load(currentPage) // Reload current page
+      toast.success("Appointment deleted")
+      load(currentPage)
     } catch (e: any) {
-      toast({ title: "Delete failed", description: e?.message || "Failed to delete", variant: "destructive" })
+      toast.error(e?.message || "Failed to delete")
     } finally {
       setDeletingId(null)
     }
@@ -185,7 +182,6 @@ export default function AppointmentsPage() {
                   </TableHeader>
                   <TableBody>
                     {filteredAppointments.map((apt) => {
-                      // Extract slot info if available
                       const slotInfo = apt.slot_id && typeof apt.slot_id === 'object'
                         ? apt.slot_id
                         : null
@@ -245,7 +241,6 @@ export default function AppointmentsPage() {
                                       </Button>
                                     }
                                   />
-                                  {/* Assign Staff */}
                                   <AssignStaffDialog
                                     appointmentId={apt._id}
                                     slotId={typeof apt.slot_id === 'string' ? apt.slot_id : (apt.slot_id?._id as string | undefined)}

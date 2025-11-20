@@ -66,7 +66,7 @@ export function SuggestPartsDialog({ checklistItemId, currentSuggested, trigger,
         setSelected(initialSelected)
         setQuantities(counts)
       } catch (e: any) {
-        toast.error("Không tải được danh sách linh kiện", { description: e?.message || "Failed to load parts" })
+        toast.error("Failed to load parts", { description: e?.message || "Failed to load parts" })
       } finally {
         setLoading(false)
       }
@@ -153,11 +153,11 @@ export function SuggestPartsDialog({ checklistItemId, currentSuggested, trigger,
     try {
       setSubmitting(true)
       await api.updateRecordChecklist(checklistItemId, { suggest_add, suggest_remove })
-  toast.success("Đã cập nhật đề xuất linh kiện")
+  toast.success("Suggested parts updated")
       setOpen(false)
       onSaved?.()
     } catch (e: any) {
-      toast.error("Cập nhật thất bại", { description: e?.message || "Failed to update" })
+      toast.error("Update failed", { description: e?.message || "Failed to update" })
     } finally {
       setSubmitting(false)
     }
@@ -174,28 +174,28 @@ export function SuggestPartsDialog({ checklistItemId, currentSuggested, trigger,
       <DialogContent className="sm:max-w-2xl max-h-[85vh]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Đề xuất linh kiện cần thay thế</DialogTitle>
-            <DialogDescription>Chọn các linh kiện cần đề xuất thay thế cho hạng mục này.</DialogDescription>
+            <DialogTitle>Suggest replacement parts</DialogTitle>
+            <DialogDescription>Select parts to suggest for replacement in this checklist item.</DialogDescription>
           </DialogHeader>
 
           <div className="py-3 space-y-3">
             <Input
-              placeholder="Tìm kiếm linh kiện..."
+              placeholder="Search parts..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
 
             <div className="text-sm text-muted-foreground">
-              Đã chọn: <Badge variant="secondary">{Object.keys(selected).filter((k) => selected[k]).length}</Badge>
+              Selected: <Badge variant="secondary">{Object.keys(selected).filter((k) => selected[k]).length}</Badge>
             </div>
 
             {/* Force a fixed viewport height for the parts list so Radix ScrollArea can render the scrollbar */}
             <ScrollArea className="h-[60vh] border rounded-md p-3 pr-2">
               {loading ? (
-                <div className="text-muted-foreground">Đang tải...</div>
+                <div className="text-muted-foreground">Loading...</div>
               ) : filteredParts.length === 0 ? (
                 <div className="text-muted-foreground">
-                  {searchQuery ? "Không tìm thấy linh kiện phù hợp" : "Chưa có linh kiện nào."}
+                  {searchQuery ? "No matching parts found" : "No parts available."}
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -219,10 +219,10 @@ export function SuggestPartsDialog({ checklistItemId, currentSuggested, trigger,
                           <div className="flex-1 min-w-0">
                             <div className="font-medium">{partName}</div>
                             <div className="text-sm text-muted-foreground">
-                              Giá bán: {sellingPrice.toLocaleString("vi-VN")} VNĐ
+                              Selling Price: {sellingPrice.toLocaleString("vi-VN")} VND
                             </div>
                             <div className="text-sm text-muted-foreground">
-                              Tồn kho: <Badge variant="outline">{maxQty}</Badge>
+                              Stock: <Badge variant="outline">{maxQty}</Badge>
                             </div>
                           </div>
                         </div>
@@ -275,7 +275,7 @@ export function SuggestPartsDialog({ checklistItemId, currentSuggested, trigger,
               Hủy
             </Button>
             <Button type="submit" disabled={submitting}>
-              {submitting ? "Đang lưu..." : "Lưu"}
+              {submitting ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>
         </form>

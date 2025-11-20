@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { getApiClient, type CenterRecord, type CreateWorkshiftsBulkRequest, type UpdateWorkshiftRequest, type WorkshiftRecord } from "@/lib/api"
 
 interface WorkshiftDialogProps {
@@ -18,7 +18,6 @@ interface WorkshiftDialogProps {
 }
 
 export function WorkshiftDialog({ open, onOpenChange, workshift, onSuccess, centers: centersProp }: WorkshiftDialogProps) {
-  const { toast } = useToast()
   const [loading, setLoading] = useState(false)
 
   const [centers, setCenters] = useState<CenterRecord[]>(centersProp ?? [])
@@ -48,12 +47,11 @@ export function WorkshiftDialog({ open, onOpenChange, workshift, onSuccess, cent
           setCenters(res.data.centers)
         }
       } catch (e: any) {
-  toast({ title: "Failed to load centers", description: e?.message || "Failed to load centers", variant: "destructive" })
+  toast.error("Failed to load centers. Please try again.")
       }
     }
     loadCenters()
-  }, [open, toast, workshift, centersProp])
-
+  }, [open, workshift, centersProp])
   useEffect(() => {
     if (open && isEdit && workshift) {
       // convert ISO date to YYYY-MM-DD
@@ -106,31 +104,31 @@ export function WorkshiftDialog({ open, onOpenChange, workshift, onSuccess, cent
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!centerId) {
-  toast({ title: "Missing information", description: "Please select a center", variant: "destructive" })
+  toast.error("Please select a center")
       return
     }
     // Validate according to mode
     if (isEdit) {
       if (!shiftDate) {
-  toast({ title: "Missing information", description: "Please select a date", variant: "destructive" })
+  toast.error("Please select a date")
         return
       }
     } else {
       if (!rangeStart || !rangeEnd) {
-  toast({ title: "Missing information", description: "Please select a date range", variant: "destructive" })
+  toast.error("Please select a date range")
         return
       }
       // prevent creating past dates and enforce max range 60 days
       const today = new Date(); today.setHours(0,0,0,0)
       const start = new Date(rangeStart); const end = new Date(rangeEnd)
       if (start < today) {
-  toast({ title: "Invalid date", description: "Cannot create shifts in the past", variant: "destructive" })
+  toast.error("Cannot create shifts in the past")
         return
       }
       const diffMs = end.getTime() - start.getTime()
       const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1
       if (diffDays > 60) {
-  toast({ title: "Range too long", description: "Please select up to 60 days", variant: "destructive" })
+  toast.error("Please select up to 60 days")
         return
       }
     }
@@ -147,11 +145,11 @@ export function WorkshiftDialog({ open, onOpenChange, workshift, onSuccess, cent
           center_id: centerId,
         }
         await api.updateWorkshift(workshift._id, payload)
-  toast({ title: "Update successful" })
+  toast.success("Update successful")
       } else {
         // build shift_dates from range
         const dates: string[] = previewDates
-  if (!dates.length) { toast({ title: "Invalid date range", variant: "destructive" }); setLoading(false); return }
+  if (!dates.length) { toast.error("Invalid date range"); setLoading(false); return }
         const payload: CreateWorkshiftsBulkRequest = {
           shift_dates: dates,
           start_time: startTime,
@@ -165,24 +163,24 @@ export function WorkshiftDialog({ open, onOpenChange, workshift, onSuccess, cent
           const existingKey = new Set(existing.map(e => `${e.shift_date.substring(0,10)}|${e.start_time}|${e.end_time}`))
           const newDates = dates.filter(d => !existingKey.has(`${d}|${startTime}|${endTime}`))
           if (newDates.length === 0) {
-            toast({ title: "No new shifts", description: "All dates in range already have this time slot", variant: "destructive" })
+            toast.error("No new shifts. All dates in range already have this time slot")
             setLoading(false)
             return
           }
           payload.shift_dates = newDates
           await api.createWorkshiftsBulk(payload)
           const skipped = dates.length - newDates.length
-          toast({ title: `Created ${newDates.length} work shifts successfully`, description: skipped > 0 ? `${skipped} days skipped due to duplicates` : undefined })
+          toast.success(`Created ${newDates.length} work shifts successfully${skipped > 0 ? `, ${skipped} days skipped due to duplicates` : ""}`)
         } catch (err) {
           // fallback without overlap filter
           await api.createWorkshiftsBulk(payload)
-          toast({ title: `Created ${dates.length} work shifts (no duplicate check)` })
+          toast.success(`Created ${dates.length} work shifts (no duplicate check)`)
         }
       }
       onSuccess()
       onOpenChange(false)
     } catch (e: any) {
-  toast({ title: "Operation failed", description: e?.message || "Error", variant: "destructive" })
+  toast.error(e?.message || "Operation failed")
     } finally {
       setLoading(false)
     }

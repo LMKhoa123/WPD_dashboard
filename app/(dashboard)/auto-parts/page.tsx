@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { useToast } from "@/hooks/use-toast"
+import {toast} from "sonner"
 import { getApiClient, type AutoPartRecord } from "@/lib/api"
 import { Plus, Pencil, Trash2, Search } from "lucide-react"
 import { AutoPartDialog } from "@/components/auto-parts/auto-part-dialog"
@@ -32,7 +32,6 @@ import { useRole } from "@/components/auth-provider"
 import { formatDate, formatVND } from "@/lib/utils"
 
 export default function AutoPartsPage() {
-  const { toast } = useToast()
   const role = useRole()
   const [parts, setParts] = useState<AutoPartRecord[]>([])
   const [loading, setLoading] = useState(true)
@@ -44,7 +43,6 @@ export default function AutoPartsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [partToDelete, setPartToDelete] = useState<AutoPartRecord | null>(null)
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
@@ -59,11 +57,7 @@ export default function AutoPartsPage() {
       setTotalItems(response.data.total || response.data.parts.length)
       setTotalPages(Math.ceil((response.data.total || response.data.parts.length) / limit))
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error?.message || "Failed to load auto parts",
-        variant: "destructive",
-      })
+      toast.error(error?.message || "Failed to load auto parts")
     } finally {
       setLoading(false)
     }
@@ -103,26 +97,17 @@ export default function AutoPartsPage() {
     try {
       const apiClient = getApiClient()
       await apiClient.deleteAutoPart(partToDelete._id)
-      toast({
-        title: "Success",
-        description: "Auto part deleted successfully",
-      })
+      toast.success("Auto part deleted successfully")
       loadParts(currentPage)
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error?.message || "Failed to delete auto part",
-        variant: "destructive",
-      })
+      toast.error(error?.message || "Failed to delete auto part")
     } finally {
       setDeleteDialogOpen(false)
       setPartToDelete(null)
     }
   }
 
-  // Stock status logic removed as new backend does not provide quantity/min stock fields
 
-  // Only allow access for Admin
   if (role !== "Admin") {
     return (
       <div className="flex items-center justify-center h-[50vh]">

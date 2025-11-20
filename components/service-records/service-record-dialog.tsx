@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { Plus } from "lucide-react"
 import { getApiClient, type ServiceRecordRecord, type CreateServiceRecordRequest, type UpdateServiceRecordRequest, type AppointmentRecord, type SystemUserRecord } from "@/lib/api"
 
@@ -38,7 +38,6 @@ export function ServiceRecordDialog({ record, trigger, onCreated, onUpdated }: S
   const [description, setDescription] = useState("")
   const [status, setStatus] = useState<string>("pending")
 
-  const { toast } = useToast()
   const api = useMemo(() => getApiClient(), [])
 
   const [appointments, setAppointments] = useState<AppointmentRecord[]>([])
@@ -57,14 +56,14 @@ export function ServiceRecordDialog({ record, trigger, onCreated, onUpdated }: S
           setAppointments(apts)
           setTechnicians(techs)
         } catch (e: any) {
-          toast({ title: "Không tải được dữ liệu", description: e?.message || "Failed to load data", variant: "destructive" })
+          toast.error(e?.message || "Failed to load data")
         } finally {
           setLoadingLists(false)
         }
       }
       run()
     }
-  }, [open, api, toast])
+  }, [open, api])
 
   useEffect(() => {
     if (open && isEditMode && record) {
@@ -100,7 +99,6 @@ export function ServiceRecordDialog({ record, trigger, onCreated, onUpdated }: S
           description,
           status: status as any,
         }
-        // Only include times if they are provided
         if (startTime) {
           payload.start_time = new Date(startTime).toISOString()
         }
@@ -108,7 +106,7 @@ export function ServiceRecordDialog({ record, trigger, onCreated, onUpdated }: S
           payload.end_time = new Date(endTime).toISOString()
         }
         const updated = await api.updateServiceRecord(record._id, payload)
-        toast({ title: "Cập nhật hồ sơ dịch vụ thành công" })
+        toast.success("Service record updated successfully")
         setOpen(false)
         resetForm()
         onUpdated?.(updated)
@@ -122,17 +120,13 @@ export function ServiceRecordDialog({ record, trigger, onCreated, onUpdated }: S
           status: status as any,
         }
         const created = await api.createServiceRecord(payload)
-        toast({ title: "Tạo hồ sơ dịch vụ thành công" })
+        toast.success("Service record created successfully")
         setOpen(false)
         resetForm()
         onCreated?.(created)
       }
     } catch (e: any) {
-      toast({
-        title: isEditMode ? "Cập nhật thất bại" : "Tạo thất bại",
-        description: e?.message || `Failed to ${isEditMode ? "update" : "create"} service record`,
-        variant: "destructive",
-      })
+      toast.error(e?.message || `Failed to ${isEditMode ? "update" : "create"} service record`)
     } finally {
       setSubmitting(false)
     }
@@ -153,7 +147,7 @@ export function ServiceRecordDialog({ record, trigger, onCreated, onUpdated }: S
           <DialogHeader>
             <DialogTitle>{isEditMode ? "Edit Service Record" : "New Service Record"}</DialogTitle>
             <DialogDescription>
-              {isEditMode ? "Cập nhật thông tin hồ sơ dịch vụ" : "Tạo hồ sơ dịch vụ mới"}
+              {isEditMode ? "Update service record information" : "Create a new service record"}
             </DialogDescription>
           </DialogHeader>
 

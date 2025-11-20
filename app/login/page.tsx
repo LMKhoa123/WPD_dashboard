@@ -18,7 +18,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const { loginWithCredentials, user } = useAuth()
 
-  // If already logged in, redirect to home
   useEffect(() => {
     if (user) router.replace("/")
   }, [user, router])

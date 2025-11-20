@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { ArrowLeft, Calendar, Clock, MapPin, Phone, User, Car, Building2, Mail, Edit, Trash2 } from "lucide-react"
 import { getApiClient, type AppointmentRecord, type AppointmentStatus, type SystemUserRecord } from "@/lib/api"
 import { AppointmentDialog } from "@/components/appointments/appointment-dialog"
@@ -27,7 +27,6 @@ const statusColors: Record<AppointmentStatus, string> = {
 export default function AppointmentDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { toast } = useToast()
   const isAdmin = useIsAdmin()
   const isStaff = useIsStaff()
   const api = useMemo(() => getApiClient(), [])
@@ -37,7 +36,6 @@ export default function AppointmentDetailPage() {
   const [deleting, setDeleting] = useState(false)
   const [staffDetails, setStaffDetails] = useState<SystemUserRecord | null>(null)
   const [loadingStaff, setLoadingStaff] = useState(false)
-  // moved technicians & record logic to AppointmentServiceRecords component
 
   const appointmentId = params.id as string
 
@@ -48,7 +46,6 @@ export default function AppointmentDetailPage() {
         const data = await api.getAppointmentById(appointmentId)
         setAppointment(data)
 
-        // If staffId is string, fetch full details
         if (data.staffId && typeof data.staffId === 'string') {
           setLoadingStaff(true)
           try {
@@ -61,13 +58,8 @@ export default function AppointmentDetailPage() {
           }
         }
 
-        // Technicians & record checklists are handled by child component now
       } catch (e: any) {
-        toast({
-          title: "Failed to load appointment",
-          description: e?.message || "Failed to load appointment",
-          variant: "destructive"
-        })
+        toast.error(e?.message || "Failed to load appointment details")
       } finally {
         setLoading(false)
       }
@@ -80,14 +72,10 @@ export default function AppointmentDetailPage() {
     try {
       setDeleting(true)
       await api.deleteAppointment(appointment._id)
-      toast({ title: "Deleted appointment successfully" })
+      toast.success("Deleted appointment successfully")
       router.push("/appointments")
     } catch (e: any) {
-      toast({
-        title: "Failed to delete appointment",
-        description: e?.message || "Failed to delete appointment",
-        variant: "destructive"
-      })
+      toast.error(e?.message || "Failed to delete appointment")
     } finally {
       setDeleting(false)
     }
@@ -118,15 +106,12 @@ export default function AppointmentDetailPage() {
     )
   }
 
-  // Extract populated data
   const slot = appointment.slot_id && typeof appointment.slot_id === 'object' ? appointment.slot_id : null
   const vehicle = typeof appointment.vehicle_id === 'object' ? appointment.vehicle_id : null
   const customer = typeof appointment.customer_id === 'object' ? appointment.customer_id : null
   const center = typeof appointment.center_id === 'object' ? appointment.center_id : null
-  // Use fetched staff details if staffId was string, otherwise use populated object
   const staff = typeof appointment.staffId === 'object' ? appointment.staffId : staffDetails
 
-  // Type guard for full SystemUserRecord
   const isFullStaff = (s: any): s is SystemUserRecord => {
     return s && 'userId' in s && 'isOnline' in s
   }
@@ -145,7 +130,6 @@ export default function AppointmentDetailPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button onClick={() => router.push("/appointments")} variant="ghost" size="icon">

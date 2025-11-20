@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ServiceRecordDialog } from "@/components/service-records/service-record-dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Spinner } from "@/components/ui/spinner"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { useAuth, useIsAdmin, useIsStaff } from "@/components/auth-provider"
 import { Search, Pencil, Trash2, ListTree, CreditCard, ClipboardCheck } from "lucide-react"
 import { ServiceDetailsDialog } from "@/components/service-records/service-details-dialog"
@@ -37,9 +37,7 @@ export default function ServiceRecordsPage() {
   const isAdmin = useIsAdmin()
   const isStaff = useIsStaff()
   const { user } = useAuth()
-  const { toast } = useToast()
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
@@ -52,7 +50,6 @@ export default function ServiceRecordsPage() {
       setLoading(true)
       const res = await api.getServiceRecords({ page, limit })
       let data = res.data.records
-      // If technician, only show their own records
       if (!isAdmin && !isStaff && user?.email) {
         try {
           const su = await api.getSystemUsers({ limit: 1000 })
@@ -72,7 +69,7 @@ export default function ServiceRecordsPage() {
       setTotalItems(res.data.total || data.length)
       setTotalPages(Math.ceil((res.data.total || data.length) / limit))
     } catch (e: any) {
-      toast({ title: "Failed to load service records", description: e?.message || "Failed to load service records", variant: "destructive" })
+      toast.error(e?.message || "Failed to load service records")
     } finally {
       setLoading(false)
     }
@@ -95,9 +92,9 @@ export default function ServiceRecordsPage() {
       setDeletingId(id)
       await api.deleteServiceRecord(id)
       setRecords((prev) => prev.filter((rec) => rec._id !== id))
-      toast({ title: "Service record deleted" })
+      toast.success("Service record deleted successfully")
     } catch (e: any) {
-      toast({ title: "Delete failed", description: e?.message || "Failed to delete", variant: "destructive" })
+      toast.error(e?.message || "Failed to delete service record")
     } finally {
       setDeletingId(null)
     }

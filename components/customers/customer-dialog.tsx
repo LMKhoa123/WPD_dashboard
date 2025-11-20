@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Plus } from "lucide-react"
 import { getApiClient, type CustomerRecord } from "@/lib/api"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 
 interface CustomerDialogProps {
   customer?: CustomerRecord
@@ -30,7 +30,6 @@ export function CustomerDialog({ customer, trigger, onSuccess }: CustomerDialogP
   const [customerName, setCustomerName] = useState("")
   const [dateOfBirth, setDateOfBirth] = useState("")
   const [address, setAddress] = useState("")
-  const { toast } = useToast()
 
   useEffect(() => {
     if (open && customer) {
@@ -50,7 +49,7 @@ export function CustomerDialog({ customer, trigger, onSuccess }: CustomerDialogP
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!customer) return // Only support editing for now
+    if (!customer) return 
 
     try {
       setSubmitting(true)
@@ -61,15 +60,11 @@ export function CustomerDialog({ customer, trigger, onSuccess }: CustomerDialogP
         address,
       })
 
-      toast({ title: "Cập nhật khách hàng thành công" })
+      toast.success("Customer updated successfully")
       setOpen(false)
       onSuccess?.(updated)
     } catch (e: any) {
-      toast({
-        title: "Cập nhật thất bại",
-        description: e?.message || "Failed to update customer",
-        variant: "destructive",
-      })
+      toast.error(e?.message || "Failed to update customer")
     } finally {
       setSubmitting(false)
     }

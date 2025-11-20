@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { Plus } from "lucide-react"
 import { getApiClient, type VehicleRecord, type ServicePackageRecord, type VehicleSubscriptionRecord, type CreateVehicleSubscriptionRequest, type UpdateVehicleSubscriptionRequest } from "@/lib/api"
 
@@ -35,8 +35,6 @@ export function VehicleSubscriptionDialog({ subscription, trigger, onCreated, on
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
   const [status, setStatus] = useState<string>("ACTIVE")
-
-  const { toast } = useToast()
   const api = useMemo(() => getApiClient(), [])
 
   const [vehicles, setVehicles] = useState<VehicleRecord[]>([])
@@ -55,14 +53,14 @@ export function VehicleSubscriptionDialog({ subscription, trigger, onCreated, on
           setVehicles(Array.isArray(vs) ? vs : [])
           setPackages(ps)
         } catch (e: any) {
-          toast({ title: "Không tải được dữ liệu", description: e?.message || "Failed to load vehicles/packages", variant: "destructive" })
+          toast.error("Failed to load data. Please try again.")
         } finally {
           setLoadingLists(false)
         }
       }
       run()
     }
-  }, [open, api, toast])
+  }, [open, api])
 
   useEffect(() => {
     if (open && isEditMode && subscription) {
@@ -98,7 +96,7 @@ export function VehicleSubscriptionDialog({ subscription, trigger, onCreated, on
           status: status as any,
         }
         const updated = await api.updateVehicleSubscription(subscription._id, payload)
-        toast({ title: "Cập nhật đăng ký bảo hành thành công" })
+        toast.success("Updated vehicle subscription successfully")
         setOpen(false)
         resetForm()
         onUpdated?.(updated)
@@ -110,17 +108,13 @@ export function VehicleSubscriptionDialog({ subscription, trigger, onCreated, on
           status: status as any,
         }
         const created = await api.createVehicleSubscription(payload)
-        toast({ title: "Tạo đăng ký bảo hành thành công" })
+        toast.success("Created vehicle subscription successfully")
         setOpen(false)
         resetForm()
         onCreated?.(created)
       }
     } catch (e: any) {
-      toast({
-        title: isEditMode ? "Cập nhật thất bại" : "Tạo thất bại",
-        description: e?.message || `Failed to ${isEditMode ? "update" : "create"} subscription`,
-        variant: "destructive",
-      })
+      toast.error(isEditMode ? "Failed to update subscription" : "Failed to create subscription")
     } finally {
       setSubmitting(false)
     }
@@ -141,7 +135,7 @@ export function VehicleSubscriptionDialog({ subscription, trigger, onCreated, on
           <DialogHeader>
             <DialogTitle>{isEditMode ? "Edit Subscription" : "New Subscription"}</DialogTitle>
             <DialogDescription>
-              {isEditMode ? "Cập nhật thông tin đăng ký bảo hành" : "Tạo đăng ký gói bảo hành cho xe"}
+              {isEditMode ? "Update vehicle subscription information" : "Create a new vehicle subscription package"}
             </DialogDescription>
           </DialogHeader>
 

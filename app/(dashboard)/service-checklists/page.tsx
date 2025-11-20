@@ -24,14 +24,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { getApiClient, type ServiceChecklistRecord } from "@/lib/api"
 import { Plus, Pencil, Trash2, Search } from "lucide-react"
 import { ServiceChecklistDialog } from "@/components/service-checklists/service-checklist-dialog"
 import { AdminOnly } from "@/components/role-guards"
 
 export default function ServiceChecklistsPage() {
-  const { toast } = useToast()
   const [checklists, setChecklists] = useState<ServiceChecklistRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
@@ -42,7 +41,6 @@ export default function ServiceChecklistsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [checklistToDelete, setChecklistToDelete] = useState<ServiceChecklistRecord | null>(null)
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
@@ -57,11 +55,7 @@ export default function ServiceChecklistsPage() {
       setTotalItems(response.data.total || response.data.checklists.length)
       setTotalPages(Math.ceil((response.data.total || response.data.checklists.length) / limit))
     } catch (error: any) {
-      toast({
-        title: "Failed to load list",
-        description: error?.message || "Failed to load service checklists",
-        variant: "destructive",
-      })
+      toast.error(error?.message || "Failed to load service checklists")
     } finally {
       setLoading(false)
     }
@@ -100,17 +94,10 @@ export default function ServiceChecklistsPage() {
     try {
       const apiClient = getApiClient()
       await apiClient.deleteServiceChecklist(checklistToDelete._id)
-      toast({
-        title: "Delete successful",
-        description: "Service checklist has been deleted",
-      })
+      toast.success("Service checklist deleted successfully")
       loadChecklists(currentPage)
     } catch (error: any) {
-      toast({
-        title: "Delete failed",
-        description: error?.message || "Failed to delete service checklist",
-        variant: "destructive",
-      })
+      toast.error(error?.message || "Failed to delete service checklist")
     } finally {
       setDeleteDialogOpen(false)
       setChecklistToDelete(null)

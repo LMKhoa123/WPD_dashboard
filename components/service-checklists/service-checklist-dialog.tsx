@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { getApiClient } from "@/lib/api"
 import type { ServiceChecklistRecord } from "@/lib/api"
 
@@ -22,7 +22,6 @@ export function ServiceChecklistDialog({
   checklist,
   onSuccess,
 }: ServiceChecklistDialogProps) {
-  const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   
   const [name, setName] = useState("")
@@ -50,11 +49,7 @@ export function ServiceChecklistDialog({
 
     const orderNum = parseInt(order, 10)
     if (isNaN(orderNum) || orderNum < 0) {
-      toast({
-        title: "Lỗi",
-        description: "Order phải là số nguyên dương",
-        variant: "destructive",
-      })
+      toast.error("Order must be a positive integer")
       setLoading(false)
       return
     }
@@ -66,28 +61,18 @@ export function ServiceChecklistDialog({
           name,
           order: orderNum,
         })
-        toast({
-          title: "Cập nhật thành công",
-          description: "Checklist đã được cập nhật",
-        })
+        toast.success("Checklist has been updated")
       } else {
         await apiClient.createServiceChecklist({
           name,
           order: orderNum,
         })
-        toast({
-          title: "Tạo thành công",
-          description: "Checklist mới đã được tạo",
-        })
+        toast.success("Checklist has been created")
       }
       onSuccess()
       onOpenChange(false)
     } catch (error: any) {
-      toast({
-        title: "Lỗi",
-        description: error?.message || "Đã có lỗi xảy ra",
-        variant: "destructive",
-      })
+      toast.error(error?.message || "An error occurred")
     } finally {
       setLoading(false)
     }
@@ -98,43 +83,43 @@ export function ServiceChecklistDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {isEditMode ? "Chỉnh sửa Checklist" : "Tạo Checklist mới"}
+            {isEditMode ? "Edit Checklist" : "Create New Checklist"}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Tên Checklist *</Label>
+            <Label htmlFor="name">Checklist Name *</Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="VD: Checklist bảo dưỡng 10,000 km"
+              placeholder="E.g., 10,000 km Maintenance Checklist"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="order">Thứ tự *</Label>
+            <Label htmlFor="order">Order *</Label>
             <Input
               id="order"
               type="number"
               min="0"
               value={order}
               onChange={(e) => setOrder(e.target.value)}
-              placeholder="VD: 1, 2, 3..."
+              placeholder="E.g., 1, 2, 3..."
               required
             />
             <p className="text-xs text-muted-foreground">
-              Thứ tự hiển thị của checklist (số càng nhỏ càng ưu tiên)
+              The display order of the checklist (lower numbers have higher priority)
             </p>
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Hủy
+              Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? "Đang lưu..." : isEditMode ? "Cập nhật" : "Tạo mới"}
+              {loading ? "Saving..." : isEditMode ? "Update" : "Create"}
             </Button>
           </div>
         </form>

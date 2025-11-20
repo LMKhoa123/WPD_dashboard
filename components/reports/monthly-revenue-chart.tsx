@@ -31,7 +31,6 @@ export function MonthlyRevenueChart({ date }: MonthlyRevenueChartProps) {
     queryFn: () => api.getMonthlyRevenueByServiceCompletion(year),
   })
 
-  // Combine data from all three APIs
   const chartData = monthNames.map((monthName, index) => {
     const monthNumber = index + 1
     const subscription = subscriptionRevenueData.find(d => d.month === monthNumber)?.revenue || 0

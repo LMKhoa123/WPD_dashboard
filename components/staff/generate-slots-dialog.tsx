@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils"
 import { format, isValid } from "date-fns"
 import { vi } from "date-fns/locale"
 import { CalendarIcon, X, Loader2 } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { getApiClient, type CenterRecord } from "@/lib/api"
 
 interface GenerateSlotsDialogProps {
@@ -30,7 +30,6 @@ interface GenerateResult {
 }
 
 export function GenerateSlotsDialog({ open, onOpenChange, centers, onSuccess }: GenerateSlotsDialogProps) {
-  const { toast } = useToast()
   const [selectedCenterIds, setSelectedCenterIds] = useState<string[]>([])
   const [selectedDates, setSelectedDates] = useState<Date[]>([])
   const [startTime, setStartTime] = useState("08:00")
@@ -71,11 +70,11 @@ export function GenerateSlotsDialog({ open, onOpenChange, centers, onSuccess }: 
 
   const handleGenerate = async () => {
     if (selectedCenterIds.length === 0) {
-      toast({ title: "Please select at least one center", variant: "destructive" })
+      toast.error("Please select at least one center")
       return
     }
     if (selectedDates.length === 0) {
-      toast({ title: "Please select at least one date", variant: "destructive" })
+      toast.error("Please select at least one date")
       return
     }
 
@@ -83,7 +82,7 @@ export function GenerateSlotsDialog({ open, onOpenChange, centers, onSuccess }: 
     const startMin = hhmmToMinutes(startTime)
     const endMin = hhmmToMinutes(endTime)
     if (!Number.isFinite(startMin) || !Number.isFinite(endMin) || startMin >= endMin) {
-      toast({ title: "Invalid time range", description: "Start time must be before end time", variant: "destructive" })
+      toast.error("Start time must be before end time")
       return
     }
 
@@ -94,7 +93,7 @@ export function GenerateSlotsDialog({ open, onOpenChange, centers, onSuccess }: 
         .map((d) => format(d, "yyyy-MM-dd"))
     ))
     if (dates.length === 0) {
-      toast({ title: "Invalid date", description: "Please select valid dates", variant: "destructive" })
+      toast.error("Please select valid dates")
       return
     }
 
@@ -112,18 +111,11 @@ export function GenerateSlotsDialog({ open, onOpenChange, centers, onSuccess }: 
       })
 
       setResult(response.data)
-      toast({ 
-        title: "Slots created successfully", 
-        description: `Created ${response.data.created} slots, skipped ${response.data.skipped} duplicate slots` 
-      })
+      toast.success(`Created ${response.data.created} slots, skipped ${response.data.skipped} duplicate slots`)
       
       if (onSuccess) onSuccess()
     } catch (error: any) {
-      toast({ 
-        title: "Failed to create slots", 
-        description: error?.message || "An error occurred", 
-        variant: "destructive" 
-      })
+      toast.error(error?.message || "Failed to generate slots. Please try again.")
     } finally {
       setLoading(false)
     }

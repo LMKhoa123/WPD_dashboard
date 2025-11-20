@@ -83,8 +83,8 @@ export function WorkshiftSlotWizard({ open, onOpenChange, centers, onCompleted }
   }
 
   const handleCreateShifts = async () => {
-    if (!centerId) { toast.error("Chọn trung tâm") ; return }
-    if (shiftDates.length === 0) { toast.error("Chọn ít nhất một ngày") ; return }
+    if (!centerId) { toast.error("Choose a center") ; return }
+    if (shiftDates.length === 0) { toast.error("Choose at least one date") ; return }
     setCreatingShifts(true)
     try {
       const payload = {
@@ -96,11 +96,11 @@ export function WorkshiftSlotWizard({ open, onOpenChange, centers, onCompleted }
       }
       const workshifts = await api.createWorkshiftsBulk(payload)
       setCreatedWorkshifts(workshifts)
-      toast.success(`Tạo ${workshifts.length} ca thành công`)
+      toast.success(`Created ${workshifts.length} workshifts successfully`)
       setStep(2)
       await loadUsers(centerId)
     } catch (e: any) {
-      toast.error(e?.message || "Tạo ca thất bại")
+      toast.error(e?.message || "Failed to create workshifts")
     } finally { setCreatingShifts(false) }
   }
 
@@ -114,7 +114,7 @@ export function WorkshiftSlotWizard({ open, onOpenChange, centers, onCompleted }
       setStaff(staffRes.data.systemUsers)
       setTechs(techRes.data.systemUsers)
     } catch (e: any) {
-      toast.error("Không thể tải nhân sự")
+      toast.error("Failed to load users")
     } finally { setLoadingUsers(false) }
   }, [api])
 
@@ -123,8 +123,8 @@ export function WorkshiftSlotWizard({ open, onOpenChange, centers, onCompleted }
   }
 
   const handleAssign = async () => {
-    if (createdWorkshifts.length === 0) { toast.error("Chưa có ca") ; return }
-    if (selectedStaffIds.length === 0 && selectedTechIds.length === 0) { toast.error("Chọn ít nhất 1 nhân sự") ; return }
+    if (createdWorkshifts.length === 0) { toast.error("No workshifts created") ; return }
+    if (selectedStaffIds.length === 0 && selectedTechIds.length === 0) { toast.error("Select at least one user") ; return }
     setAssigning(true)
     try {
       const workshiftIds = createdWorkshifts.map(w => w._id)
@@ -132,18 +132,18 @@ export function WorkshiftSlotWizard({ open, onOpenChange, centers, onCompleted }
       for (const id of [...selectedStaffIds, ...selectedTechIds]) {
         await api.assignShifts({ system_user_id: id, workshift_ids: workshiftIds })
       }
-      toast.success("Phân công thành công")
+      toast.success("Assigned successfully")
       setStep(3)
     } catch (e: any) {
-      toast.error(e?.message || "Phân công thất bại")
+      toast.error(e?.message || "Failed to assign")
     } finally { setAssigning(false) }
   }
 
   const handleGenerateSlots = async () => {
-    if (!centerId) { toast.error("Thiếu trung tâm") ; return }
+    if (!centerId) { toast.error("Missing center") ; return }
     if (creatingShifts || assigning) return // prevent race
     // Basic validation
-    if (startTime >= endTime) { toast.error("Giờ bắt đầu phải trước giờ kết thúc") ; return }
+    if (startTime >= endTime) { toast.error("Start time must be before end time") ; return }
     const rawDates = Array.from(new Set(createdWorkshifts.map(w => w.shift_date))).filter(Boolean)
     const normalizedDates = rawDates.map(d => {
       const dt = new Date(d as string)
@@ -151,7 +151,7 @@ export function WorkshiftSlotWizard({ open, onOpenChange, centers, onCompleted }
       // format to YYYY-MM-DD (local Asia/Ho_Chi_Minh not needed for date-only)
       return dt.toISOString().slice(0,10)
     }).filter(Boolean) as string[]
-    if (normalizedDates.length === 0) { toast.error("Không có ngày hợp lệ để tạo slots") ; return }
+    if (normalizedDates.length === 0) { toast.error("No valid dates to generate slots") ; return }
     setGeneratingSlots(true)
     try {
       const res = await api.generateSlots({
@@ -166,7 +166,7 @@ export function WorkshiftSlotWizard({ open, onOpenChange, centers, onCompleted }
       setStep(4)
     } catch (e: any) {
       console.error("generateSlots error", e)
-      toast.error(e?.message || "Tạo slots thất bại")
+      toast.error(e?.message || "Failed to generate slots")
     } finally { setGeneratingSlots(false) }
   }
 
@@ -189,23 +189,23 @@ export function WorkshiftSlotWizard({ open, onOpenChange, centers, onCompleted }
     <Dialog open={open} onOpenChange={closeWizard}>
       <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Flow Nhanh: Ca → Phân Công → Slots</DialogTitle>
-          <DialogDescription>Tự động hoá quy trình tạo ca, phân công nhân sự và sinh slots liền mạch.</DialogDescription>
+          <DialogTitle>Quick Flow: Workshifts → Assign → Slots</DialogTitle>
+          <DialogDescription>Automate the process of creating workshifts, assigning users, and generating slots seamlessly.</DialogDescription>
         </DialogHeader>
 
         {/* Step indicator */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-          <StepBadge n={1 as Step} label="Tạo Ca" />
-            <StepBadge n={2 as Step} label="Phân Công" />
-            <StepBadge n={3 as Step} label="Sinh Slots" />
-            <StepBadge n={4 as Step} label="Hoàn tất" />
+          <StepBadge n={1 as Step} label="Create Workshifts" />
+            <StepBadge n={2 as Step} label="Assign Users" />
+            <StepBadge n={3 as Step} label="Generate Slots" />
+            <StepBadge n={4 as Step} label="Complete" />
         </div>
         <Separator className="mb-4" />
 
         {step === 1 && (
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label>Trung tâm *</Label>
+              <Label>Center *</Label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {centers.map(c => (
                   <button
@@ -221,12 +221,12 @@ export function WorkshiftSlotWizard({ open, onOpenChange, centers, onCompleted }
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Chọn ngày *</Label>
+              <Label>Select Date *</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="justify-start w-full md:w-80">
                     <CalendarIcon className="h-4 w-4 mr-2" />
-                    {shiftDates.length === 0 ? "Chọn ngày" : `${shiftDates.length} ngày đã chọn`}
+                    {shiftDates.length === 0 ? "Select Date" : `${shiftDates.length} dates selected`}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent align="start" className="p-0">
@@ -244,18 +244,18 @@ export function WorkshiftSlotWizard({ open, onOpenChange, centers, onCompleted }
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Giờ bắt đầu *</Label>
+                <Label>Start Time *</Label>
                 <Input type="time" value={startTime} onChange={e=>setStartTime(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>Giờ kết thúc *</Label>
+                <Label>End Time *</Label>
                 <Input type="time" value={endTime} onChange={e=>setEndTime(e.target.value)} />
               </div>
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={closeWizard}>Hủy</Button>
+              <Button variant="outline" onClick={closeWizard}>Cancel</Button>
               <Button onClick={handleCreateShifts} disabled={creatingShifts}>
-                {creatingShifts && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Tạo Ca
+                {creatingShifts && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Create Workshifts
               </Button>
             </div>
           </div>
@@ -264,8 +264,8 @@ export function WorkshiftSlotWizard({ open, onOpenChange, centers, onCompleted }
         {step === 2 && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold">Ca đã tạo: {createdWorkshifts.length}</h3>
-              <p className="text-sm text-muted-foreground">Trung tâm: {currentCenterName}</p>
+              <h3 className="font-semibold">Created Workshifts: {createdWorkshifts.length}</h3>
+              <p className="text-sm text-muted-foreground">Center: {currentCenterName}</p>
             </div>
             <ScrollArea className="h-28 border rounded-md p-2 text-xs">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -284,8 +284,8 @@ export function WorkshiftSlotWizard({ open, onOpenChange, centers, onCompleted }
                 <div className="flex items-center gap-2 mb-2"><Users className="h-4 w-4" /><h4 className="font-medium">Staff</h4></div>
                 <ScrollArea className="h-56 border rounded p-2">
                   <div className="space-y-1">
-                    {loadingUsers && <p className="text-xs text-muted-foreground">Đang tải...</p>}
-                    {!loadingUsers && staff.length === 0 && <p className="text-xs text-muted-foreground">Không có staff</p>}
+                    {loadingUsers && <p className="text-xs text-muted-foreground">Loading...</p>}
+                    {!loadingUsers && staff.length === 0 && <p className="text-xs text-muted-foreground">No staff available</p>}
                     {staff.map(u => {
                       const active = selectedStaffIds.includes(u._id)
                       return (
@@ -304,8 +304,8 @@ export function WorkshiftSlotWizard({ open, onOpenChange, centers, onCompleted }
                 <div className="flex items-center gap-2 mb-2"><Wrench className="h-4 w-4" /><h4 className="font-medium">Technicians</h4></div>
                 <ScrollArea className="h-56 border rounded p-2">
                   <div className="space-y-1">
-                    {loadingUsers && <p className="text-xs text-muted-foreground">Đang tải...</p>}
-                    {!loadingUsers && techs.length === 0 && <p className="text-xs text-muted-foreground">Không có technician</p>}
+                    {loadingUsers && <p className="text-xs text-muted-foreground">Loading...</p>}
+                    {!loadingUsers && techs.length === 0 && <p className="text-xs text-muted-foreground">No technicians available</p>}
                     {techs.map(u => {
                       const active = selectedTechIds.includes(u._id)
                       return (
@@ -322,11 +322,11 @@ export function WorkshiftSlotWizard({ open, onOpenChange, centers, onCompleted }
               </div>
             </div>
             <div className="flex justify-between">
-              <Button variant="outline" onClick={()=>setStep(1)}><ChevronLeft className="h-4 w-4 mr-1" />Quay lại</Button>
+              <Button variant="outline" onClick={()=>setStep(1)}><ChevronLeft className="h-4 w-4 mr-1" />Go Back</Button>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={closeWizard}>Hủy</Button>
+                <Button variant="outline" onClick={closeWizard}>Cancel</Button>
                 <Button onClick={handleAssign} disabled={assigning}>
-                  {assigning && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Phân Công
+                  {assigning && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Assign
                 </Button>
               </div>
             </div>
@@ -335,23 +335,23 @@ export function WorkshiftSlotWizard({ open, onOpenChange, centers, onCompleted }
 
         {step === 3 && (
           <div className="space-y-6">
-            <h3 className="font-semibold">Sinh Slots theo các ca vừa phân công</h3>
+            <h3 className="font-semibold">Generate Slots based on assigned workshifts</h3>
             <div className="grid md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>Trung tâm</Label>
+                <Label>Center</Label>
                 <Input disabled value={currentCenterName} />
               </div>
               <div className="space-y-2">
-                <Label>Khoảng giờ</Label>
+                <Label>Time Range</Label>
                 <Input disabled value={`${startTime} - ${endTime}`} />
               </div>
               <div className="space-y-2">
-                <Label>Thời lượng mỗi slot (phút)</Label>
+                <Label>Slot Duration (minutes)</Label>
                 <Input type="number" min={5} step={5} value={slotDuration} onChange={e=>setSlotDuration(e.target.value)} />
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Ngày</Label>
+              <Label>Date</Label>
               <div className="flex flex-wrap gap-2">
                 {Array.from(new Set(createdWorkshifts.map(w=>w.shift_date))).sort().map(d => (
                   <Badge key={d} variant="secondary" className="px-2 py-1">{formatDate(d)}</Badge>
@@ -359,11 +359,11 @@ export function WorkshiftSlotWizard({ open, onOpenChange, centers, onCompleted }
               </div>
             </div>
             <div className="flex justify-between">
-              <Button variant="outline" onClick={()=>setStep(2)}><ChevronLeft className="h-4 w-4 mr-1" />Quay lại</Button>
+              <Button variant="outline" onClick={()=>setStep(2)}><ChevronLeft className="h-4 w-4 mr-1" />Go Back</Button>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={closeWizard}>Hủy</Button>
+                <Button variant="outline" onClick={closeWizard}>Cancel</Button>
                 <Button onClick={handleGenerateSlots} disabled={generatingSlots}>
-                  {generatingSlots && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Sinh Slots
+                  {generatingSlots && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Generate Slots
                 </Button>
               </div>
             </div>
@@ -373,16 +373,16 @@ export function WorkshiftSlotWizard({ open, onOpenChange, centers, onCompleted }
         {step === 4 && (
           <div className="space-y-6">
             <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6 text-center">
-              <h3 className="text-lg font-semibold mb-2">Hoàn tất 🎉</h3>
+              <h3 className="text-lg font-semibold mb-2">Complete 🎉</h3>
               {generateSummary && (
-                <p className="text-sm text-muted-foreground">Đã tạo {generateSummary.created} slots · Bỏ qua {generateSummary.skipped}</p>
+                <p className="text-sm text-muted-foreground">Created {generateSummary.created} slots · Skipped {generateSummary.skipped}</p>
               )}
             </div>
             <div className="flex justify-between">
-              <Button variant="outline" onClick={()=>setStep(3)}><ChevronLeft className="h-4 w-4 mr-1" />Quay lại</Button>
+              <Button variant="outline" onClick={()=>setStep(3)}><ChevronLeft className="h-4 w-4 mr-1" />Go Back</Button>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={closeWizard}>Đóng</Button>
-                <Button onClick={finish}><ChevronRight className="h-4 w-4 mr-1" />Xong & Làm mới</Button>
+                <Button variant="outline" onClick={closeWizard}>Close</Button>
+                <Button onClick={finish}><ChevronRight className="h-4 w-4 mr-1" />Done & Refresh</Button>
               </div>
             </div>
           </div>

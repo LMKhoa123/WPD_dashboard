@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { ArrowLeft, CheckCircle2, Minus, Plus, ReceiptText, ShieldCheck } from "lucide-react"
 
 type SuggestedLine = {
@@ -35,7 +35,6 @@ export default function SuggestedPartsPage() {
     const { id: recordId } = useParams() as { id: string }
     const router = useRouter()
     const api = useMemo(() => getApiClient(), [])
-    const { toast } = useToast()
 
     const [loading, setLoading] = useState(true)
     const [lines, setLines] = useState<LineState[]>([])
@@ -50,7 +49,6 @@ export default function SuggestedPartsPage() {
     const run = async () => {
         try {
             setLoading(true)
-            // 1) Load existing service details first (may be present or empty)
             const detailsRes = await api.getServiceDetails({ record_id: recordId })
             const existingDetails = detailsRes?.data?.details || []
             const existingByCenterPart: Record<string, ServiceDetailRecord> = {}
@@ -59,7 +57,6 @@ export default function SuggestedPartsPage() {
                 if (cp) existingByCenterPart[cp] = d
             })
 
-            // Bootstrap confirmed lines from existing service details
             const existingLines: LineState[] = existingDetails.map((d: ServiceDetailRecord) => {
                 const centerpartId = typeof d.centerpart_id === "string" ? d.centerpart_id : (d.centerpart_id as any)?._id
                 return {
@@ -77,7 +74,6 @@ export default function SuggestedPartsPage() {
                 }
             })
 
-            // 2) Load suggested parts and merge with existing
             const res: any = await api.getAllSuggestedParts(recordId)
             const raw: SuggestedLine[] = (res?.data || []).map((x: any) => ({
                 center_auto_part_id: x.center_auto_part_id || x.centerpart_id || x.center_id || "",
@@ -95,19 +91,16 @@ export default function SuggestedPartsPage() {
                 confirmed: false,
             }))
 
-            // Merge: keep existing confirmed lines, and add suggested ones that aren't already confirmed
             const merged: LineState[] = [...existingLines]
             for (const s of initSuggested) {
                 const existing = merged.find((m) => m.center_auto_part_id === s.center_auto_part_id)
                 if (existing) {
-                    // Enrich existing confirmed line with display info if missing
                     merged.splice(merged.indexOf(existing), 1, {
                         ...existing,
                         name: existing.name && existing.name !== "Added Part" ? existing.name : s.name,
                         image: existing.image || s.image,
                         warranty_time: existing.warranty_time || s.warranty_time,
                         center_stock: s.center_stock || existing.center_stock,
-                        // keep selling_price from detail (unit_price) for confirmed lines
                     })
                 } else {
                     merged.push(s)
@@ -116,7 +109,6 @@ export default function SuggestedPartsPage() {
 
             setLines(merged)
 
-            // Also resolve customerId from record -> appointment
             try {
                 const record = await api.getServiceRecordById(recordId)
                 const appt = record?.appointment_id
@@ -127,10 +119,8 @@ export default function SuggestedPartsPage() {
                     : null
                 setCustomerId(cid || null)
             } catch {
-                // ignore customer resolution error
             }
 
-            // Load active subscription package by service record to get discount percent
             try {
                 const pkg = await api.getActiveSubscriptionPackageByServiceRecord(recordId)
                 const dp = (pkg as any)?.discount_percent ?? 0
@@ -139,7 +129,6 @@ export default function SuggestedPartsPage() {
                 setDiscountPercent(0)
             }
 
-            // Check payment status for this service record
             try {
                 const payRes = await api.getPayments({ service_record_id: recordId, limit: 50 })
                 const payments = (payRes as any)?.data?.payments || []
@@ -155,11 +144,10 @@ export default function SuggestedPartsPage() {
                     setPaidPayment(null)
                 }
             } catch {
-                // if cannot fetch payments, keep default (treat as unpaid)
                 setIsPaid(false)
             }
         } catch (e: any) {
-            toast({ title: "Failed to load suggested parts", description: e?.message || "Failed to load suggested parts", variant: "destructive" })
+            toast.error(e?.message || "Failed to load suggested parts")
         } finally {
             setLoading(false)
         }
@@ -184,17 +172,16 @@ export default function SuggestedPartsPage() {
             await api.createServiceDetail({
                 record_id: recordId,
                 centerpart_id: l.center_auto_part_id,
-                description: undefined as any, // backend will generate description
+                description: undefined as any, 
                 quantity: l.quantity,
-                unit_price: undefined as any, // backend will set
+                unit_price: undefined as any, 
             } as any)
-            // Do not use createServiceDetail response for UI; rely on getServiceDetails
+            
             setLines((prev) => prev.map((x) => x.center_auto_part_id === l.center_auto_part_id ? { ...x, confirmed: true } : x))
-            toast({ title: "Confirmed part line" })
-            // Refresh current route to re-fetch details from server
+            toast.success("Confirmed part line")
             await run()
         } catch (e: any) {
-            toast({ title: "Confirmation failed", description: e?.message || "Failed to create service detail", variant: "destructive" })
+            toast.error(e?.message || "Failed to create service detail")
         } finally {
             setSubmittingId(null)
         }
@@ -204,7 +191,6 @@ export default function SuggestedPartsPage() {
         setLines((prev) => prev.filter((l) => l.center_auto_part_id !== centerpartId))
     }
 
-    // Warranty-aware parts total: only charge paid_qty portion
     const partsTotal = lines.filter(l => l.confirmed).reduce((sum, l) => {
         const paidQty = l.detail?.paid_qty ?? l.quantity
         return sum + paidQty * l.selling_price
@@ -216,15 +202,15 @@ export default function SuggestedPartsPage() {
 
     const createPayment = async () => {
         if (hasUnconfirmed) {
-            toast({ title: "There are unconfirmed lines", description: "Please confirm or remove all unconfirmed lines before proceeding with payment." })
+            toast.error("There are unconfirmed lines. Please confirm or remove all unconfirmed lines before proceeding with payment.")
             return
         }
         if (!customerId) {
-            toast({ title: "Missing customer information", description: "Unable to identify customer for payment creation", variant: "destructive" })
+            toast.error("Missing customer information. Unable to identify customer for payment creation.")
             return
         }
         if (grandTotal <= 0) {
-            toast({ title: "Invalid amount", description: "Total amount must be greater than 0" })
+            toast.error("Invalid amount. Total amount must be greater than 0.")
             return
         }
         try {
@@ -238,16 +224,15 @@ export default function SuggestedPartsPage() {
                 payment_type: "service_record",
                 returnUrl: currentUrl,
                 cancelUrl: currentUrl,
-                // Giữ returnUrl/cancelUrl mặc định ở backend
             })
             const url = paymentUrl || (payment as any)?.payment_url
             if (url) {
                 window.location.href = url as string
             } else {
-                toast({ title: "Payment created successfully", description: "No payment link available, please check the payment list." })
+                toast.success("Payment created successfully. No payment link available, please check the payment list.")
             }
         } catch (e: any) {
-            toast({ title: "Payment creation failed", description: e?.message || "Unable to create payment", variant: "destructive" })
+            toast.error(e?.message || "Unable to create payment")
         } finally {
             setPaying(false)
         }
@@ -339,7 +324,6 @@ export default function SuggestedPartsPage() {
                             <div key={l.center_auto_part_id} className="rounded-lg border p-3">
                                 <div className="flex items-start gap-3">
                                     {l.image ? (
-                                        // eslint-disable-next-line @next/next/no-img-element
                                         <img src={l.image} alt={l.name} className="h-14 w-14 rounded object-cover border" />
                                     ) : (
                                         <div className="h-14 w-14 rounded bg-muted grid place-items-center text-muted-foreground">IMG</div>

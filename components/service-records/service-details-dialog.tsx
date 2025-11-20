@@ -37,7 +37,6 @@ export function ServiceDetailsDialog({ recordId, trigger }: ServiceDetailsDialog
   const isAdmin = useIsAdmin()
   const isStaff = useIsStaff()
   const role = useRole()
-  // CHỈ STAFF được tạo Detail để chốt linh kiện đã sử dụng
   const canCreate = isStaff
 
   const resetForm = () => {
@@ -59,7 +58,7 @@ export function ServiceDetailsDialog({ recordId, trigger }: ServiceDetailsDialog
       setDetails(list.data.details)
       setCenterParts(centerPartsRes.data.items)
     } catch (e: any) {
-      toast.error("Không tải được dữ liệu", { description: e?.message || "Failed to load data" })
+      toast.error("Failed to load data", { description: e?.message || "Failed to load data" })
     } finally {
       setLoading(false)
     }
@@ -76,7 +75,7 @@ export function ServiceDetailsDialog({ recordId, trigger }: ServiceDetailsDialog
     try {
       setSaving(true)
       if (!centerPartId || !quantity || !unitPrice) {
-        toast.error("Thiếu dữ liệu", { description: "Vui lòng chọn Center-Part và nhập Quantity/Unit Price" })
+        toast.error("Missing data", { description: "Please select Center-Part and enter Quantity/Unit Price" })
         return
       }
       if (editing) {
@@ -87,7 +86,7 @@ export function ServiceDetailsDialog({ recordId, trigger }: ServiceDetailsDialog
         }
         const updated = await api.updateServiceDetail(editing._id, payload)
         setDetails(prev => prev.map(d => d._id === updated._id ? updated : d))
-  toast.success("Đã cập nhật")
+  toast.success("Updated")
       } else {
         const payload: CreateServiceDetailRequest = {
           record_id: recordId,
@@ -98,11 +97,11 @@ export function ServiceDetailsDialog({ recordId, trigger }: ServiceDetailsDialog
         }
         const created = await api.createServiceDetail(payload)
         setDetails(prev => [created, ...prev])
-  toast.success("Đã tạo")
+  toast.success("Created")
       }
       resetForm()
     } catch (e: any) {
-      toast.error("Lưu thất bại", { description: e?.message || "Save failed" })
+      toast.error("Save failed", { description: e?.message || "Save failed" })
     } finally {
       setSaving(false)
     }
@@ -120,9 +119,9 @@ export function ServiceDetailsDialog({ recordId, trigger }: ServiceDetailsDialog
     try {
       await api.deleteServiceDetail(id)
       setDetails(prev => prev.filter(d => d._id !== id))
-  toast.success("Đã xóa")
+  toast.success("Deleted")
     } catch (e: any) {
-      toast.error("Xóa thất bại", { description: e?.message || "Delete failed" })
+      toast.error("Delete failed", { description: e?.message || "Delete failed" })
     }
   }
 
@@ -141,7 +140,7 @@ export function ServiceDetailsDialog({ recordId, trigger }: ServiceDetailsDialog
       </DialogTrigger>
       <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Service Details (Staff chốt đơn)</DialogTitle>
+          <DialogTitle>Service Details (Staff finalizing order)</DialogTitle>
         </DialogHeader>
 
         {(canCreate || !!editing) && (

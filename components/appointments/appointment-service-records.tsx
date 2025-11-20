@@ -28,7 +28,6 @@ export function AppointmentServiceRecords({ appointmentId }: AppointmentServiceR
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
-    // Unique technicians collected from records
     const [technicians, setTechnicians] = useState<SystemUserRecord[]>([])
     const [loadingTech, setLoadingTech] = useState(false)
 
@@ -42,7 +41,6 @@ export function AppointmentServiceRecords({ appointmentId }: AppointmentServiceR
                 if (!mounted) return
                 setRecords(rs)
 
-                // Collect technicians
                 try {
                     setLoadingTech(true)
                     const objTechs: any[] = []
@@ -71,7 +69,7 @@ export function AppointmentServiceRecords({ appointmentId }: AppointmentServiceR
                 }
             } catch (e: any) {
                 if (!mounted) return
-                setError(e?.message || "Không thể tải service records")
+                setError(e?.message || "Failed to load service records")
             } finally {
                 if (mounted) setLoading(false)
             }
@@ -80,9 +78,9 @@ export function AppointmentServiceRecords({ appointmentId }: AppointmentServiceR
         return () => { mounted = false }
     }, [api, appointmentId])
 
-    if (loading) return <div className="flex items-center gap-2 text-muted-foreground"><Spinner /> Đang tải công việc...</div>
+    if (loading) return <div className="flex items-center gap-2 text-muted-foreground"><Spinner /> Loading service records...</div>
     if (error) return <div className="text-sm text-red-600">{error}</div>
-    if (!records.length) return <div className="text-sm text-muted-foreground">Chưa có service record cho lịch hẹn này</div>
+    if (!records.length) return <div className="text-sm text-muted-foreground">No service records for this appointment</div>
 
     return (
         <div className="space-y-6">
@@ -90,13 +88,13 @@ export function AppointmentServiceRecords({ appointmentId }: AppointmentServiceR
             <Card>
                 <CardHeader className="pb-2">
                     <CardTitle className="text-base flex items-center gap-2">
-                        <User className="h-4 w-4" /> Kỹ thuật viên thực hiện
+                        <User className="h-4 w-4" /> Technicians performing the service
                         {loadingTech && <Spinner className="h-4 w-4" />}
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     {loadingTech ? (
-                        <div className="flex items-center gap-2 text-muted-foreground"><Spinner /> Đang tải kỹ thuật viên...</div>
+                        <div className="flex items-center gap-2 text-muted-foreground"><Spinner /> Loading technicians...</div>
                     ) : technicians.length > 0 ? (
                         <div className="space-y-6">
                             {technicians.map((tech, idx) => {
@@ -104,7 +102,7 @@ export function AppointmentServiceRecords({ appointmentId }: AppointmentServiceR
                                 return (
                                     <div key={(tech as any)._id || idx} className="grid gap-3 md:grid-cols-2">
                                         <div>
-                                            <p className="text-sm font-medium">Tên kỹ thuật viên</p>
+                                            <p className="text-sm font-medium">Technician Name</p>
                                             <p className="text-lg font-semibold">{(tech as any).name || '—'}</p>
                                         </div>
                                         {isFull(tech) && tech.userId && typeof tech.userId === 'object' && (
@@ -114,20 +112,20 @@ export function AppointmentServiceRecords({ appointmentId }: AppointmentServiceR
                                             </div>
                                         )}
                                         <div>
-                                            <p className="text-sm font-medium">Vai trò</p>
+                                            <p className="text-sm font-medium">Role</p>
                                             <Badge variant="outline">TECHNICIAN</Badge>
                                         </div>
                                         {isFull(tech) && tech.userId && typeof tech.userId === 'object' && tech.userId.phone && (
                                             <div>
-                                                <p className="text-sm font-medium">Số điện thoại</p>
+                                                <p className="text-sm font-medium">Phone Number</p>
                                                 <p className="text-sm text-muted-foreground">{tech.userId.phone}</p>
                                             </div>
                                         )}
                                         {isFull(tech) && (
                                             <div>
-                                                <p className="text-sm font-medium">Trạng thái</p>
+                                                <p className="text-sm font-medium">Status</p>
                                                 <Badge variant={tech.isOnline ? 'default' : 'secondary'}>
-                                                    {tech.isOnline ? 'Đang online' : 'Offline'}
+                                                    {tech.isOnline ? 'Online' : 'Offline'}
                                                 </Badge>
                                             </div>
                                         )}
@@ -139,7 +137,7 @@ export function AppointmentServiceRecords({ appointmentId }: AppointmentServiceR
                                         )}
                                         {(tech as any).certificates && (tech as any).certificates.length > 0 && (
                                             <div className="md:col-span-2">
-                                                <p className="text-sm font-medium mb-2">Chứng chỉ</p>
+                                                <p className="text-sm font-medium mb-2">Certificates</p>
                                                 <div className="space-y-2">
                                                     {(tech as any).certificates.map((cert: any, cidx: number) => (
                                                         <div key={cidx} className="text-sm p-2 bg-muted rounded">

@@ -31,7 +31,7 @@ export function PaymentDetailDialog({ payment, trigger }: Props) {
         const res = await api.getPaymentInfoByOrderCode(payment.order_code)
         setInfo(res.data)
       } catch (e: any) {
-        setError(e?.message || "Không tải được thông tin thanh toán từ PayOS")
+        setError(e?.message || "Failed to load payment information from PayOS")
       } finally {
         setLoading(false)
       }
@@ -80,34 +80,34 @@ export function PaymentDetailDialog({ payment, trigger }: Props) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button size="sm" variant="ghost" title="Xem chi tiết">
+          <Button size="sm" variant="ghost" title="View Details">
             <Eye className="h-4 w-4" />
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle className="text-xl">Thanh toán #{payment.order_code}</DialogTitle>
-          <DialogDescription>Chi tiết giao dịch và trạng thái hệ thống thanh toán</DialogDescription>
+          <DialogTitle className="text-xl">Payment #{payment.order_code}</DialogTitle>
+          <DialogDescription>Transaction details and payment system status</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardContent className="pt-6">
-                <div className="text-sm text-muted-foreground">Loại</div>
+                <div className="text-sm text-muted-foreground">Type</div>
                 <div className="text-base font-semibold">{payment.payment_type || 'N/A'}</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-6">
-                <div className="text-sm text-muted-foreground">Số tiền</div>
+                <div className="text-sm text-muted-foreground">Amount</div>
                 <div className="text-base font-semibold text-primary">{formatVND(payment.amount)}</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-6">
-                <div className="text-sm text-muted-foreground">Trạng thái</div>
+                <div className="text-sm text-muted-foreground">Status</div>
                 <div className="text-base font-semibold">{statusBadge(payment.status)}</div>
               </CardContent>
             </Card>
@@ -116,9 +116,9 @@ export function PaymentDetailDialog({ payment, trigger }: Props) {
           {relateLabel()}
 
           <div className="text-sm text-muted-foreground flex items-center gap-2">
-            Liên kết thanh toán:
+            Payment Link:
             {payment.payment_url ? (
-              <a className="text-primary underline" href={payment.payment_url} target="_blank" rel="noreferrer">Mở PayOS</a>
+              <a className="text-primary underline" href={payment.payment_url} target="_blank" rel="noreferrer">Open PayOS</a>
             ) : (
               <span>—</span>
             )}
@@ -127,34 +127,34 @@ export function PaymentDetailDialog({ payment, trigger }: Props) {
           <div className="space-y-2">
             <div className="text-sm font-semibold">PayOS</div>
             {loading ? (
-              <div className="flex items-center gap-2 text-muted-foreground"><Spinner /> Đang tải thông tin...</div>
+              <div className="flex items-center gap-2 text-muted-foreground"><Spinner /> Loading information...</div>
             ) : error ? (
               <div className="text-destructive text-sm">{error}</div>
             ) : info ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Card>
                   <CardContent className="pt-6 space-y-1">
-                    <div className="text-sm text-muted-foreground">Trạng thái</div>
+                    <div className="text-sm text-muted-foreground">Status</div>
                     <div>{statusBadge(info.status)}</div>
-                    <div className="text-sm text-muted-foreground">Tạo lúc</div>
+                    <div className="text-sm text-muted-foreground">Created At</div>
                     <div>{formatDateTime(info.createdAt)}</div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-6 space-y-1">
-                    <div className="text-sm text-muted-foreground">Đã thanh toán</div>
+                    <div className="text-sm text-muted-foreground">Paid</div>
                     <div>{formatVND(info.amountPaid)} / {formatVND(info.amount)}</div>
-                    <div className="text-sm text-muted-foreground">Còn lại</div>
+                    <div className="text-sm text-muted-foreground">Remaining</div>
                     <div>{formatVND(info.amountRemaining)}</div>
                   </CardContent>
                 </Card>
                 {info.canceledAt && (
                   <Card className="md:col-span-2">
                     <CardContent className="pt-6 space-y-1">
-                      <div className="text-sm text-muted-foreground">Đã hủy lúc</div>
+                      <div className="text-sm text-muted-foreground">Canceled At</div>
                       <div>{formatDateTime(info.canceledAt)}</div>
                       {info.cancellationReason && (
-                        <div className="text-sm text-muted-foreground">Lý do: <span className="text-foreground">{info.cancellationReason}</span></div>
+                        <div className="text-sm text-muted-foreground">Reason: <span className="text-foreground">{info.cancellationReason}</span></div>
                       )}
                     </CardContent>
                   </Card>
@@ -167,13 +167,13 @@ export function PaymentDetailDialog({ payment, trigger }: Props) {
                 </Card>
               </div>
             ) : (
-              <div className="text-sm text-muted-foreground">Không có dữ liệu</div>
+              <div className="text-sm text-muted-foreground">No data available</div>
             )}
           </div>
 
           <div className="flex items-center justify-between text-xs text-muted-foreground pt-2">
-            <div>Tạo: {formatDateTime(payment.createdAt)}</div>
-            <div>Cập nhật: {formatDateTime(payment.updatedAt)}</div>
+            <div>Created At: {formatDateTime(payment.createdAt)}</div>
+            <div>Updated At: {formatDateTime(payment.updatedAt)}</div>
           </div>
         </div>
       </DialogContent>

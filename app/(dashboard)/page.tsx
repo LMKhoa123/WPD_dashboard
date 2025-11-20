@@ -16,13 +16,11 @@ export default function DashboardPage() {
   const router = useRouter()
 
   useEffect(() => {
-    // Redirect by role to tailored landing pages
     if (user?.role === "Technician") router.replace("/technician")
     else if (user?.role === "Staff") router.replace("/staff-home")
     else if (user?.role === "Admin") router.replace("/admin")
   }, [user, router])
 
-  // Show nothing while redirecting to role home
   if (user?.role === "Technician" || user?.role === "Staff" || user?.role === "Admin") {
     return null
   }

@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { getApiClient } from "@/lib/api"
 import type { AutoPartRecord } from "@/lib/api"
 
@@ -22,13 +22,12 @@ export function AutoPartDialog({
   autoPart,
   onSuccess,
 }: AutoPartDialogProps) {
-  const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   
   const [name, setName] = useState("")
   const [costPrice, setCostPrice] = useState("")
   const [sellingPrice, setSellingPrice] = useState("")
-  const [warrantyTime, setWarrantyTime] = useState("") // Thời gian bảo hành (ngày)
+  const [warrantyTime, setWarrantyTime] = useState("")
 
   const isEditMode = !!autoPart
 
@@ -65,25 +64,15 @@ export function AutoPartDialog({
 
       if (isEditMode && autoPart) {
         await apiClient.updateAutoPart(autoPart._id, data)
-        toast({
-          title: "Success",
-          description: "Auto part updated successfully",
-        })
+        toast.success("Auto part updated successfully")
       } else {
         await apiClient.createAutoPart(data)
-        toast({
-          title: "Success",
-          description: "Auto part created successfully",
-        })
+        toast.success("Auto part created successfully")
       }
       onSuccess()
       onOpenChange(false)
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error?.message || "An error occurred",
-        variant: "destructive",
-      })
+      toast.error(error?.message || "An error occurred")
     } finally {
       setLoading(false)
     }

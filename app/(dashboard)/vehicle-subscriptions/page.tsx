@@ -10,7 +10,7 @@ import { VehicleSubscriptionDialog } from "@/components/subscriptions/vehicle-su
 import { VehicleSubscriptionDetailDialog } from "@/components/subscriptions/vehicle-subscription-detail-dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Spinner } from "@/components/ui/spinner"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { Eye } from "lucide-react"
 import { AdminOrStaffOnly } from "@/components/role-guards"
 import { formatVND, formatDate } from "@/lib/utils"
@@ -19,7 +19,6 @@ export default function VehicleSubscriptionsPage() {
   const [items, setItems] = useState<VehicleSubscriptionRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const { toast } = useToast()
 
   const api = useMemo(() => getApiClient(), [])
 
@@ -29,7 +28,7 @@ export default function VehicleSubscriptionsPage() {
       const list = await api.getVehicleSubscriptions()
       setItems(list)
     } catch (e: any) {
-      toast({ title: "Failed to load subscriptions", description: e?.message || "Failed to load vehicle subscriptions", variant: "destructive" })
+      toast.error(e?.message || "Failed to load vehicle subscriptions")
     } finally {
       setLoading(false)
     }
@@ -52,9 +51,9 @@ export default function VehicleSubscriptionsPage() {
       setDeletingId(id)
       const renewed = await api.renewVehicleSubscription(id)
       setItems((prev) => prev.map((it) => (it._id === renewed._id ? renewed : it)))
-      toast({ title: "Renewal successful", description: "Warranty package subscription has been renewed" })
+      toast.success("Subscription renewed")
     } catch (e: any) {
-      toast({ title: "Renewal failed", description: e?.message || "Failed to renew subscription", variant: "destructive" })
+      toast.error(e?.message || "Failed to renew subscription")
     } finally {
       setDeletingId(null)
     }
@@ -65,9 +64,9 @@ export default function VehicleSubscriptionsPage() {
       setDeletingId(id)
       await api.deleteVehicleSubscription(id)
       setItems((prev) => prev.filter((it) => it._id !== id))
-      toast({ title: "Subscription deleted" })
+      toast.success("Subscription deleted")
     } catch (e: any) {
-      toast({ title: "Delete failed", description: e?.message || "Failed to delete", variant: "destructive" })
+      toast.error(e?.message || "Failed to delete subscription")
     } finally {
       setDeletingId(null)
     }

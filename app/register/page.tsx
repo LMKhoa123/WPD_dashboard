@@ -25,7 +25,6 @@ export default function RegisterPage() {
     if (user) router.replace("/")
   }, [user, router])
 
-  // Load centers for selection (admin action)
   useEffect(() => {
     const loadCenters = async () => {
       try {
@@ -33,7 +32,6 @@ export default function RegisterPage() {
         const res = await api.getCenters({ page: 1, limit: 100 })
         setCenters(res.data.centers)
       } catch (e) {
-        // ignore; UI will show empty options
       }
     }
     loadCenters()

@@ -77,7 +77,7 @@ export function ServicePackageDialog({ servicePackage, trigger, onCreated, onUpd
           service_interval_days: Number(serviceIntervalDays),
         }
         const updated = await api.updateServicePackage(servicePackage._id, payload)
-  toast.success("Cập nhật gói dịch vụ thành công")
+  toast.success("Updated service package successfully")
         setOpen(false)
         resetForm()
         onUpdated?.(updated)
@@ -91,13 +91,13 @@ export function ServicePackageDialog({ servicePackage, trigger, onCreated, onUpd
           service_interval_days: Number(serviceIntervalDays),
         }
         const created = await api.createServicePackage(payload)
-  toast.success("Tạo gói dịch vụ thành công")
+  toast.success("Created service package successfully")
         setOpen(false)
         resetForm()
         onCreated?.(created)
       }
     } catch (e: any) {
-      toast.error(isEditMode ? "Cập nhật gói dịch vụ thất bại" : "Tạo gói dịch vụ thất bại", {
+      toast.error(isEditMode ? "Failed to update service package" : "Failed to create service package", {
         description: e?.message || `Failed to ${isEditMode ? "update" : "create"} service package`,
       })
     } finally {
@@ -120,7 +120,7 @@ export function ServicePackageDialog({ servicePackage, trigger, onCreated, onUpd
           <DialogHeader>
             <DialogTitle>{isEditMode ? "Edit Service Package" : "New Service Package"}</DialogTitle>
             <DialogDescription>
-              {isEditMode ? "Cập nhật thông tin gói dịch vụ" : "Tạo gói dịch vụ mới"}
+              {isEditMode ? "Update service package information" : "Create a new service package"}
             </DialogDescription>
           </DialogHeader>
 

@@ -40,7 +40,7 @@ export function SlotDetailDialog({ slot, open, onOpenChange }: SlotDetailDialogP
       const response = await api.getSlotStaffTechnician(slot._id)
       setData(response.data)
     } catch (e: any) {
-      toast.error("Không thể tải chi tiết slot: " + (e?.message || "Unknown error"))
+      toast.error("Can not load slot details: " + (e?.message || "Unknown error"))
     } finally {
       setLoading(false)
     }
@@ -52,10 +52,10 @@ export function SlotDetailDialog({ slot, open, onOpenChange }: SlotDetailDialogP
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5" />
-            Chi tiết Slot - {formatDate(slot.slot_date)}
+            Slot Details - {formatDate(slot.slot_date)}
           </DialogTitle>
           <DialogDescription>
-            {slot.start_time} - {slot.end_time} | Sức chứa: {slot.capacity} | Đã đặt: {slot.booked_count}
+            {slot.start_time} - {slot.end_time} | Capacity: {slot.capacity} | Booked: {slot.booked_count}
           </DialogDescription>
         </DialogHeader>
 
@@ -65,26 +65,26 @@ export function SlotDetailDialog({ slot, open, onOpenChange }: SlotDetailDialogP
           </div>
         ) : !data ? (
           <div className="text-center py-8 text-muted-foreground">
-            Không thể tải thông tin chi tiết
+            Cannot load detailed information
           </div>
         ) : (
           <div className="space-y-6">
             {/* Slot Info Summary */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
               <div>
-                <p className="text-sm text-muted-foreground">Ngày</p>
+                <p className="text-sm text-muted-foreground">Date</p>
                 <p className="font-semibold">{formatDate(data.slot.date)}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Thời gian</p>
+                <p className="text-sm text-muted-foreground">Time</p>
                 <p className="font-semibold">{data.slot.startTime} - {data.slot.endTime}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Sức chứa</p>
+                <p className="text-sm text-muted-foreground">Capacity</p>
                 <p className="font-semibold">{data.slot.capacity}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Tổng lịch hẹn</p>
+                <p className="text-sm text-muted-foreground">Total Appointments</p>
                 <p className="font-semibold">{data.slot.totalAppointments}</p>
               </div>
             </div>
@@ -96,13 +96,13 @@ export function SlotDetailDialog({ slot, open, onOpenChange }: SlotDetailDialogP
               <div className="flex items-center gap-2 mb-4">
                 <Users className="h-5 w-5 text-primary" />
                 <h3 className="text-lg font-semibold">
-                  Nhân viên ({data.staff?.length || 0})
+                  Staff ({data.staff?.length || 0})
                 </h3>
               </div>
 
               {!data.staff || data.staff.length === 0 ? (
                 <div className="text-center py-6 text-muted-foreground border rounded-lg">
-                  Chưa có nhân viên được phân công
+                  No staff assigned
                 </div>
               ) : (
                 <div className="grid gap-3">
@@ -118,12 +118,12 @@ export function SlotDetailDialog({ slot, open, onOpenChange }: SlotDetailDialogP
                             {member.assigned ? (
                               <Badge variant="default" className="flex items-center gap-1">
                                 <CheckCircle2 className="h-3 w-3" />
-                                Đã phân công
+                                Assigned
                               </Badge>
                             ) : (
                               <Badge variant="outline" className="flex items-center gap-1">
                                 <XCircle className="h-3 w-3" />
-                                Chưa phân công
+                                Not Assigned
                               </Badge>
                             )}
                           </div>
@@ -143,7 +143,7 @@ export function SlotDetailDialog({ slot, open, onOpenChange }: SlotDetailDialogP
                             {member.shiftTime && (
                               <div className="flex items-center gap-2">
                                 <Clock className="h-4 w-4" />
-                                Ca làm: {member.shiftTime}
+                                Shift: {member.shiftTime}
                               </div>
                             )}
                           </div>
@@ -162,13 +162,13 @@ export function SlotDetailDialog({ slot, open, onOpenChange }: SlotDetailDialogP
               <div className="flex items-center gap-2 mb-4">
                 <UserCog className="h-5 w-5 text-primary" />
                 <h3 className="text-lg font-semibold">
-                  Kỹ thuật viên ({data.technician?.length || 0})
+                  Technicians ({data.technician?.length || 0})
                 </h3>
               </div>
 
               {!data.technician || data.technician.length === 0 ? (
                 <div className="text-center py-6 text-muted-foreground border rounded-lg">
-                  Chưa có kỹ thuật viên được phân công
+                  No technicians assigned
                 </div>
               ) : (
                 <div className="grid gap-3">
@@ -184,12 +184,12 @@ export function SlotDetailDialog({ slot, open, onOpenChange }: SlotDetailDialogP
                             {tech.assigned ? (
                               <Badge variant="default" className="flex items-center gap-1">
                                 <CheckCircle2 className="h-3 w-3" />
-                                Đã phân công
+                                Assigned
                               </Badge>
                             ) : (
                               <Badge variant="outline" className="flex items-center gap-1">
                                 <XCircle className="h-3 w-3" />
-                                Chưa phân công
+                                Not Assigned
                               </Badge>
                             )}
                           </div>
@@ -209,7 +209,7 @@ export function SlotDetailDialog({ slot, open, onOpenChange }: SlotDetailDialogP
                             {tech.shiftTime && (
                               <div className="flex items-center gap-2">
                                 <Clock className="h-4 w-4" />
-                                Ca làm: {tech.shiftTime}
+                                Shift: {tech.shiftTime}
                               </div>
                             )}
                           </div>

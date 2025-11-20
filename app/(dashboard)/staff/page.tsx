@@ -24,7 +24,7 @@ import { AdminOnly } from "@/components/role-guards"
 import { StaffDialog } from "@/components/staff/staff-dialog"
 import { AddStaffDialog } from "@/components/staff/add-staff-dialog"
 import { getApiClient, type SystemUserRecord, type UserAccount } from "@/lib/api"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 
 export default function StaffPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -35,7 +35,6 @@ export default function StaffPage() {
   const [userToDelete, setUserToDelete] = useState<SystemUserRecord | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
@@ -59,11 +58,7 @@ export default function StaffPage() {
       
       console.log('Staff pagination:', { page, total, totalPages: Math.ceil(total / limit) })
     } catch (e: any) {
-      toast({ 
-        title: "Failed to load staff", 
-        description: e?.message || "Failed to load staff", 
-        variant: "destructive" 
-      })
+      toast.error(e?.message || "Failed to load staff")
     } finally {
       setLoading(false)
     }
@@ -100,15 +95,11 @@ export default function StaffPage() {
       await api.deleteSystemUser(userToDelete._id)
       
       setSystemUsers((prev) => prev.filter((u) => u._id !== userToDelete._id))
-      toast({ title: "Staff member deleted" })
+      toast.success("Staff member deleted")
       setDeleteDialogOpen(false)
       setUserToDelete(null)
     } catch (e: any) {
-      toast({
-        title: "Delete failed",
-        description: e?.message || "Failed to delete system user",
-        variant: "destructive",
-      })
+      toast.error(e?.message || "Failed to delete staff member")
     } finally {
       setDeleting(false)
     }

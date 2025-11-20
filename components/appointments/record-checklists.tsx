@@ -12,7 +12,6 @@ export interface RecordChecklistsProps {
     recordId: string
 }
 
-// Map possible checklist statuses to badge styles
 const statusBadge: Record<string, string> = {
     completed: "bg-green-500/10 text-green-600 border-green-500/20",
     ok: "bg-green-500/10 text-green-600 border-green-500/20",
@@ -39,7 +38,7 @@ export function RecordChecklists({ recordId }: RecordChecklistsProps) {
                 setItems(res.data || [])
             } catch (e: any) {
                 if (!mounted) return
-                setError(e?.message || "Không thể tải checklist")
+                setError(e?.message || "Failed to load checklist")
             } finally {
                 if (mounted) setLoading(false)
             }
@@ -50,7 +49,7 @@ export function RecordChecklists({ recordId }: RecordChecklistsProps) {
 
     if (loading) {
         return (
-            <div className="flex items-center gap-2 text-muted-foreground"><Spinner /> Đang tải checklist...</div>
+            <div className="flex items-center gap-2 text-muted-foreground"><Spinner /> Loading checklist...</div>
         )
     }
 
@@ -59,7 +58,7 @@ export function RecordChecklists({ recordId }: RecordChecklistsProps) {
     }
 
     if (!items.length) {
-        return <div className="text-sm text-muted-foreground">Chưa có checklist cho bản ghi này</div>
+        return <div className="text-sm text-muted-foreground">No checklist available for this record</div>
     }
 
     const formatCurrency = (v: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v)
@@ -69,7 +68,7 @@ export function RecordChecklists({ recordId }: RecordChecklistsProps) {
             <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
                     <ListChecks className="h-4 w-4" />
-                    Công việc hiện tại
+                    Current Tasks
                 </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -81,7 +80,6 @@ export function RecordChecklists({ recordId }: RecordChecklistsProps) {
                     const st = String((it as any).status || "pending").toLowerCase()
                     const badgeCls = statusBadge[st] || "bg-gray-500/10 text-gray-600 border-gray-500/20"
 
-                    // Support both suggest: string[] and suggest: Array<{ part_id: ..., quantity?: number }>
                     const suggest = (it as any).suggest as any[] | undefined
 
                     return (
@@ -102,11 +100,10 @@ export function RecordChecklists({ recordId }: RecordChecklistsProps) {
                             {Array.isArray(suggest) && suggest.length > 0 && (
                                 <div className="mt-3">
                                     <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2 flex items-center gap-2">
-                                        <Info className="h-3.5 w-3.5" /> Đề xuất vật tư
+                                        <Info className="h-3.5 w-3.5" /> Suggested Parts
                                     </div>
                                     <div className="grid gap-2">
                                         {suggest.map((s, idx) => {
-                                            // Unwrap nested shapes safely
                                             const centerPart = (s as any).part_id || s
                                             const innerPart = typeof centerPart === 'object' ? (centerPart.part_id ?? centerPart) : undefined
                                             const name = typeof innerPart === 'object'
@@ -129,7 +126,7 @@ export function RecordChecklists({ recordId }: RecordChecklistsProps) {
                                                         <div className="text-sm font-medium">{name}</div>
                                                         <div className="flex items-center gap-2">
                                                             {quantity !== undefined && (
-                                                                <Badge variant="secondary" className="shrink-0">Số lượng nên thay : {quantity}</Badge>
+                                                                <Badge variant="secondary" className="shrink-0">Suggested Quantity: {quantity}</Badge>
                                                             )}
                                                             {total !== undefined && (
                                                                 <Badge variant="outline" className="shrink-0">
@@ -142,7 +139,7 @@ export function RecordChecklists({ recordId }: RecordChecklistsProps) {
                                                         <div className="mt-1 text-xs text-muted-foreground flex items-center justify-between">
                                                             <div className="flex items-center gap-1">
                                                                 <Wallet className="h-3.5 w-3.5" />
-                                                                {unitPrice !== undefined ? <>Giá: <span className="font-medium">{formatCurrency(unitPrice)}</span></> : <span>Giá: —</span>}
+                                                                {unitPrice !== undefined ? <>Price: <span className="font-medium">{formatCurrency(unitPrice)}</span></> : <span>Price: —</span>}
                                                             </div>
                                                         </div>
                                                     )}

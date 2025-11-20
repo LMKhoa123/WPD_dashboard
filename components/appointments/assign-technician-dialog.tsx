@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { getApiClient } from "@/lib/api"
 import { useAuth } from "@/components/auth-provider"
 
@@ -26,7 +26,6 @@ export function AssignTechnicianDialog({ appointmentId, slotId, trigger, onAssig
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState("")
   const [slotMeta, setSlotMeta] = useState<{ date: string; startTime: string; endTime: string; capacity: number; totalAppointments: number } | null>(null)
-  const { toast } = useToast()
   const api = useMemo(() => getApiClient(), [])
   const { user } = useAuth()
 
@@ -62,13 +61,13 @@ export function AssignTechnicianDialog({ appointmentId, slotId, trigger, onAssig
           setTechList(opts)
         }
       } catch (e: any) {
-        toast({ title: "Không tải được danh sách kỹ thuật viên", description: e?.message || "Failed to load technicians", variant: "destructive" })
+        toast.error(e?.message || "Failed to load technicians")
       } finally {
         setLoading(false)
       }
     }
     run()
-  }, [open, api, toast, slotId, user?.centerId])
+  }, [open, api, slotId, user?.centerId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -78,12 +77,12 @@ export function AssignTechnicianDialog({ appointmentId, slotId, trigger, onAssig
       const res = await api.assignAppointmentTechnician(appointmentId, technicianId)
       console.log(res)
       if (!res?.success) throw new Error(res?.message || 'Failed')
-      toast({ title: "Đã gán kỹ thuật viên" })
+      toast.success("Technician assigned successfully")
       setOpen(false)
       setTechnicianId("")
       onAssigned?.()
     } catch (e: any) {
-      toast({ title: "Gán thất bại", description: e?.message || "Failed to assign technician", variant: "destructive" })
+      toast.error(e?.message || "Failed to assign technician")
     } finally {
       setSubmitting(false)
     }
@@ -95,8 +94,8 @@ export function AssignTechnicianDialog({ appointmentId, slotId, trigger, onAssig
       <DialogContent className="max-w-[420px] w-[calc(100%-2rem)] p-4">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Gán kỹ thuật viên</DialogTitle>
-            <DialogDescription>Chọn kỹ thuật viên để lập lịch. Khi gán sẽ tạo Service Record tự động.</DialogDescription>
+            <DialogTitle>Assign Technician</DialogTitle>
+            <DialogDescription>Select a technician to schedule. Assigning will automatically create a Service Record.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 py-3">
             {slotMeta && (
@@ -105,10 +104,10 @@ export function AssignTechnicianDialog({ appointmentId, slotId, trigger, onAssig
                   <div className="font-medium">{slotMeta.date}</div>
                   <div className="text-muted-foreground">{slotMeta.startTime} - {slotMeta.endTime}</div>
                 </div>
-                <Badge variant="outline">{slotMeta.totalAppointments}/{slotMeta.capacity} đặt</Badge>
+                <Badge variant="outline">{slotMeta.totalAppointments}/{slotMeta.capacity} booked</Badge>
               </div>
             )}
-            <Input placeholder={loading ? "Đang tải..." : "Tìm theo tên / email / phone"} value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input placeholder={loading ? "Loading..." : "Search by name / email / phone"} value={search} onChange={(e) => setSearch(e.target.value)} />
             <div className="max-h-60 overflow-auto rounded border divide-y">
               {techList
                 .filter(s => !search || s.label.toLowerCase().includes(search.toLowerCase()))
@@ -126,25 +125,25 @@ export function AssignTechnicianDialog({ appointmentId, slotId, trigger, onAssig
                         <div>
                           <div className="font-medium">{s.label}</div>
                           {s.shiftTime && (
-                            <div className="text-xs text-muted-foreground">Ca: {s.shiftTime}</div>
+                            <div className="text-xs text-muted-foreground">Shift: {s.shiftTime}</div>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          {s.assigned && <Badge variant="secondary">đã đc assigned</Badge>}
-                          {selected && <Badge>Đã chọn</Badge>}
+                          {s.assigned && <Badge variant="secondary">Assigned</Badge>}
+                          {selected && <Badge>Selected</Badge>}
                         </div>
                       </div>
                     </button>
                   )
                 })}
               {(!loading && techList.length === 0) && (
-                <div className="p-3 text-sm text-muted-foreground">Không có kỹ thuật viên phù hợp.</div>
+                <div className="p-3 text-sm text-muted-foreground">No suitable technicians found.</div>
               )}
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={submitting}>Hủy</Button>
-            <Button type="submit" disabled={submitting || !technicianId}>{submitting ? "Đang gán..." : "Gán"}</Button>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={submitting}>Cancel</Button>
+            <Button type="submit" disabled={submitting || !technicianId}>{submitting ? "Assigning..." : "Assign"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

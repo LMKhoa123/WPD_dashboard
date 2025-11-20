@@ -20,8 +20,8 @@ import {
   Link,
 } from "lucide-react"
 import { getApiClient, type ChatConversationRecord, type MessageRecord } from "@/lib/api"
-import { useToast } from "@/components/ui/use-toast"
 import { useSocket } from "@/lib/useSocket"
+import { toast } from "sonner"
 
 type Msg =
   | { id: string; from: "me" | "them"; ts: number; type: "text"; text: string; optimistic?: boolean }
@@ -54,12 +54,10 @@ export default function ChatDashboardPage() {
     type: string
   } | null>(null)
   const [expandedFile, setExpandedFile] = useState<string | null>("photos")
-  const { toast } = useToast()
   const [staffId, setStaffId] = useState<string | null>(null)
   const [taking, setTaking] = useState(false)
   const prevConversationRef = useRef<string | null>(null)
   const { socket, joinConversation, leaveConversation, on, off } = useSocket()
-  // Track last read message index per conversation to support "new messages" UX
   const [readIndexMap, setReadIndexMap] = useState<Record<string, number>>({})
   const prevListLengthRef = useRef<number>(0)
 
@@ -80,7 +78,6 @@ export default function ChatDashboardPage() {
   const unreadCount = Math.max(0, list.length - (lastReadIndex + 1))
   const firstUnreadIndex = unreadCount > 0 ? lastReadIndex + 1 : -1
 
-  // Derive photos, files, and links from current conversation
   const photos = useMemo(() => list.filter((m) => m.type === "image" && m.src), [list])
   const fileItems = useMemo(() => list.filter((m) => m.type === "file" && m.src), [list])
   const linkItems = useMemo(() => {
@@ -125,7 +122,7 @@ export default function ChatDashboardPage() {
         setSelectedIsWaiting(isWaiting)
         if (initial) await loadConversation(initial)
       } catch (e: any) {
-        toast({ title: "Failed to load chats", description: e?.message || "Failed to load chats", variant: "destructive" })
+        toast.error(e?.message || "Failed to load chats")
       }
     }
     load()
@@ -159,7 +156,6 @@ export default function ChatDashboardPage() {
   const loadConversation = async (conversationId: string) => {
     try {
       const api = getApiClient()
-      // leave previous joined conversation room
       if (prevConversationRef.current && prevConversationRef.current !== conversationId) {
         try {
           leaveConversation(prevConversationRef.current)
@@ -168,13 +164,11 @@ export default function ChatDashboardPage() {
 
       const detail = await api.getConversationDetail(conversationId)
       setConversations((prev) => ({ ...prev, [conversationId]: mapMessages(detail.data.messages) }))
-      // Mark all as read on initial open
       setReadIndexMap((prev) => ({ ...prev, [conversationId]: Math.max(0, detail.data.messages.length - 1) }))
       setTimeout(() => {
         const el = scrollRef.current
         if (el) el.scrollTop = el.scrollHeight
       }, 30)
-      // join conversation room on socket so we receive realtime messages
       try {
         joinConversation(conversationId)
         prevConversationRef.current = conversationId
@@ -182,11 +176,10 @@ export default function ChatDashboardPage() {
 
       await api.markConversationRead(conversationId)
     } catch (e: any) {
-      toast({ title: "Failed to load conversation", description: e?.message || "Failed to load conversation", variant: "destructive" })
+      toast.error(e?.message || "Failed to load conversation")
     }
   }
 
-  // Socket listeners: handle incoming messages and new waiting chats
   useEffect(() => {
     if (!socket) return
 
@@ -200,17 +193,14 @@ export default function ChatDashboardPage() {
         const addOrReplace = (prev: Record<string, Msg[]>) => {
           const list = prev[convId] ?? []
 
-          // Only try to dedupe messages sent by this client (server message also has from === 'me')
           if (mapped.from === 'me') {
             const matchIdx = list.findIndex((m) => {
               if (m.from !== 'me' || m.type !== mapped.type) return false
 
-              // text: match by exact text
               if (mapped.type === 'text' && m.type === 'text') {
                 return m.text === mapped.text && Math.abs((m.ts || 0) - (mapped.ts || 0)) < 5000
               }
 
-              // image/file: narrow safely and compare src/filename/caption with a time window
               if (mapped.type === 'image' || mapped.type === 'file') {
                 const mm: any = m
                 const mappedAs: any = mapped
@@ -227,7 +217,6 @@ export default function ChatDashboardPage() {
             })
 
             if (matchIdx !== -1) {
-              // Replace optimistic with server-provided message (keeps ordering)
               const newList = [...list]
               newList[matchIdx] = mapped
               return { ...prev, [convId]: newList }
@@ -242,7 +231,6 @@ export default function ChatDashboardPage() {
               return -1
             })()
             if (lastOptIdx !== -1) {
-              // Only replace if within a sensible time window to avoid false positives
               const optMsg: any = list[lastOptIdx]
               if (Math.abs((optMsg.ts || 0) - (mapped.ts || 0)) < 20000) {
                 const newList = [...list]
@@ -252,13 +240,11 @@ export default function ChatDashboardPage() {
             }
           }
 
-          // Default: append
           return { ...prev, [convId]: [...list, mapped] }
         }
 
         setConversations((prev) => addOrReplace(prev))
 
-        // If currently viewing this conversation, auto-scroll if at bottom
         if (convId === selected) {
           setTimeout(() => {
             const el = scrollRef.current
@@ -301,7 +287,6 @@ export default function ChatDashboardPage() {
     }
   }, [socket, selected, waitingChats])
 
-  // Whenever we are at the bottom and the list changes, advance read pointer
   useEffect(() => {
     if (!selected) return
     if (atBottom) {
@@ -309,7 +294,6 @@ export default function ChatDashboardPage() {
     }
   }, [atBottom, list.length, selected])
 
-  // Remember previous length (used to detect newly appended messages while scrolled up)
   useEffect(() => {
     prevListLengthRef.current = list.length
   }, [list.length, selected])
@@ -319,7 +303,7 @@ export default function ChatDashboardPage() {
     const hasAttachment = !!attachment?.data
     if ((!hasText && !hasAttachment) || !selected || !staffId) return
     if (selectedIsWaiting) {
-      toast({ title: "Conversation not accepted", description: "Please click 'Accept Conversation' before replying", variant: "destructive" })
+      toast.error("Please click 'Accept Conversation' before replying")
       return
     }
     const text = (overrideText ?? composer).trim()
@@ -335,7 +319,6 @@ export default function ChatDashboardPage() {
         newMsgs.push({ id: crypto.randomUUID(), from: "me", ts: Date.now(), type: "text", text })
       }
 
-      // Before appending optimistic messages, ensure we don't already have a matching server message
       setConversations((prev) => {
         const list = prev[selected] ?? []
         const toAppend: Msg[] = []
@@ -346,7 +329,6 @@ export default function ChatDashboardPage() {
             if (nm.type === 'text' && m.type === 'text') {
               return m.text === (nm as any).text && Math.abs((m.ts || 0) - (nm.ts || 0)) < 5000
             }
-            // media: narrow and compare src/filename/caption
             const mm: any = m
             const nma: any = nm
             if ((nm.type === 'image' || nm.type === 'file') && mm.src && nma.src) {
@@ -373,7 +355,7 @@ export default function ChatDashboardPage() {
         if (el) el.scrollTop = el.scrollHeight
       }, 20)
     } catch (e: any) {
-      toast({ title: "Failed to send message", description: e?.message || "Failed to send message", variant: "destructive" })
+      toast.error(e?.message || "Failed to send message")
     }
   }
 
@@ -382,7 +364,7 @@ export default function ChatDashboardPage() {
       if (typeof window === "undefined") return
       const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
       if (!SR) {
-        toast({ title: "Browser does not support STT", description: "Web Speech API is not available", variant: "destructive" })
+        toast.error("Web Speech API is not available")
         return
       }
       const rec = new SR()
@@ -406,7 +388,7 @@ export default function ChatDashboardPage() {
         if (finalText) {
           if (selectedIsWaiting) {
             setComposer(finalText)
-            toast({ title: "Conversation not accepted", description: "Please accept the conversation before sending", variant: "destructive" })
+            toast.error("Please accept the conversation before sending")
           } else {
             await send(finalText)
           }
@@ -416,7 +398,7 @@ export default function ChatDashboardPage() {
       rec.start()
       setIsListening(true)
     } catch (err: any) {
-      toast({ title: "Failed to enable microphone", description: err?.message || "Check browser microphone permissions", variant: "destructive" })
+      toast.error(err?.message || "Failed to enable microphone")
       setIsListening(false)
     }
   }
@@ -434,7 +416,6 @@ export default function ChatDashboardPage() {
       setTaking(true)
       const api = getApiClient()
       await api.takeConversation(selected, staffId)
-      // move from waiting to my
       const conv = waitingChats.find((c) => c._id === selected)
       if (conv) {
         setWaitingChats((prev) => prev.filter((c) => c._id !== selected))
@@ -442,9 +423,9 @@ export default function ChatDashboardPage() {
         setTab("my")
         setSelectedIsWaiting(false)
       }
-      toast({ title: "Conversation accepted" })
+      toast.success("Conversation accepted")
     } catch (e: any) {
-      toast({ title: "Failed to accept conversation", description: e?.message || "Failed to take chat", variant: "destructive" })
+      toast.error(e?.message || "Failed to accept conversation")
     } finally {
       setTaking(false)
     }
@@ -834,36 +815,13 @@ export default function ChatDashboardPage() {
               </div>
             </div>
 
-            {/* Members */}
-            {/* <div className="mt-4 rounded-2xl border dark:border-gray-700 bg-white/60 dark:bg-gray-800/60">
-              <div className="flex items-center justify-between border-b dark:border-gray-700 px-3 py-2">
-                <div className="text-sm font-medium dark:text-white">23 members</div>
-                <span className="rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5 text-xs text-gray-600 dark:text-gray-300">10 online</span>
-              </div>
-              <div className="h-[360px] overflow-y-auto p-2 pr-1">
-                {["Tanisha Combs", "Alex Hunt", "Jasmin Lowery", "Max Padilla", "Jessie Rollins", "Lukas Mcgowan"].map((n, i) => (
-                  <div key={n} className="flex items-center gap-3 rounded-lg p-2 hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <img 
-                      src={`https://i.pravatar.cc/150?img=${20 + i}`} 
-                      alt={n} 
-                      className="h-8 w-8 shrink-0 rounded-full object-cover" 
-                    />
-                    <div className="min-w-0 flex-1 text-sm">
-                      <div className="font-medium leading-tight dark:text-white">{n}</div>
-                      <div className="text-xs leading-tight text-gray-500 dark:text-gray-400">{i === 0 ? "admin" : "member"}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div> */}
+          
           </aside>
         </div>
       </div>
     </div>
   )
 }
-
-/* ---------- UI bits ---------- */
 
 function IconButton({
   icon,

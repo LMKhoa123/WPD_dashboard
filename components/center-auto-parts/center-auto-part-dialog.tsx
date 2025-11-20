@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { getApiClient, type CenterAutoPartRecord, type CreateCenterAutoPartRequest, type UpdateCenterAutoPartRequest, type CenterRecord, type AutoPartRecord } from "@/lib/api"
 
 interface Props {
@@ -18,7 +18,6 @@ interface Props {
 
 export function CenterAutoPartDialog({ open, onOpenChange, record, onSuccess }: Props) {
   const isEdit = !!record
-  const { toast } = useToast()
   const api = useMemo(() => getApiClient(), [])
 
   const [centers, setCenters] = useState<CenterRecord[]>([])
@@ -44,14 +43,14 @@ export function CenterAutoPartDialog({ open, onOpenChange, record, onSuccess }: 
           setCenters(centersRes)
           setParts(partsRes)
         } catch (e: any) {
-          toast({ title: "Không tải được dữ liệu", description: e?.message || "Failed to load lists", variant: "destructive" })
+          toast.error(e?.message || "Failed to load lists")
         } finally {
           setLoadingLists(false)
         }
       }
       loadLists()
     }
-  }, [open, api, toast])
+  }, [open, api])
 
   useEffect(() => {
     if (open && record) {
@@ -79,7 +78,7 @@ export function CenterAutoPartDialog({ open, onOpenChange, record, onSuccess }: 
     e.preventDefault()
     try {
       if (!centerId || !partId) {
-        toast({ title: "Thiếu dữ liệu", description: "Vui lòng chọn Center và Part" })
+        toast.error("Please select center and part")
         return
       }
       if (isEdit && record) {
@@ -92,7 +91,7 @@ export function CenterAutoPartDialog({ open, onOpenChange, record, onSuccess }: 
           last_forecast_date: lastForecastDate ? new Date(lastForecastDate).toISOString() : null,
         }
         const updated = await api.updateCenterAutoPart(record._id, payload)
-        toast({ title: "Cập nhật thành công" })
+        toast.success("Update successful")
       } else {
         const payload: CreateCenterAutoPartRequest = {
           center_id: centerId,
@@ -103,12 +102,12 @@ export function CenterAutoPartDialog({ open, onOpenChange, record, onSuccess }: 
           last_forecast_date: lastForecastDate ? new Date(lastForecastDate).toISOString() : undefined,
         }
         const created = await api.createCenterAutoPart(payload)
-        toast({ title: "Tạo mới thành công" })
+        toast.success("Create successful")
       }
       onSuccess()
       onOpenChange(false)
     } catch (e: any) {
-      toast({ title: "Thao tác thất bại", description: e?.message || "Operation failed", variant: "destructive" })
+      toast.error(e?.message || "Operation failed")
     }
   }
 
