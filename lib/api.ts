@@ -307,7 +307,7 @@ export interface UpdateCenterRequest {
 }
 
 // Appointments
-export type AppointmentStatus = "pending" | "confirmed" | "in-progress" | "completed" | "cancelled" | "scheduled"
+export type AppointmentStatus = "pending" |  "in-progress" | "completed" | "cancelled"
 
 export interface AppointmentRecord {
   _id: string
@@ -1629,14 +1629,14 @@ export class ApiClient {
   }
 
   // Appointments: list
-  async getAppointments(params?: { page?: number; limit?: number; technician_id?: string; staff_id?: string; status?: string; centerId?: string }): Promise<AppointmentsListResponse> {
+  async getAppointments(params?: { page?: number; limit?: number; technician_id?: string; staff_id?: string; status?: string; center_id?: string }): Promise<AppointmentsListResponse> {
     const url = new URL(this.buildUrl("/appointments"))
     if (params?.page) url.searchParams.set("page", String(params.page))
     if (params?.limit) url.searchParams.set("limit", String(params.limit))
     if (params?.technician_id) url.searchParams.set("technician_id", params.technician_id)
     if (params?.staff_id) url.searchParams.set("staff_id", params.staff_id)
     if (params?.status) url.searchParams.set("status", params.status)
-    if (params?.centerId) url.searchParams.set("centerId", params.centerId)
+    if (params?.center_id) url.searchParams.set("center_id", params.center_id)
     const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
     if (!res.ok) throw new Error(await safeErrorMessage(res))
     return (await res.json()) as AppointmentsListResponse
@@ -1725,10 +1725,13 @@ export class ApiClient {
   }
 
   // Service Records: list
-  async getServiceRecords(params?: { page?: number; limit?: number }): Promise<ServiceRecordsListResponse> {
+  async getServiceRecords(params?: { page?: number; limit?: number; center_id?: string; status?: string; technician_id?: string }): Promise<ServiceRecordsListResponse> {
     const url = new URL(this.buildUrl("/service-records"))
     if (params?.page) url.searchParams.set("page", String(params.page))
     if (params?.limit) url.searchParams.set("limit", String(params.limit))
+    if (params?.center_id) url.searchParams.set("center_id", params.center_id)
+    if (params?.status) url.searchParams.set("status", params.status)
+    if (params?.technician_id) url.searchParams.set("technician_id", params.technician_id)
     const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
     if (!res.ok) throw new Error(await safeErrorMessage(res))
     return (await res.json()) as ServiceRecordsListResponse
@@ -2071,6 +2074,7 @@ export class ApiClient {
     service_record_id?: string
     subscription_id?: string
     payment_type?: string
+    center_id?: string
   }): Promise<PaymentsListResponse> {
     const url = new URL(this.buildUrl("/payments"))
     if (params?.page) url.searchParams.set("page", String(params.page))
@@ -2080,6 +2084,7 @@ export class ApiClient {
     if (params?.service_record_id) url.searchParams.set("service_record_id", params.service_record_id)
     if (params?.subscription_id) url.searchParams.set("subscription_id", params.subscription_id)
     if (params?.payment_type) url.searchParams.set("payment_type", params.payment_type)
+    if (params?.center_id) url.searchParams.set("center_id", params.center_id)
     const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
     if (!res.ok) throw new Error(await safeErrorMessage(res))
     return (await res.json()) as PaymentsListResponse

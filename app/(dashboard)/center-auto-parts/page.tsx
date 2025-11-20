@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getApiClient, type CenterAutoPartRecord, type CenterRecord, type AutoPartRecord } from "@/lib/api"
-import { useIsAdmin, useIsStaff } from "@/components/auth-provider"
+import { useAuth, useIsAdmin, useIsStaff } from "@/components/auth-provider"
 import { AdminStaffTechnicianOnly } from "@/components/role-guards"
 import { CenterAutoPartDialog } from "@/components/center-auto-parts/center-auto-part-dialog"
 import { ForecastInfoDialog } from "@/components/center-auto-parts/forecast-info-dialog"
@@ -20,7 +20,7 @@ export default function CenterAutoPartsPage() {
 	const api = useMemo(() => getApiClient(), [])
 	const isAdmin = useIsAdmin()
 	const isStaff = useIsStaff()
-
+const { user } = useAuth()
 	const [items, setItems] = useState<CenterAutoPartRecord[]>([])
 	const [loading, setLoading] = useState(true)
 
@@ -48,10 +48,17 @@ export default function CenterAutoPartsPage() {
 	const load = useCallback(async (page: number) => {
 		try {
 			setLoading(true)
+			const centerAutoPartsParams: any = { page, limit }
+			
+			// Filter by user's center for non-admin
+			if (!isAdmin && user?.centerId) {
+				centerAutoPartsParams.center_id = user.centerId
+			}
+			
 			const [centersRes, partsRes, listRes] = await Promise.all([
 				api.getCenters({ limit: 200 }).then(r => r.data.centers),
 				api.getAutoParts(1, 200).then(r => r.data.parts),
-				api.getCenterAutoParts({ page, limit }),
+				api.getCenterAutoParts(centerAutoPartsParams),
 			])
 			setCenters(centersRes)
 			setParts(partsRes)

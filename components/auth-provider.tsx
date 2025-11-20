@@ -134,7 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch {}
       const name = identifier.includes("@") ? identifier.split("@")[0] : identifier
       persistUser({ name, email: identifier, role, centerId })
-      toast.success(res.message)
+      // toast.success("Login successful")
     } catch (e: any) {
       toast.error(e?.message || "Login error")
       throw e
@@ -145,9 +145,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const roleApi = mapUiRoleToApi(role)
       const res = await api.register({ email, password, role: roleApi, centerId })
-      toast.success(res.message)
+      // toast.success(res.message)
     } catch (e: any) {
-      toast.error(e?.message || "Register error")
+      // toast.error(e?.message || "Register error")
       throw e
     }
   }

@@ -25,6 +25,7 @@ import { StaffDialog } from "@/components/staff/staff-dialog"
 import { AddStaffDialog } from "@/components/staff/add-staff-dialog"
 import { getApiClient, type SystemUserRecord, type UserAccount } from "@/lib/api"
 import { toast } from "sonner"
+import { useAuth, useIsAdmin } from "@/components/auth-provider"
 
 export default function StaffPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -38,14 +39,23 @@ export default function StaffPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
+  const { user } = useAuth()
+  const isAdmin = useIsAdmin()
   const limit = 20
 
   const loadData = async (page: number) => {
     try {
       setLoading(true)
       const api = getApiClient()
+      const userParams: any = { page, limit }
+      
+      // Filter by user's center for non-admin
+      if (!isAdmin && user?.centerId) {
+        userParams.centerId = user.centerId
+      }
+      
       const [sys, us] = await Promise.all([
-        api.getSystemUsers({ page, limit }), 
+        api.getSystemUsers(userParams), 
         api.getUsers({ limit: 10 })
       ])
       

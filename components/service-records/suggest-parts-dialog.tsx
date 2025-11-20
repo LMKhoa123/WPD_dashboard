@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Minus, Plus } from "lucide-react"
+import { useAuth } from "@/components/auth-provider"
 
 interface SuggestPartsDialogProps {
   checklistItemId: string
@@ -37,16 +38,25 @@ export function SuggestPartsDialog({ checklistItemId, currentSuggested, trigger,
   const [searchQuery, setSearchQuery] = useState("")
   
   const api = useMemo(() => getApiClient(), [])
+  const { user } = useAuth()
 
   useEffect(() => {
     if (!open) return
     const run = async () => {
       try {
         setLoading(true)
-        const res = await api.getCenterAutoParts({
+        const params: any = {
           limit: 500,
-          center_id: centerId,
-        })
+        }
+        
+        // Use provided centerId or user's centerId
+        if (centerId) {
+          params.center_id = centerId
+        } else if (user?.centerId) {
+          params.center_id = user.centerId
+        }
+        
+        const res = await api.getCenterAutoParts(params)
         // Transform response to include part_name for easier access
         const transformedParts: PartWithStock[] = res.data.items.map((item) => ({
           ...item,
