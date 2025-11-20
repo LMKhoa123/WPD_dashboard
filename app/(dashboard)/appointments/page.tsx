@@ -34,7 +34,7 @@ export default function AppointmentsPage() {
   const [loading, setLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
-  const [activeTab, setActiveTab] = useState<AppointmentStatus | "all">("all")
+  const [activeTab, setActiveTab] = useState<AppointmentStatus>("pending")
   const [confirmingStatus, setConfirmingStatus] = useState<{
     id: string
     newStatus: AppointmentStatus
@@ -54,14 +54,25 @@ export default function AppointmentsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
+  const [statusCounts, setStatusCounts] = useState<Record<string, number>>({
+    pending: 0,
+    "in-progress": 0,
+    completed: 0,
+    cancelled: 0,
+  })
   const limit = 10
 
   const api = useMemo(() => getApiClient(), [])
 
-  const load = useCallback(async (page: number) => {
+  const load = useCallback(async (page: number, status?: AppointmentStatus) => {
     try {
       setLoading(true)
-      const params: { page: number; limit: number; technician_id?: string; center_id?: string } = { page, limit }
+      const params: { page: number; limit: number; technician_id?: string; center_id?: string; status?: string } = { page, limit }
+      
+      // Filter by status if provided
+      if (status) {
+        params.status = status
+      }
       
       // Filter by center_id for non-admin users (staff and technician)
       if (!isAdmin && user?.centerId) {
@@ -84,6 +95,14 @@ export default function AppointmentsPage() {
       setAppointments(res.data.appointments)
       setTotalItems(res.data.total || res.data.appointments.length)
       setTotalPages(Math.ceil((res.data.total || res.data.appointments.length) / limit))
+      
+      // Update count for current tab
+      if (status) {
+        setStatusCounts(prev => ({
+          ...prev,
+          [status]: res.data.total || res.data.appointments.length
+        }))
+      }
     } catch (e: any) {
       toast.error(e?.message || "Failed to load appointments")
     } finally {
@@ -92,8 +111,63 @@ export default function AppointmentsPage() {
   }, [api, isAdmin, isStaff, user?.email, user?.centerId, toast])
 
   useEffect(() => {
-    load(currentPage)
-  }, [load, currentPage])
+    load(currentPage, activeTab)
+  }, [load, currentPage, activeTab])
+
+  // Reset to page 1 when changing tabs
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [activeTab])
+
+  // Load all status counts on mount
+  useEffect(() => {
+    const loadCounts = async () => {
+      const baseParams: any = {}
+      if (!isAdmin && user?.centerId) {
+        baseParams.center_id = user.centerId
+      }
+      
+      // Add technician filter for technician role
+      if (!isAdmin && !isStaff) {
+        try {
+          const su = await api.getSystemUsers({ limit: 1000 })
+          const me = su.data.systemUsers.find((u) => {
+            const email = typeof u.userId === 'string' ? undefined : u.userId?.email
+            return email && user?.email && email.toLowerCase() === user.email.toLowerCase()
+          })
+          if (me?._id) {
+            baseParams.technician_id = me._id
+          }
+        } catch { }
+      }
+
+      try {
+        const statuses: AppointmentStatus[] = ["pending", "in-progress", "completed", "cancelled"]
+        const countPromises = statuses.map(async (status) => {
+          const params = { ...baseParams, page: 1, limit: 1, status }
+          try {
+            const res = await api.getAppointments(params)
+            return { status, count: res.data.total || 0 }
+          } catch {
+            return { status, count: 0 }
+          }
+        })
+        
+        const results = await Promise.all(countPromises)
+        const counts: Record<string, number> = {}
+        results.forEach(({ status, count }) => {
+          counts[status] = count
+        })
+        setStatusCounts(counts)
+      } catch (e) {
+        // Ignore count loading errors
+      }
+    }
+    
+    if (user) {
+      loadCounts()
+    }
+  }, [api, isAdmin, isStaff, user?.centerId, user?.email, user])
 
   useEffect(() => {
     if (!confirmingStatus || confirmingStatus.newStatus !== "in-progress") return
@@ -184,22 +258,9 @@ export default function AppointmentsPage() {
     try {
       await api.updateAppointment(id, { status: newStatus })
       
-      // If in-progress, assign technician and create service record
       if (newStatus === "in-progress" && selectedTechnicianId) {
         await api.assignAppointmentTechnician(id, selectedTechnicianId)
-        
-        // Create service record automatically
-        const currentTime = new Date().toISOString()
-        await api.createServiceRecord({
-          appointment_id: id,
-          technician_id: selectedTechnicianId,
-          start_time: currentTime,
-          end_time: currentTime, // Will be updated when completed/cancelled
-          description: "Service started",
-          status: "in-progress"
-        })
-        
-        toast.success("Status changed, technician assigned, and service record created")
+        toast.success("Status changed, technician assigned, and service record created automatically")
       } else {
         toast.success(`Status changed to ${statusLabels[newStatus]}`)
       }
@@ -249,13 +310,11 @@ export default function AppointmentsPage() {
     const matchesSearch =
       vehicleName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       centerName.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesStatus = activeTab === "all" || apt.status === activeTab
-    return matchesSearch && matchesStatus
+    return matchesSearch
   })
 
-  const getStatusCount = (status: AppointmentStatus | "all") => {
-    if (status === "all") return appointments.length
-    return appointments.filter(apt => apt.status === status).length
+  const getStatusCount = (status: AppointmentStatus) => {
+    return statusCounts[status] || 0
   }
 
   return (
@@ -275,13 +334,9 @@ export default function AppointmentsPage() {
             <CardDescription>View and manage all service appointments</CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as AppointmentStatus | "all")} className="space-y-6">
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as AppointmentStatus)} className="space-y-6">
               <div className="border-b pb-4">
                 <TabsList className="inline-flex h-10 items-center justify-start gap-1 rounded-lg bg-muted/50 p-1">
-                  <TabsTrigger value="all" className="gap-2 data-[state=active]:shadow-sm">
-                    <span className="font-medium">All</span>
-                    <Badge variant="secondary" className="ml-1 h-5 min-w-[1.25rem] px-1.5">{getStatusCount("all")}</Badge>
-                  </TabsTrigger>
                   <TabsTrigger value="pending" className="gap-2 data-[state=active]:shadow-sm">
                     <span className="font-medium">Pending</span>
                     <Badge className="ml-1 h-5 min-w-[1.25rem] px-1.5 bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border-blue-200/50">{getStatusCount("pending")}</Badge>
@@ -325,15 +380,15 @@ export default function AppointmentsPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Customer</TableHead>
-                      <TableHead>Vehicle</TableHead>
-                      <TableHead>Service Center</TableHead>
-
-                      <TableHead>Start Time</TableHead>
-                      <TableHead>End Time</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
+                        <TableHead>Vehicle</TableHead>
+                        <TableHead>Service Center</TableHead>
+                        <TableHead>Start Time</TableHead>
+                        <TableHead>End Time</TableHead>
+                        <TableHead>Status</TableHead>
+                        {(isAdmin || isStaff) && <TableHead>Change Status</TableHead>}
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
                   <TableBody>
                     {filteredAppointments.map((apt) => {
                       const slotInfo = apt.slot_id && typeof apt.slot_id === 'object'
@@ -367,20 +422,21 @@ export default function AppointmentsPage() {
                             {endDisplay}
                           </TableCell>
                           <TableCell>
-                            {(isAdmin || isStaff) ? (
-                              (() => {
+                            <Badge
+                              variant="secondary"
+                              className={`${statusColors[apt.status as AppointmentStatus] || statusColors.pending} font-medium px-3 py-1 capitalize border`}
+                            >
+                              {apt.status.replace("-", " ")}
+                            </Badge>
+                          </TableCell>
+                          {(isAdmin || isStaff) && (
+                            <TableCell>
+                              {(() => {
                                 const availableStatuses = getAvailableStatuses(apt.status as AppointmentStatus)
                                 const isTerminalState = availableStatuses.length === 0
                                 
                                 if (isTerminalState) {
-                                  return (
-                                    <Badge
-                                      variant="secondary"
-                                      className={`${statusColors[apt.status as AppointmentStatus] || statusColors.pending} font-medium px-3 py-1 capitalize border`}
-                                    >
-                                      {apt.status.replace("-", " ")}
-                                    </Badge>
-                                  )
+                                  return <span className="text-muted-foreground text-sm">-</span>
                                 }
                                 
                                 return (
@@ -408,16 +464,9 @@ export default function AppointmentsPage() {
                                     })}
                                   </div>
                                 )
-                              })()
-                            ) : (
-                              <Badge
-                                variant="secondary"
-                                className={`${statusColors[apt.status as AppointmentStatus] || statusColors.pending} font-medium px-3 py-1 capitalize border`}
-                              >
-                                {apt.status.replace("-", " ")}
-                              </Badge>
-                            )}
-                          </TableCell>
+                              })()}
+                            </TableCell>
+                          )}
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
                               <Button
@@ -447,12 +496,12 @@ export default function AppointmentsPage() {
                                     trigger={<Button variant="ghost" size="sm">Assign Staff</Button>}
                                   />
 
-                                  <AssignTechnicianDialog
+                                  {/* <AssignTechnicianDialog
                                     appointmentId={apt._id}
                                     slotId={typeof apt.slot_id === 'string' ? apt.slot_id : (apt.slot_id?._id as string | undefined)}
                                     onAssigned={handleReload}
                                     trigger={<Button variant="ghost" size="sm">Assign Tech</Button>}
-                                  />
+                                  /> */}
                                 </>
                               )}
                               {(isAdmin || isStaff) && (

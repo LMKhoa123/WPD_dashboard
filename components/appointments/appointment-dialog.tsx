@@ -237,7 +237,7 @@ export function AppointmentDialog({ appointment, trigger, onCreated, onUpdated }
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label>Customer (optional)</Label>
-              <Select value={customerId} onValueChange={setCustomerId}>
+              <Select value={customerId} onValueChange={setCustomerId} disabled={!!appointment}>
                 <SelectTrigger>
                   <SelectValue placeholder={loadingLists ? "Loading customers..." : "Select customer (optional)"} />
                 </SelectTrigger>
@@ -309,14 +309,12 @@ export function AppointmentDialog({ appointment, trigger, onCreated, onUpdated }
 
             <div className="grid gap-2">
               <Label>Status</Label>
-              <Select value={status} onValueChange={setStatus}>
+              <Select value={status} onValueChange={setStatus} disabled>
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  {/* <SelectItem value="scheduled">Scheduled</SelectItem> */}
                   <SelectItem value="pending">Pending</SelectItem>
-                  {/* <SelectItem value="confirmed">Confirmed</SelectItem> */}
                   <SelectItem value="in-progress">In Progress</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
