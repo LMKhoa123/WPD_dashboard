@@ -17,11 +17,11 @@ import AppointmentServiceRecords from "@/components/appointments/appointment-ser
 
 const statusColors: Record<AppointmentStatus, string> = {
   pending: "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20",
-  confirmed: "bg-cyan-500/10 text-cyan-500 hover:bg-cyan-500/20",
+  // confirmed: "bg-cyan-500/10 text-cyan-500 hover:bg-cyan-500/20",
   "in-progress": "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20",
   completed: "bg-green-500/10 text-green-500 hover:bg-green-500/20",
   cancelled: "bg-gray-500/10 text-gray-500 hover:bg-gray-500/20",
-  scheduled: "bg-purple-500/10 text-purple-500 hover:bg-purple-500/20",
+  // scheduled: "bg-purple-500/10 text-purple-500 hover:bg-purple-500/20",
 }
 
 export default function AppointmentDetailPage() {
@@ -182,7 +182,6 @@ export default function AppointmentDetailPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Appointment Info */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -220,7 +219,6 @@ export default function AppointmentDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Service Center Info */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -265,7 +263,6 @@ export default function AppointmentDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Vehicle Info */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -312,7 +309,6 @@ export default function AppointmentDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Customer Info */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -361,7 +357,6 @@ export default function AppointmentDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Staff/Technician Info */}
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -448,7 +443,7 @@ export default function AppointmentDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Service Records + Technicians + Checklists */}
+     
         <div className="md:col-span-2">
           <AppointmentServiceRecords appointmentId={appointmentId} />
         </div>

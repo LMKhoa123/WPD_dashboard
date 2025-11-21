@@ -45,7 +45,6 @@ export default function StaffHomePage() {
           <p className="text-muted-foreground">Daily workflow for intake staff.</p>
         </div>
 
-        {/* My Shifts Calendar - Only show if profile is loaded */}
         {profile?._id && (
           <MyShiftsCalendar systemUserId={profile._id} />
         )}

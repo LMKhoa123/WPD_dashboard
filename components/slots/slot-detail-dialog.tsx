@@ -69,7 +69,6 @@ export function SlotDetailDialog({ slot, open, onOpenChange }: SlotDetailDialogP
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Slot Info Summary */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
               <div>
                 <p className="text-sm text-muted-foreground">Date</p>
@@ -91,7 +90,6 @@ export function SlotDetailDialog({ slot, open, onOpenChange }: SlotDetailDialogP
 
             <Separator />
 
-            {/* Staff Section */}
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <Users className="h-5 w-5 text-primary" />
@@ -157,7 +155,6 @@ export function SlotDetailDialog({ slot, open, onOpenChange }: SlotDetailDialogP
 
             <Separator />
 
-            {/* Technician Section */}
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <UserCog className="h-5 w-5 text-primary" />

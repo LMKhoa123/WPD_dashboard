@@ -53,7 +53,6 @@ const { user } = useAuth()
           const appointmentParams: any = { limit: 500 }
           const userParams: any = { limit: 100 }
           
-          // Filter by user's center for non-admin
           if (user?.centerId) {
             appointmentParams.center_id = user.centerId
             userParams.centerId = user.centerId

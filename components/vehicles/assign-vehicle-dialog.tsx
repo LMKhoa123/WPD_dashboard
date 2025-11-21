@@ -36,7 +36,6 @@ export function AssignVehicleDialog({ vehicleId, vehicleName, trigger }: AssignV
       return
     }
 
-    // Validate phone number format (Vietnamese phone number)
     const phoneRegex = /^(0|\+84)[1-9][0-9]{8,9}$/
     if (!phoneRegex.test(phone.trim())) {
       toast.error("Invalid phone number")

@@ -71,7 +71,6 @@ export function CreatePaymentManualDialog({ trigger, onCreated }: Props) {
               else if (cust && typeof cust === 'object' && cust._id) payload.customer_id = cust._id
             }
           } catch {
-            // ignore; backend will validate
           }
         }
       }

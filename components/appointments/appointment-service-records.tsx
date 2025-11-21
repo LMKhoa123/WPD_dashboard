@@ -84,7 +84,6 @@ export function AppointmentServiceRecords({ appointmentId }: AppointmentServiceR
 
     return (
         <div className="space-y-6">
-            {/* Technician summary */}
             <Card>
                 <CardHeader className="pb-2">
                     <CardTitle className="text-base flex items-center gap-2">
@@ -158,7 +157,6 @@ export function AppointmentServiceRecords({ appointmentId }: AppointmentServiceR
                 </CardContent>
             </Card>
 
-            {/* Individual service records with checklist items */}
             <div className="space-y-6">
                 {records.map(r => {
                     const tech = (r as any).technician_id

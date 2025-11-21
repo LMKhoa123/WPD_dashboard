@@ -75,7 +75,6 @@ export default function InvoicesPage() {
                     <p className="text-muted-foreground">View and manage customer invoices.</p>
                 </div>
                 <div className="flex gap-2">
-                    {/* You can add a create invoice button here if needed */}
                 </div>
             </div>
 

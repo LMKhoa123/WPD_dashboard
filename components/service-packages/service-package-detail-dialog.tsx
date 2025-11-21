@@ -37,13 +37,11 @@ export function ServicePackageDetailDialog({ servicePackage, trigger }: ServiceP
         </DialogHeader>
         
         <div className="space-y-6">
-          {/* Description */}
           <div>
             <h3 className="text-sm font-semibold text-muted-foreground mb-2">Description</h3>
             <p className="text-sm leading-relaxed">{servicePackage.description}</p>
           </div>
 
-          {/* Price and Duration */}
           <div className="grid grid-cols-2 gap-4">
             <Card>
               <CardContent className="pt-6">
@@ -63,7 +61,6 @@ export function ServicePackageDetailDialog({ servicePackage, trigger }: ServiceP
             </Card>
           </div>
 
-          {/* Intervals */}
           <div className="grid grid-cols-2 gap-4">
             <Card>
               <CardContent className="pt-6">
@@ -83,7 +80,6 @@ export function ServicePackageDetailDialog({ servicePackage, trigger }: ServiceP
             </Card>
           </div>
 
-          {/* Metadata */}
           <div className="flex items-center justify-between text-sm text-muted-foreground pt-4 border-t">
             <div>
               <span className="font-medium">Created At:</span>{" "}

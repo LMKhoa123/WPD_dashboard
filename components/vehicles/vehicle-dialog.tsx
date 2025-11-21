@@ -20,7 +20,7 @@ import type { CustomersListResponse } from "@/lib/api"
 import { Plus } from "lucide-react"
 
 export interface VehicleDialogProps {
-  vehicle?: VehicleRecord // If provided, dialog is in edit mode
+  vehicle?: VehicleRecord 
   trigger?: React.ReactNode
   onCreated?: (vehicle: VehicleRecord) => void
   onUpdated?: (vehicle: VehicleRecord) => void
@@ -47,7 +47,6 @@ export function VehicleDialog({ vehicle, trigger, onCreated, onUpdated }: Vehicl
   const [customers, setCustomers] = useState<CustomersListResponse["data"]["customers"]>([])
   const [loadingCustomers, setLoadingCustomers] = useState(false)
 
-  // Load customers when dialog opens
   useEffect(() => {
     if (!open) return
     const run = async () => {
@@ -65,7 +64,6 @@ export function VehicleDialog({ vehicle, trigger, onCreated, onUpdated }: Vehicl
     run()
   }, [open, toast])
 
-  // Populate form with vehicle data in edit mode
   useEffect(() => {
     if (open && isEditMode && vehicle) {
       setVehicleName(vehicle.vehicleName || "")
@@ -114,14 +112,12 @@ export function VehicleDialog({ vehicle, trigger, onCreated, onUpdated }: Vehicl
       const api = getApiClient()
       
       if (isEditMode && vehicle) {
-        // Update existing vehicle
         const updated = await api.updateVehicle(vehicle._id, form)
   toast.success("Vehicle updated successfully")
         setOpen(false)
         resetForm()
         onUpdated?.(updated)
       } else {
-        // Create new vehicle
         const created = await api.createVehicle(form)
   toast.success("Vehicle created successfully")
         setOpen(false)

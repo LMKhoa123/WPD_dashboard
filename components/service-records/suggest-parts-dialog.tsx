@@ -14,18 +14,18 @@ import { useAuth } from "@/components/auth-provider"
 
 interface SuggestPartsDialogProps {
   checklistItemId: string
-  currentSuggested: string[] // current suggested part IDs
+  currentSuggested: string[] 
   trigger: React.ReactNode
   onSaved?: () => void
-  centerId?: string // center ID to load parts from
+  centerId?: string 
 }
 
 interface PartQuantity {
-  [partId: string]: number // part ID -> quantity
+  [partId: string]: number 
 }
 
 interface PartWithStock extends CenterAutoPartRecord {
-  part_name: string // for easier access to part name
+  part_name: string 
 }
 
 export function SuggestPartsDialog({ checklistItemId, currentSuggested, trigger, onSaved, centerId }: SuggestPartsDialogProps) {
@@ -49,7 +49,7 @@ export function SuggestPartsDialog({ checklistItemId, currentSuggested, trigger,
           limit: 500,
         }
         
-        // Use provided centerId or user's centerId
+        
         if (centerId) {
           params.center_id = centerId
         } else if (user?.centerId) {
@@ -57,14 +57,14 @@ export function SuggestPartsDialog({ checklistItemId, currentSuggested, trigger,
         }
         
         const res = await api.getCenterAutoParts(params)
-        // Transform response to include part_name for easier access
+        
         const transformedParts: PartWithStock[] = res.data.items.map((item) => ({
           ...item,
           part_name: typeof item.part_id === 'string' ? item.part_id : item.part_id.name,
         }))
         setParts(transformedParts)
-        // Initialize selected and quantities based on current suggested
-        // Use center auto part id (_id). If there are duplicates, they represent quantity.
+        
+        
         const counts: PartQuantity = {}
         currentSuggested.forEach((id) => {
           counts[id] = (counts[id] || 0) + 1
@@ -87,11 +87,11 @@ export function SuggestPartsDialog({ checklistItemId, currentSuggested, trigger,
   const toggle = (id: string) => {
     setSelected((prev) => {
       const newSelected = { ...prev, [id]: !prev[id] }
-      // If unchecking, reset quantity to 1
+      
       if (!newSelected[id]) {
         setQuantities((q) => ({ ...q, [id]: 1 }))
       } else {
-        // If checking and no quantity set, default to 1
+        
         if (quantities[id] === undefined) {
           setQuantities((q) => ({ ...q, [id]: 1 }))
         }
@@ -101,20 +101,20 @@ export function SuggestPartsDialog({ checklistItemId, currentSuggested, trigger,
   }
 
   const updateQuantity = (centerPartId: string, delta: number) => {
-    // centerPartId is the CenterAutoPart record _id
+    
     const part = parts.find((p) => p._id === centerPartId)
     if (!part) return
 
     setQuantities((prev) => {
       const current = prev[centerPartId] || 1
       const newQty = Math.max(1, current + delta)
-      const maxQty = part.quantity // Max available quantity from stock
+      const maxQty = part.quantity 
       return { ...prev, [centerPartId]: Math.min(newQty, maxQty) }
     })
   }
 
   const setQuantity = (centerPartId: string, value: string) => {
-    // centerPartId is the CenterAutoPart record _id
+    
     const part = parts.find((p) => p._id === centerPartId)
     if (!part) return
 
@@ -128,7 +128,7 @@ export function SuggestPartsDialog({ checklistItemId, currentSuggested, trigger,
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Calculate diffs by quantity between currentSuggested and the new selection
+    
     const countsOld: Record<string, number> = {}
     currentSuggested.forEach((id) => {
       countsOld[id] = (countsOld[id] || 0) + 1
@@ -154,7 +154,7 @@ export function SuggestPartsDialog({ checklistItemId, currentSuggested, trigger,
       }
     })
 
-    // If no changes, just close
+    
     if (suggest_add.length === 0 && suggest_remove.length === 0) {
       setOpen(false)
       return
@@ -210,7 +210,7 @@ export function SuggestPartsDialog({ checklistItemId, currentSuggested, trigger,
               ) : (
                 <div className="space-y-3">
                   {filteredParts.map((part) => {
-                    // Use center auto part id for selection and submission
+                    
                     const partId = part._id
                     const partName = typeof part.part_id === 'string' ? part.part_id : part.part_id.name
                     const sellingPrice = typeof part.part_id === 'string' ? 0 : part.part_id.selling_price

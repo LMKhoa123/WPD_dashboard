@@ -32,7 +32,6 @@ export function TechnicianScheduler() {
   const assign = (k: string, staffId: string | null) => setAssignments((prev) => ({ ...prev, [k]: staffId }))
 
   const utilization = useMemo(() => {
-    // Mock utilization based on appointments per technician in visible week
     const start = new Date(weekStart)
     const end = new Date(start)
     end.setDate(start.getDate() + 7)

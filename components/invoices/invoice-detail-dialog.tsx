@@ -30,7 +30,7 @@ export function InvoiceDetailDialog({ invoice, trigger }: Props) {
                 setLoading(true)
                 setError(null)
 
-                // Load full invoice with related data (service details or subscription)
+                
                 const invoiceData = await api.getInvoiceById(invoice._id)
                 setFullInvoice(invoiceData)
             } catch (e: any) {
@@ -40,7 +40,7 @@ export function InvoiceDetailDialog({ invoice, trigger }: Props) {
             }
         }
         loadData()
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        
     }, [open, api, invoice._id])
 
     const statusBadge = (s: string) => {
@@ -57,9 +57,9 @@ export function InvoiceDetailDialog({ invoice, trigger }: Props) {
     }
 
     const calculateOriginalAmount = () => {
-        // totalAmount is the FINAL amount (after discount)
-        // minusAmount is the discount percentage
-        // originalAmount = finalAmount / (1 - discountPercent/100)
+        
+        
+        
         if (fullInvoice.minusAmount === 0) return fullInvoice.totalAmount
         return Math.round(fullInvoice.totalAmount / (1 - fullInvoice.minusAmount / 100))
     }
@@ -67,7 +67,7 @@ export function InvoiceDetailDialog({ invoice, trigger }: Props) {
     const originalAmount = calculateOriginalAmount()
     const discountAmount = originalAmount - fullInvoice.totalAmount
 
-    // Check if data is a service detail array or subscription object
+    
     const isServiceDetails = Array.isArray(fullInvoice.data)
     const isSubscription = fullInvoice.data && !Array.isArray(fullInvoice.data)
 
@@ -104,7 +104,6 @@ export function InvoiceDetailDialog({ invoice, trigger }: Props) {
                     </div>
                 ) : (
                     <div className="space-y-6">
-                        {/* Header Info */}
                         <div className="grid grid-cols-3 gap-4 text-sm border-b pb-4">
                             <div>
                                 <p className="text-muted-foreground text-xs font-semibold mb-1">Invoice Date</p>
@@ -120,7 +119,6 @@ export function InvoiceDetailDialog({ invoice, trigger }: Props) {
                             </div>
                         </div>
 
-                        {/* Items Table for Service Details */}
                         {isServiceDetails && fullInvoice.data && (
                             <div>
                                 <h3 className="font-semibold mb-3">Service Items</h3>
@@ -151,7 +149,6 @@ export function InvoiceDetailDialog({ invoice, trigger }: Props) {
                                                     </tr>
                                                 )
                                             })}
-                                            {/* Labor Fee Row */}
                                             <tr className="border-b bg-blue-50 hover:bg-blue-100">
                                                 <td className="px-4 py-3">
                                                     <p className="font-medium">Labor Fee</p>
@@ -166,7 +163,6 @@ export function InvoiceDetailDialog({ invoice, trigger }: Props) {
                             </div>
                         )}
 
-                        {/* Subscription Package Display */}
                         {isSubscription && fullInvoice.data && (
                             <div className="border rounded-lg p-4 bg-gray-50">
                                 {(() => {
@@ -197,10 +193,8 @@ export function InvoiceDetailDialog({ invoice, trigger }: Props) {
                             </div>
                         )}
 
-                        {/* Calculation Summary */}
                         <div className="border-t pt-4">
                             <div className="ml-auto w-80 space-y-3">
-                                {/* Subtotal for service details */}
                                 {isServiceDetails && fullInvoice.data && (
                                     <>
                                         <div className="flex justify-between items-center text-sm">
@@ -214,13 +208,11 @@ export function InvoiceDetailDialog({ invoice, trigger }: Props) {
                                     </>
                                 )}
 
-                                {/* Total before discount */}
                                 <div className="flex justify-between items-center text-sm border-t pt-3">
                                     <span className="text-muted-foreground">Subtotal</span>
                                     <span className="font-medium">{formatVND(originalAmount)}</span>
                                 </div>
 
-                                {/* Discount if applicable */}
                                 {fullInvoice.minusAmount > 0 && (
                                     <div className="flex justify-between items-center text-sm text-green-600">
                                         <span>Discount ({fullInvoice.minusAmount}%)</span>
@@ -228,7 +220,6 @@ export function InvoiceDetailDialog({ invoice, trigger }: Props) {
                                     </div>
                                 )}
 
-                                {/* Final Amount */}
                                 <div className="flex justify-between items-center text-lg font-bold bg-blue-50 p-3 rounded border-2 border-blue-200">
                                     <span>TOTAL AMOUNT</span>
                                     <span className="text-blue-600">{formatVND(fullInvoice.totalAmount)}</span>
