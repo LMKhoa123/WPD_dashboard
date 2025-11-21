@@ -55,7 +55,6 @@ export function VehicleSubscriptionDetailDialog({ subscription, trigger }: Vehic
     const load = async () => {
       try {
         if (!vehicleId) return
-        // If we already have an image, no need to fetch
         if (vehicle && (vehicle as any).image) return
         const api = getApiClient()
         const data = await api.getVehicleById(vehicleId)
@@ -91,7 +90,6 @@ export function VehicleSubscriptionDetailDialog({ subscription, trigger }: Vehic
         </DialogHeader>
         
         <div className="space-y-6">
-          {/* Vehicle Information */}
           {vehicle && (
             <div className="border rounded-lg p-4">
               <div className="flex items-center gap-2 mb-3">
@@ -124,7 +122,6 @@ export function VehicleSubscriptionDetailDialog({ subscription, trigger }: Vehic
             </div>
           )}
 
-          {/* Package Information */}
           {packageInfo && (
             <div className="border rounded-lg p-4">
               <div className="flex items-center gap-2 mb-3">
@@ -181,7 +178,6 @@ export function VehicleSubscriptionDetailDialog({ subscription, trigger }: Vehic
             </div>
           )}
 
-          {/* Subscription Period */}
           <div className="border rounded-lg p-4">
             <div className="flex items-center gap-2 mb-3">
               <Calendar className="h-5 w-5 text-green-600" />
@@ -201,7 +197,6 @@ export function VehicleSubscriptionDetailDialog({ subscription, trigger }: Vehic
             </div>
           </div>
 
-          {/* Metadata */}
           <div className="flex items-center justify-between text-xs text-muted-foreground pt-4 border-t">
             <div>
               <span className="font-medium">Created At:</span>{" "}

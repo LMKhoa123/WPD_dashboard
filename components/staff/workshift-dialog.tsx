@@ -22,10 +22,10 @@ export function WorkshiftDialog({ open, onOpenChange, workshift, onSuccess, cent
 
   const [centers, setCenters] = useState<CenterRecord[]>(centersProp ?? [])
   const [mode, setMode] = useState<"create" | "edit">(workshift ? "edit" : "create")
-  const [rangeStart, setRangeStart] = useState("") // YYYY-MM-DD
-  const [rangeEnd, setRangeEnd] = useState("")   // YYYY-MM-DD
+  const [rangeStart, setRangeStart] = useState("") 
+  const [rangeEnd, setRangeEnd] = useState("")   
   const [shiftType, setShiftType] = useState<"morning" | "afternoon">("morning")
-  const [shiftDate, setShiftDate] = useState("") // for edit single day
+  const [shiftDate, setShiftDate] = useState("") 
   const [startTime, setStartTime] = useState("")
   const [endTime, setEndTime] = useState("")
   const [status, setStatus] = useState("active")
@@ -54,7 +54,7 @@ export function WorkshiftDialog({ open, onOpenChange, workshift, onSuccess, cent
   }, [open, workshift, centersProp])
   useEffect(() => {
     if (open && isEdit && workshift) {
-      // convert ISO date to YYYY-MM-DD
+      
       const d = new Date(workshift.shift_date)
       const yyyyMMdd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
       setShiftDate(yyyyMMdd)
@@ -62,7 +62,7 @@ export function WorkshiftDialog({ open, onOpenChange, workshift, onSuccess, cent
       setEndTime(workshift.end_time)
       setStatus(workshift.status)
       setCenterId(typeof workshift.center_id === "string" ? workshift.center_id : (workshift.center_id as any)?._id || "")
-      // infer shift type
+      
       if (workshift.start_time === "07:00" && workshift.end_time === "11:00") setShiftType("morning")
       else if (workshift.start_time === "13:00" && workshift.end_time === "17:00") setShiftType("afternoon")
     }
@@ -72,7 +72,7 @@ export function WorkshiftDialog({ open, onOpenChange, workshift, onSuccess, cent
       setShiftType("morning")
       setStatus("active")
       setCenterId("")
-      // set default times for selected shift type
+      
       setStartTime("07:00"); setEndTime("11:00")
     }
   }, [open, isEdit, workshift])
@@ -107,7 +107,7 @@ export function WorkshiftDialog({ open, onOpenChange, workshift, onSuccess, cent
   toast.error("Please select a center")
       return
     }
-    // Validate according to mode
+    
     if (isEdit) {
       if (!shiftDate) {
   toast.error("Please select a date")
@@ -118,7 +118,7 @@ export function WorkshiftDialog({ open, onOpenChange, workshift, onSuccess, cent
   toast.error("Please select a date range")
         return
       }
-      // prevent creating past dates and enforce max range 60 days
+      
       const today = new Date(); today.setHours(0,0,0,0)
       const start = new Date(rangeStart); const end = new Date(rangeEnd)
       if (start < today) {
@@ -147,7 +147,7 @@ export function WorkshiftDialog({ open, onOpenChange, workshift, onSuccess, cent
         await api.updateWorkshift(workshift._id, payload)
   toast.success("Update successful")
       } else {
-        // build shift_dates from range
+        
         const dates: string[] = previewDates
   if (!dates.length) { toast.error("Invalid date range"); setLoading(false); return }
         const payload: CreateWorkshiftsBulkRequest = {
@@ -157,7 +157,7 @@ export function WorkshiftDialog({ open, onOpenChange, workshift, onSuccess, cent
           status,
           center_id: centerId,
         }
-        // Overlapping detection (best-effort): fetch existing workshifts for center within range and filter out duplicates by date+time
+        
         try {
           const existing = await api.getWorkshifts({ center_id: centerId, page: 1, limit: 1000 })
           const existingKey = new Set(existing.map(e => `${e.shift_date.substring(0,10)}|${e.start_time}|${e.end_time}`))
@@ -172,7 +172,7 @@ export function WorkshiftDialog({ open, onOpenChange, workshift, onSuccess, cent
           const skipped = dates.length - newDates.length
           toast.success(`Created ${newDates.length} work shifts successfully${skipped > 0 ? `, ${skipped} days skipped due to duplicates` : ""}`)
         } catch (err) {
-          // fallback without overlap filter
+          
           await api.createWorkshiftsBulk(payload)
           toast.success(`Created ${dates.length} work shifts (no duplicate check)`)
         }

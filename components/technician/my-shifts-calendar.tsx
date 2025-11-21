@@ -16,11 +16,11 @@ interface MyShiftsCalendarProps {
   systemUserId: string
 }
 
-// Color logic based on shift time
+
 function getShiftTimeColor(startTime: string): { bg: string; border: string; text: string; badge: string } {
   const hour = parseInt(startTime.split(":")[0] || "0", 10)
   
-  // Morning shift (7:00 - 13:00)
+  
   if (hour >= 7 && hour < 13) {
     return {
       bg: "bg-amber-50 dark:bg-amber-950/20",
@@ -30,7 +30,7 @@ function getShiftTimeColor(startTime: string): { bg: string; border: string; tex
     }
   }
   
-  // Afternoon shift (13:00 - 18:00)
+  
   if (hour >= 13 && hour < 18) {
     return {
       bg: "bg-blue-50 dark:bg-blue-950/20",
@@ -40,7 +40,7 @@ function getShiftTimeColor(startTime: string): { bg: string; border: string; tex
     }
   }
   
-  // Night shift (18:00+)
+  
   return {
     bg: "bg-purple-50 dark:bg-purple-950/20",
     border: "border-purple-200 dark:border-purple-800",
@@ -80,7 +80,7 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
     loadShifts()
   }, [loadShifts])
 
-  // Get shifts for a specific date
+  
   const getShiftsForDate = (date: Date) => {
     return shifts.filter(shift => {
       const shiftDate = parseISO(shift.shift_date)
@@ -88,12 +88,12 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
     })
   }
 
-  // Format shift time display
+  
   const formatShiftTime = (shift: AssignedShiftInfo) => {
     return `${shift.start_time} - ${shift.end_time}`
   }
 
-  // Get status badge variant
+  
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
@@ -107,7 +107,7 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
     }
   }
 
-  // Week navigation
+  
   const goToPreviousWeek = () => {
     setSelectedWeekStart(prev => addDays(prev, -7))
   }
@@ -120,7 +120,7 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
     setSelectedWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))
   }
 
-  // Generate week days
+  
   const weekDays = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => addDays(selectedWeekStart, i))
   }, [selectedWeekStart])
@@ -175,7 +175,6 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Week view */}
         <div>
           <div className="text-sm font-medium text-muted-foreground mb-3">
             {format(weekDays[0], "d MMM", { locale: vi })} - {format(weekDays[6], "d MMM yyyy", { locale: vi })}
@@ -235,7 +234,6 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
           </div>
         </div>
 
-        {/* All shifts list */}
         {shifts.length > 0 && (
           <div>
             <div className="text-sm font-medium mb-3">All Shifts</div>

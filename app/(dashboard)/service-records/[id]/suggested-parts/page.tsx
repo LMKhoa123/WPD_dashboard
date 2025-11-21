@@ -426,7 +426,6 @@ export default function SuggestedPartsPage() {
 
                     <Separator />
 
-                    {/* Confirmed Items Summary */}
                     {lines.filter(l => l.confirmed).length > 0 && (
                         <div className="space-y-2 text-sm">
                             <div className="font-semibold mb-2">Confirmed Items:</div>

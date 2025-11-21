@@ -40,7 +40,6 @@ export default function TechnicianDashboardPage() {
       setLoading(true)
       const params: any = { limit: 500 }
       
-      // Filter by technician's center
       if (user?.centerId) {
         params.center_id = user.centerId
       }
@@ -81,7 +80,6 @@ export default function TechnicianDashboardPage() {
         </div>
       ) : (
         <>
-          {/* Shift Calendar */}
           {technicianId && (
             <MyShiftsCalendar systemUserId={technicianId} />
           )}

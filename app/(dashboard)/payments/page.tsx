@@ -35,7 +35,6 @@ const { user } = useAuth()
       setLoading(true)
       const params: any = { page, limit }
       
-      // Filter by user's center for non-admin
       if (user?.role !== 'Admin' && user?.centerId) {
         params.center_id = user.centerId
       }

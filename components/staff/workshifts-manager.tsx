@@ -21,7 +21,7 @@ export default function WorkshiftsManager() {
   const [centerFilter, setCenterFilter] = useState<string>("")
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const limit = 20
+  const limit = 10
   const [dialogOpen, setDialogOpen] = useState(false)
   const [generateSlotsOpen, setGenerateSlotsOpen] = useState(false)
   const [editing, setEditing] = useState<WorkshiftRecord | null>(null)
@@ -35,16 +35,16 @@ export default function WorkshiftsManager() {
       const cs = await api.getCenters({ page: 1, limit: 200 })
       setCenters(cs.data.centers)
       
-      // Set first center as default if not set
+      
       const filterToUse = centerFilter || cs.data.centers[0]?._id
       if (!centerFilter && cs.data.centers[0]) {
         setCenterFilter(cs.data.centers[0]._id)
       }
       
       const ws = await api.getWorkshifts({ center_id: filterToUse, page: currentPage, limit })
-      setWorkshifts(ws)
-      // Assume we need to calculate total pages (API might return total)
-      setTotalPages(Math.ceil(ws.length / limit) || 1)
+      setWorkshifts(ws.data)
+      
+      setTotalPages(ws.pagination?.total_pages || 1)
     } catch (e: any) {
   toast.error("Failed to load work shifts. Please try again.")
     } finally {
@@ -55,7 +55,7 @@ export default function WorkshiftsManager() {
   useEffect(() => { load() }, [load])
 
   const filtered = useMemo(() => {
-    // Center filter already applied server-side in load(), only filter search client-side
+    
     return workshifts.filter(ws => {
       const matchSearch = !search || ws.shift_id.toLowerCase().includes(search.toLowerCase())
       return matchSearch

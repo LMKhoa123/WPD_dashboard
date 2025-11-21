@@ -54,7 +54,6 @@ export function ServiceDetailsDialog({ recordId, trigger }: ServiceDetailsDialog
       setLoading(true)
       const centerPartsParams: any = { page: 1, limit: 500 }
       
-      // Filter by user's center for non-admin
       if (user?.centerId) {
         centerPartsParams.center_id = user.centerId
       }
@@ -78,9 +77,8 @@ export function ServiceDetailsDialog({ recordId, trigger }: ServiceDetailsDialog
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
-  // Auto-populate unit price when center part is selected
   useEffect(() => {
-    if (!centerPartId || editing) return // Don't auto-fill when editing
+    if (!centerPartId || editing) return 
     
     const selectedCenterPart = centerParts.find(cp => cp._id === centerPartId)
     if (selectedCenterPart) {

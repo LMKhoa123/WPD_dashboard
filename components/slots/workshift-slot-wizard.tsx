@@ -21,7 +21,7 @@ interface WizardProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   centers: CenterRecord[]
-  onCompleted?: () => void // refresh slots page
+  onCompleted?: () => void 
 }
 
 type Step = 1 | 2 | 3 | 4
@@ -30,7 +30,7 @@ export function WorkshiftSlotWizard({ open, onOpenChange, centers, onCompleted }
   const api = useMemo(() => getApiClient(), [])
   const [step, setStep] = useState<Step>(1)
 
-  // Step 1 state (create workshifts)
+  
   const [centerId, setCenterId] = useState<string>("")
   const [shiftDates, setShiftDates] = useState<Date[]>([])
   const [startTime, setStartTime] = useState("08:00")
@@ -38,7 +38,7 @@ export function WorkshiftSlotWizard({ open, onOpenChange, centers, onCompleted }
   const [creatingShifts, setCreatingShifts] = useState(false)
   const [createdWorkshifts, setCreatedWorkshifts] = useState<WorkshiftRecord[]>([])
 
-  // Step 2 state (assign staff & technicians)
+  
   const [loadingUsers, setLoadingUsers] = useState(false)
   const [staff, setStaff] = useState<SystemUserRecord[]>([])
   const [techs, setTechs] = useState<SystemUserRecord[]>([])
@@ -46,7 +46,7 @@ export function WorkshiftSlotWizard({ open, onOpenChange, centers, onCompleted }
   const [selectedTechIds, setSelectedTechIds] = useState<string[]>([])
   const [assigning, setAssigning] = useState(false)
 
-  // Step 3 state (generate slots)
+  
   const [slotDuration, setSlotDuration] = useState("60")
   const [generatingSlots, setGeneratingSlots] = useState(false)
   const [generateSummary, setGenerateSummary] = useState<{ created: number; skipped: number } | null>(null)
@@ -128,7 +128,7 @@ export function WorkshiftSlotWizard({ open, onOpenChange, centers, onCompleted }
     setAssigning(true)
     try {
       const workshiftIds = createdWorkshifts.map(w => w._id)
-      // For simplicity assign each selected user to all created shifts
+      
       for (const id of [...selectedStaffIds, ...selectedTechIds]) {
         await api.assignShifts({ system_user_id: id, workshift_ids: workshiftIds })
       }
@@ -141,14 +141,14 @@ export function WorkshiftSlotWizard({ open, onOpenChange, centers, onCompleted }
 
   const handleGenerateSlots = async () => {
     if (!centerId) { toast.error("Missing center") ; return }
-    if (creatingShifts || assigning) return // prevent race
-    // Basic validation
+    if (creatingShifts || assigning) return 
+    
     if (startTime >= endTime) { toast.error("Start time must be before end time") ; return }
     const rawDates = Array.from(new Set(createdWorkshifts.map(w => w.shift_date))).filter(Boolean)
     const normalizedDates = rawDates.map(d => {
       const dt = new Date(d as string)
       if (isNaN(dt.getTime())) return null
-      // format to YYYY-MM-DD (local Asia/Ho_Chi_Minh not needed for date-only)
+      
       return dt.toISOString().slice(0,10)
     }).filter(Boolean) as string[]
     if (normalizedDates.length === 0) { toast.error("No valid dates to generate slots") ; return }
@@ -193,7 +193,6 @@ export function WorkshiftSlotWizard({ open, onOpenChange, centers, onCompleted }
           <DialogDescription>Automate the process of creating workshifts, assigning users, and generating slots seamlessly.</DialogDescription>
         </DialogHeader>
 
-        {/* Step indicator */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
           <StepBadge n={1 as Step} label="Create Workshifts" />
             <StepBadge n={2 as Step} label="Assign Users" />

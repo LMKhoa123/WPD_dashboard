@@ -180,7 +180,6 @@ export function AssignShiftDialog({
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Select user */}
           <div className="space-y-3">
             <Label>1. Select user</Label>
             <Tabs defaultValue="staff" className="w-full">

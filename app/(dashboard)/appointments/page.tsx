@@ -69,17 +69,17 @@ export default function AppointmentsPage() {
       setLoading(true)
       const params: { page: number; limit: number; technician_id?: string; center_id?: string; status?: string } = { page, limit }
       
-      // Filter by status if provided
+      
       if (status) {
         params.status = status
       }
       
-      // Filter by center_id for non-admin users (staff and technician)
+      
       if (!isAdmin && user?.centerId) {
         params.center_id = user.centerId
       }
       
-      // For technicians, also filter by their technician_id
+      
       if (!isAdmin && !isStaff) {
         try {
           const su = await api.getSystemUsers({ limit: 1000 })
@@ -96,7 +96,7 @@ export default function AppointmentsPage() {
       setTotalItems(res.data.total || res.data.appointments.length)
       setTotalPages(Math.ceil((res.data.total || res.data.appointments.length) / limit))
       
-      // Update count for current tab
+      
       if (status) {
         setStatusCounts(prev => ({
           ...prev,
@@ -114,12 +114,12 @@ export default function AppointmentsPage() {
     load(currentPage, activeTab)
   }, [load, currentPage, activeTab])
 
-  // Reset to page 1 when changing tabs
+  
   useEffect(() => {
     setCurrentPage(1)
   }, [activeTab])
 
-  // Load all status counts on mount
+  
   useEffect(() => {
     const loadCounts = async () => {
       const baseParams: any = {}
@@ -127,7 +127,7 @@ export default function AppointmentsPage() {
         baseParams.center_id = user.centerId
       }
       
-      // Add technician filter for technician role
+      
       if (!isAdmin && !isStaff) {
         try {
           const su = await api.getSystemUsers({ limit: 1000 })
@@ -160,7 +160,7 @@ export default function AppointmentsPage() {
         })
         setStatusCounts(counts)
       } catch (e) {
-        // Ignore count loading errors
+        
       }
     }
     
@@ -249,7 +249,7 @@ export default function AppointmentsPage() {
       cancelled: "Cancelled",
     }
 
-    // If in-progress and no technician selected, show error
+    
     if (newStatus === "in-progress" && !selectedTechnicianId) {
       toast.error("Please select a technician")
       return
@@ -298,7 +298,7 @@ export default function AppointmentsPage() {
         return ["completed", "cancelled"]
       case "completed":
       case "cancelled":
-        return [] // Final states - no further changes
+        return [] 
       default:
         return []
     }
@@ -554,7 +554,7 @@ export default function AppointmentsPage() {
           </CardContent>
         </Card>
 
-        {/* Status Change Confirmation Dialog */}
+        
         <AlertDialog open={!!confirmingStatus} onOpenChange={(open) => {
           if (!open) {
             setConfirmingStatus(null)
@@ -587,7 +587,6 @@ export default function AppointmentsPage() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             
-            {/* Technician Selection for In-Progress */}
             {confirmingStatus?.newStatus === "in-progress" && (
               <div className="space-y-3 py-4">
                 <div className="space-y-2">

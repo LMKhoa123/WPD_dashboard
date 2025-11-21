@@ -435,12 +435,9 @@ export default function ChatDashboardPage() {
 
     <div className="dark:bg-gray-900 " style={{ backgroundColor: "#fff" }}>
       <div className="mx-auto  bg-white/90 dark:bg-gray-800/90 p-3 shadow-xl ring-1 ring-black/5 dark:ring-white/10 pb-10">
-        {/* 4 columns layout on xl (nav rail + 3 panes) */}
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-[320px_minmax(0,1fr)_280px] ">
 
-          {/* Left: Chat list */}
           <aside className="rounded-2xl bg-white dark:bg-gray-800 p-3 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
-            {/* Tabs */}
             <div className="mb-2 grid grid-cols-2 gap-2">
               <button
                 className={`rounded-xl px-3 py-2 text-sm border ${tab === "my" ? "border-primary bg-primary/10 text-primary" : "border-gray-200 dark:border-gray-700"}`}
@@ -502,9 +499,7 @@ export default function ChatDashboardPage() {
             </div>
           </aside>
 
-          {/* Center: Main chat */}
           <section className="flex h-[82vh] flex-col overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
-            {/* Header */}
             <div className="flex shrink-0 items-start justify-between border-b dark:border-gray-700 px-4 py-3 md:items-center">
               <div>
                 <h2 className="text-xl font-bold tracking-tight dark:text-white">
@@ -532,7 +527,6 @@ export default function ChatDashboardPage() {
               </div>
             </div>
 
-            {/* Messages */}
             <div
               ref={scrollRef}
               className="flex-1 min-h-0 overflow-y-auto px-4 py-5 md:px-8 scroll-smooth"
@@ -598,10 +592,8 @@ export default function ChatDashboardPage() {
               ) : null}
             </div>
 
-            {/* Composer */}
             <div className="shrink-0 border-t dark:border-gray-700 bg-white/90 dark:bg-gray-800/90 px-4 py-4 backdrop-blur md:px-8">
               <div className="flex items-end gap-3">
-                {/* Hidden file input */}
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -684,7 +676,6 @@ export default function ChatDashboardPage() {
             </div>
           </section>
 
-          {/* Right: Group info */}
           <aside className="hidden rounded-2xl bg-primary/10 dark:bg-gray-800/50 p-4 shadow-sm ring-1 ring-black/5 dark:ring-white/10 lg:block">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold dark:text-white">Group Info</h3>
@@ -693,13 +684,11 @@ export default function ChatDashboardPage() {
               </button> */}
             </div>
 
-            {/* Files */}
             <div className="mt-4 rounded-2xl border dark:border-gray-700 bg-white/60 dark:bg-gray-800/60">
               <div className="border-b dark:border-gray-700 px-4 py-3 text-base font-semibold dark:text-white">
                 Files
               </div>
               <div className="divide-y dark:divide-gray-700">
-                {/* Photos */}
                 <button
                   onClick={() => setExpandedFile(expandedFile === "photos" ? null : "photos")}
                   className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition"
@@ -736,7 +725,6 @@ export default function ChatDashboardPage() {
                   </div>
                 )}
 
-                {/* Files */}
                 <button
                   onClick={() => setExpandedFile(expandedFile === "files" ? null : "files")}
                   className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition"

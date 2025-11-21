@@ -49,7 +49,6 @@ export default function StaffPage() {
       const api = getApiClient()
       const userParams: any = { page, limit }
       
-      // Filter by user's center for non-admin
       if (!isAdmin && user?.centerId) {
         userParams.centerId = user.centerId
       }
@@ -299,7 +298,6 @@ export default function StaffPage() {
               </Table>
             </div>
 
-            {/* Pagination - Always visible */}
             {!loading && totalPages > 0 && (
               <div className="mt-4 flex justify-end">
                 <DataPagination
@@ -312,7 +310,6 @@ export default function StaffPage() {
           </CardContent>
         </Card>
 
-        {/* Delete Confirmation Dialog */}
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
