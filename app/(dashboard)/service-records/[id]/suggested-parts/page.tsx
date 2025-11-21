@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
 import { toast } from "sonner"
-import { ArrowLeft, CheckCircle2, Minus, Plus, ReceiptText, ShieldCheck } from "lucide-react"
+import { ArrowLeft, CheckCircle2, Minus, Plus, ReceiptText, ShieldCheck, Trash2 } from "lucide-react"
 
 type SuggestedLine = {
     center_auto_part_id: string
@@ -194,6 +194,21 @@ export default function SuggestedPartsPage() {
         setLines((prev) => prev.filter((l) => l.center_auto_part_id !== centerpartId))
     }
 
+    const deleteConfirmedLine = async (l: LineState) => {
+        if (!l.detail?._id) return
+        try {
+            setSubmittingId(l.center_auto_part_id)
+            await api.deleteServiceDetail(l.detail._id)
+            setLines((prev) => prev.filter((x) => x.center_auto_part_id !== l.center_auto_part_id))
+            toast.success("Deleted part line")
+            await run()
+        } catch (e: any) {
+            toast.error(e?.message || "Failed to delete service detail")
+        } finally {
+            setSubmittingId(null)
+        }
+    }
+
     const partsTotal = lines.filter(l => l.confirmed).reduce((sum, l) => {
         const paidQty = l.detail?.paid_qty ?? l.quantity
         return sum + paidQty * l.selling_price
@@ -324,7 +339,23 @@ export default function SuggestedPartsPage() {
                         const warrantyQty = l.detail?.warranty_qty ?? 0
                         const lineTotal = paidQty * l.selling_price
                         return (
-                            <div key={l.center_auto_part_id} className="rounded-lg border p-3">
+                            <div key={l.center_auto_part_id} className="relative rounded-lg border p-3 hover:border-muted-foreground/50 transition-colors">
+                                {l.confirmed && (
+                                    <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="absolute -top-2.5 -right-2.5 h-7 w-7 rounded-full bg-destructive hover:bg-destructive/90 text-destructive-foreground shadow-md"
+                                        disabled={submittingId === l.center_auto_part_id}
+                                        onClick={() => deleteConfirmedLine(l)}
+                                        title="Delete this part"
+                                    >
+                                        {submittingId === l.center_auto_part_id ? (
+                                            <Spinner className="h-3.5 w-3.5" />
+                                        ) : (
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                        )}
+                                    </Button>
+                                )}
                                 <div className="flex items-start gap-3">
                                     {l.image ? (
                                         <img src={l.image} alt={l.name} className="h-14 w-14 rounded object-cover border" />
