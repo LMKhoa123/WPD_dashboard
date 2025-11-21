@@ -643,6 +643,12 @@ export interface WorkshiftRecord {
 export interface WorkshiftsListResponse {
   success: boolean
   data: WorkshiftRecord[]
+  pagination?: {
+    current_page: number
+    total_pages: number
+    total_count: number
+    per_page: number
+  }
 }
 
 export interface WorkshiftResponse {
@@ -1877,7 +1883,7 @@ export class ApiClient {
   }
 
   // Workshifts: list
-  async getWorkshifts(params?: { center_id?: string; page?: number; limit?: number }): Promise<WorkshiftRecord[]> {
+  async getWorkshifts(params?: { center_id?: string; page?: number; limit?: number }): Promise<WorkshiftsListResponse> {
     let path = "/workshifts"
     const queryParams = new URLSearchParams()
     if (params?.center_id) queryParams.set("center_id", params.center_id)
@@ -1886,7 +1892,7 @@ export class ApiClient {
     const qs = queryParams.toString()
     if (qs) path += `?${qs}`
     const res = await this.fetchJson<WorkshiftsListResponse>(path, { method: "GET" })
-    return res.data
+    return res
   }
 
   // Workshifts: get by id

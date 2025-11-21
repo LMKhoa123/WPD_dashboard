@@ -8,7 +8,8 @@ export function useWorkShifts(centerId?: string | undefined) {
   const query = useQuery<WorkshiftRecord[], Error>({
     queryKey: ["workshifts", centerId ?? "all"],
     queryFn: async () => {
-      return await api.getWorkshifts({ center_id: centerId || undefined });
+      const response = await api.getWorkshifts({ center_id: centerId || undefined });
+      return response.data;
     },
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,

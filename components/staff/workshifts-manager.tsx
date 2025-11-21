@@ -21,7 +21,7 @@ export default function WorkshiftsManager() {
   const [centerFilter, setCenterFilter] = useState<string>("")
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const limit = 20
+  const limit = 10
   const [dialogOpen, setDialogOpen] = useState(false)
   const [generateSlotsOpen, setGenerateSlotsOpen] = useState(false)
   const [editing, setEditing] = useState<WorkshiftRecord | null>(null)
@@ -42,9 +42,9 @@ export default function WorkshiftsManager() {
       }
       
       const ws = await api.getWorkshifts({ center_id: filterToUse, page: currentPage, limit })
-      setWorkshifts(ws)
-      // Assume we need to calculate total pages (API might return total)
-      setTotalPages(Math.ceil(ws.length / limit) || 1)
+      setWorkshifts(ws.data)
+      // Use total pages from API pagination
+      setTotalPages(ws.pagination?.total_pages || 1)
     } catch (e: any) {
   toast.error("Failed to load work shifts. Please try again.")
     } finally {
