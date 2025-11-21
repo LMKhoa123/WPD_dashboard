@@ -436,7 +436,7 @@ export function CalendarShiftView() {
       // Explicitly call API for the selected center to ensure latest data
       const api = getApiClient()
       const list = await api.getWorkshifts({ center_id: centerId, limit: 500 })
-      const shiftsForDate = list.filter(ws => ws.shift_date.startsWith(dateStr))
+      const shiftsForDate = list.data.filter(ws => ws.shift_date.startsWith(dateStr))
       setAvailableWorkshifts(shiftsForDate)
     } catch (err: any) {
       console.error('Failed loading workshifts for dialog', err)

@@ -159,12 +159,12 @@ export function PaymentDetailDialog({ payment, trigger }: Props) {
                     </CardContent>
                   </Card>
                 )}
-                <Card className="md:col-span-2">
+                {/* <Card className="md:col-span-2">
                   <CardContent className="pt-6">
                     <div className="text-sm text-muted-foreground mb-2">Raw JSON</div>
                     <pre className="text-xs bg-muted rounded p-3 overflow-auto max-h-64">{JSON.stringify(info, null, 2)}</pre>
                   </CardContent>
-                </Card>
+                </Card> */}
               </div>
             ) : (
               <div className="text-sm text-muted-foreground">No data available</div>
