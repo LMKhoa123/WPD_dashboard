@@ -190,13 +190,10 @@ export function ForecastResultsDialog({ trigger }: ForecastResultsDialogProps) {
                         isExpanded ? "border-purple-300" : "hover:border-purple-200"
                       )}
                     >
-                      {/* Gradient accent bar */}
                       <div className={cn("absolute top-0 left-0 right-0 h-1 bg-gradient-to-r", getRiskGradient(result.analysis?.riskLevel))} />
                       
-                      {/* Compact Row */}
                       <div className="p-4">
                         <div className="flex items-center gap-4">
-                          {/* Icon + Part Name */}
                           <div className="flex items-center gap-3 min-w-[220px]">
                             <div className={cn(
                               "p-2 rounded-lg bg-gradient-to-br shadow-md flex-shrink-0",
@@ -220,12 +217,10 @@ export function ForecastResultsDialog({ trigger }: ForecastResultsDialogProps) {
                             </div>
                           </div>
 
-                          {/* Risk Badge */}
                           <div className="flex-shrink-0">
                             {getRiskBadge(result.analysis?.riskLevel)}
                           </div>
 
-                          {/* Order Quantity */}
                           <div className="flex items-center gap-2 bg-gradient-to-r from-purple-50 to-blue-50 px-3 py-1.5 rounded-lg border border-purple-200 flex-shrink-0">
                             <ShoppingCart className="h-3.5 w-3.5 text-purple-600" />
                             <span className="text-sm font-bold text-purple-900">
@@ -233,14 +228,12 @@ export function ForecastResultsDialog({ trigger }: ForecastResultsDialogProps) {
                             </span>
                           </div>
 
-                          {/* Recommendation Preview */}
                           <div className="flex-1 min-w-0">
                             <p className="text-sm text-gray-700 truncate">
                               {result.analysis?.title || 'No recommendation'}
                             </p>
                           </div>
 
-                          {/* Expand/Collapse Button */}
                           <Button
                             variant="ghost"
                             size="sm"
@@ -261,10 +254,8 @@ export function ForecastResultsDialog({ trigger }: ForecastResultsDialogProps) {
                           </Button>
                         </div>
 
-                        {/* Expanded Details */}
                         {isExpanded && (
                           <div className="mt-4 pt-4 border-t space-y-3 animate-in slide-in-from-top-2">
-                            {/* Full Recommendation */}
                             <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-3 border border-blue-200">
                               <div className="flex items-start gap-2">
                                 <TrendingUp className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
@@ -277,7 +268,6 @@ export function ForecastResultsDialog({ trigger }: ForecastResultsDialogProps) {
                               </div>
                             </div>
 
-                            {/* Full Analysis */}
                             <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                               <div className="flex items-start gap-2">
                                 <Sparkles className="h-4 w-4 text-purple-600 mt-0.5 flex-shrink-0" />
@@ -293,7 +283,6 @@ export function ForecastResultsDialog({ trigger }: ForecastResultsDialogProps) {
                         )}
                       </div>
 
-                      {/* Hover effect overlay */}
                       <div className="absolute inset-0 bg-gradient-to-r from-purple-600/5 to-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                     </div>
                   )

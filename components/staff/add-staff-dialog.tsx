@@ -74,7 +74,6 @@ export function AddStaffDialog({ trigger, onSuccess }: AddStaffDialogProps) {
 
       toast.success("Staff member created successfully")
       
-      // Reset form
       setEmail("")
       setPassword("")
       setRole("STAFF")

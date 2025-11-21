@@ -96,7 +96,7 @@ export function StaffDialog({ systemUser, trigger, onSuccess }: StaffDialogProps
       const updated = await api.updateSystemUser(systemUser._id, {
         name,
         dateOfBirth: dateOfBirth || null,
-        certificates: certificates.filter((c) => c.name && c.issuingOrganization), // Only include filled certificates
+        certificates: certificates.filter((c) => c.name && c.issuingOrganization), 
       })
 
   toast.success("Cập nhật nhân viên thành công")

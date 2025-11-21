@@ -123,7 +123,6 @@ export default function VehicleDetailPage() {
   return (
     <AdminOrStaffOnly>
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => router.push("/vehicles")}>
@@ -163,9 +162,7 @@ export default function VehicleDetailPage() {
         </div>
       </div>
 
-      {/* Main Content - Image + Details */}
       <div className="grid gap-6 md:grid-cols-3">
-        {/* Vehicle Image - Takes prominent position */}
         <Card className="md:col-span-1 overflow-hidden">
           <CardContent className="p-0">
             <div className="relative aspect-square w-full">
@@ -195,9 +192,7 @@ export default function VehicleDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Vehicle Information Cards */}
         <div className="md:col-span-2 space-y-6">
-          {/* Basic Information */}
           <Card>
             <CardHeader>
               <CardTitle>Basic Information</CardTitle>
@@ -249,7 +244,6 @@ export default function VehicleDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Service & Maintenance */}
           <Card>
             <CardHeader>
               <CardTitle>Service & Maintenance</CardTitle>
@@ -284,7 +278,6 @@ export default function VehicleDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Metadata */}
           <Card>
             <CardHeader>
               <CardTitle>System Information</CardTitle>
@@ -307,7 +300,6 @@ export default function VehicleDetailPage() {
         </div>
       </div>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

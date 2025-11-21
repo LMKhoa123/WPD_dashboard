@@ -182,7 +182,6 @@ export function RecordChecklistsDialog({ recordId, trigger }: RecordChecklistsDi
                     </div>
                   </div>
 
-                  {/* Suggested Parts Section - CHỈ TECHNICIAN được đề xuất */}
                   {isTechnician && (
                     <div className="pt-2 border-t">
                       <div className="flex items-center justify-between gap-2">

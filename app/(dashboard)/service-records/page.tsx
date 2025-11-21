@@ -63,17 +63,17 @@ export default function ServiceRecordsPage() {
       setLoading(true)
       const params: any = { page, limit }
       
-      // Filter by center_id for non-admin users
+      
       if (!isAdmin && user?.centerId) {
         params.center_id = user.centerId
       }
       
-      // Filter by status
+      
       if (status) {
         params.status = status
       }
       
-      // Filter by technician_id for technician role
+      
       if (!isAdmin && !isStaff && user?.email) {
         try {
           const su = await api.getSystemUsers({ limit: 1000 })
@@ -95,7 +95,7 @@ export default function ServiceRecordsPage() {
       setTotalItems(total)
       setTotalPages(Math.ceil(total / limit))
       
-      // Update count for current tab
+      
       if (status) {
         setStatusCounts(prev => ({
           ...prev,
@@ -113,12 +113,12 @@ export default function ServiceRecordsPage() {
     load(currentPage, activeTab)
   }, [load, currentPage, activeTab])
 
-  // Reset to page 1 when changing tabs
+  
   useEffect(() => {
     setCurrentPage(1)
   }, [activeTab])
 
-  // Load all status counts on mount
+  
   useEffect(() => {
     const loadCounts = async () => {
       const baseParams: any = {}
@@ -126,7 +126,7 @@ export default function ServiceRecordsPage() {
         baseParams.center_id = user.centerId
       }
       
-      // Add technician filter for technician role
+      
       if (!isAdmin && !isStaff && user?.email) {
         try {
           const su = await api.getSystemUsers({ limit: 1000 })
@@ -159,7 +159,7 @@ export default function ServiceRecordsPage() {
         })
         setStatusCounts(counts)
       } catch (e) {
-        // Ignore count loading errors
+        
       }
     }
     
@@ -208,12 +208,12 @@ export default function ServiceRecordsPage() {
       const currentTime = new Date().toISOString()
       const updatePayload: any = { status: newStatus }
       
-      // Update timestamps based on status change
+      
       if (newStatus === "in-progress") {
-        // Set start time when work begins
+        
         updatePayload.start_time = currentTime
       } else if (newStatus === "completed" || newStatus === "cancelled") {
-        // Set end time when work is finished or cancelled
+        
         updatePayload.end_time = currentTime
       }
       
@@ -221,7 +221,7 @@ export default function ServiceRecordsPage() {
       setRecords(prev => prev.map(r => r._id === id ? { ...r, status: newStatus, ...updatePayload } : r))
       toast.success(`Status changed to ${statusLabels[newStatus as keyof typeof statusLabels] || newStatus}`)
       
-      // Reload current tab to update counts and data
+      
       await load(currentPage, activeTab)
     } catch (e: any) {
       toast.error(e?.message || "Failed to update status")
@@ -251,7 +251,7 @@ export default function ServiceRecordsPage() {
         return ["completed", "cancelled"]
       case "completed":
       case "cancelled":
-        return [] // Final states - no further changes
+        return [] 
       default:
         return []
     }
@@ -483,7 +483,6 @@ export default function ServiceRecordsPage() {
           </CardContent>
         </Card>
 
-        {/* Status Change Confirmation Dialog */}
         <AlertDialog open={!!confirmingStatus} onOpenChange={(open) => !open && setConfirmingStatus(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>

@@ -26,7 +26,6 @@ const isAdmin = useIsAdmin()
       setLoading(true)
       const params: any = { limit: 500 }
       
-      // Filter by center_id for non-admin
       if (!isAdmin && user?.centerId) {
         params.center_id = user.centerId
       }

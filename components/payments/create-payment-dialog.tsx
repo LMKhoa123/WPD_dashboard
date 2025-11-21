@@ -43,7 +43,7 @@ export function CreatePaymentDialog({ record, trigger, onCreated }: Props) {
         if (cust && typeof cust === 'object' && cust._id) return cust._id as string
       }
     } catch {
-      // ignore
+      
     }
     return undefined
   }, [api, record.appointment_id])
@@ -64,7 +64,7 @@ export function CreatePaymentDialog({ record, trigger, onCreated }: Props) {
       const sum = (res.data.details || []).reduce((acc, d) => acc + (d.quantity * d.unit_price), 0)
       if (sum > 0) setAmount(sum)
     } catch {
-      // ignore
+      
     }
   }, [api, record._id])
 

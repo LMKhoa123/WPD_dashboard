@@ -11,7 +11,6 @@ export function PerformanceDashboard() {
     const completed = mockAppointments.filter((a) => a.technician === t.name && a.status === "completed").length
     const inProgress = mockAppointments.filter((a) => a.technician === t.name && a.status === "in-progress").length
     const scheduled = mockAppointments.filter((a) => a.technician === t.name && (a.status === "pending" || a.status === "confirmed")).length
-    // Mock hours: assume 1.5h per completed
     const hours = (completed * 1.5).toFixed(1)
     return { t, total, completed, inProgress, scheduled, hours }
   })

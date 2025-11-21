@@ -13,11 +13,11 @@ interface MyShiftsCalendarProps {
   systemUserId: string
 }
 
-// Color logic based on shift time
+
 function getShiftTimeColor(startTime: string): { bg: string; border: string; text: string; badge: string } {
   const hour = parseInt(startTime.split(":")[0] || "0", 10)
   
-  // Morning shift (7:00 - 13:00)
+  
   if (hour >= 7 && hour < 13) {
     return {
       bg: "bg-amber-50 dark:bg-amber-950/20",
@@ -27,7 +27,7 @@ function getShiftTimeColor(startTime: string): { bg: string; border: string; tex
     }
   }
   
-  // Afternoon shift (13:00 - 18:00)
+  
   if (hour >= 13 && hour < 18) {
     return {
       bg: "bg-blue-50 dark:bg-blue-950/20",
@@ -37,7 +37,7 @@ function getShiftTimeColor(startTime: string): { bg: string; border: string; tex
     }
   }
   
-  // Night shift (18:00+)
+  
   return {
     bg: "bg-purple-50 dark:bg-purple-950/20",
     border: "border-purple-200 dark:border-purple-800",
@@ -158,7 +158,6 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Week navigation */}
               <div className="flex items-center justify-between border-b pb-4">
                 <button
                   onClick={() =>
@@ -184,7 +183,6 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
                 </button>
               </div>
 
-              {/* Week calendar */}
               <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
                 {weekDays.map((day, index) => {
                   const dayShifts = getShiftsForDate(day)
@@ -240,7 +238,6 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
                 })}
               </div>
 
-              {/* All shifts list */}
               <div className="border-t pt-4">
                 <h3 className="font-semibold mb-3">
                   All Shifts ({shifts.length})

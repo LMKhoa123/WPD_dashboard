@@ -35,7 +35,7 @@ export default function WorkshiftsManager() {
       const cs = await api.getCenters({ page: 1, limit: 200 })
       setCenters(cs.data.centers)
       
-      // Set first center as default if not set
+      
       const filterToUse = centerFilter || cs.data.centers[0]?._id
       if (!centerFilter && cs.data.centers[0]) {
         setCenterFilter(cs.data.centers[0]._id)
@@ -43,7 +43,7 @@ export default function WorkshiftsManager() {
       
       const ws = await api.getWorkshifts({ center_id: filterToUse, page: currentPage, limit })
       setWorkshifts(ws.data)
-      // Use total pages from API pagination
+      
       setTotalPages(ws.pagination?.total_pages || 1)
     } catch (e: any) {
   toast.error("Failed to load work shifts. Please try again.")
@@ -55,7 +55,7 @@ export default function WorkshiftsManager() {
   useEffect(() => { load() }, [load])
 
   const filtered = useMemo(() => {
-    // Center filter already applied server-side in load(), only filter search client-side
+    
     return workshifts.filter(ws => {
       const matchSearch = !search || ws.shift_id.toLowerCase().includes(search.toLowerCase())
       return matchSearch

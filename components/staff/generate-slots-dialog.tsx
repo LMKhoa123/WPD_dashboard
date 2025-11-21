@@ -78,7 +78,7 @@ export function GenerateSlotsDialog({ open, onOpenChange, centers, onSuccess }: 
       return
     }
 
-    // Validate time range
+    
     const startMin = hhmmToMinutes(startTime)
     const endMin = hhmmToMinutes(endTime)
     if (!Number.isFinite(startMin) || !Number.isFinite(endMin) || startMin >= endMin) {
@@ -86,7 +86,7 @@ export function GenerateSlotsDialog({ open, onOpenChange, centers, onSuccess }: 
       return
     }
 
-    // Normalize and validate dates to avoid sending "Invalid Date"
+    
     const dates = Array.from(new Set(
       selectedDates
         .filter((d) => isValid(d))
@@ -144,7 +144,6 @@ export function GenerateSlotsDialog({ open, onOpenChange, centers, onSuccess }: 
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Center Selection */}
           <div className="space-y-2">
             <Label>Select Center *</Label>
             <div className="grid grid-cols-2 gap-2">
@@ -174,7 +173,6 @@ export function GenerateSlotsDialog({ open, onOpenChange, centers, onSuccess }: 
             )}
           </div>
 
-          {/* Date Selection */}
           <div className="space-y-2">
             <Label>Select Date *</Label>
             <Popover>
@@ -221,7 +219,6 @@ export function GenerateSlotsDialog({ open, onOpenChange, centers, onSuccess }: 
             )}
           </div>
 
-          {/* Time Range */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="startTime">Start Time *</Label>
@@ -243,7 +240,6 @@ export function GenerateSlotsDialog({ open, onOpenChange, centers, onSuccess }: 
             </div>
           </div>
 
-          {/* Duration */}
           <div className="space-y-2">
             <Label htmlFor="duration">Duration Per Slot (minutes) *</Label>
             <Select value={duration} onValueChange={setDuration}>
@@ -259,7 +255,6 @@ export function GenerateSlotsDialog({ open, onOpenChange, centers, onSuccess }: 
             </Select>
           </div>
 
-          {/* Result Display */}
           {result && (
             <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4">
               <h4 className="font-semibold text-green-900 dark:text-green-100 mb-2">

@@ -56,7 +56,7 @@ export default function CenterAutoPartsPage() {
 			setLoading(true)
 			const centerAutoPartsParams: any = { page, limit }
 
-			// Filter by user's center for non-admin
+			
 			if (!isAdmin && user?.centerId) {
 				centerAutoPartsParams.center_id = user.centerId
 			}

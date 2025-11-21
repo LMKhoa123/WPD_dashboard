@@ -79,7 +79,7 @@ type Member = {
   userAccountId?: string
   email?: string
   name?: string
-  role: string // "STAFF" | "TECHNICIAN" | others
+  role: string 
 }
 
 export function CalendarShiftView() {
@@ -87,7 +87,7 @@ export function CalendarShiftView() {
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth())
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear())
   const [selectedCenterId, setSelectedCenterId] = useState<string>("")
-  // Workshifts fetched via React Query (cached)
+  
   const centerFilter = selectedCenterId || undefined
   const { data: allWorkshifts, isLoading: workshiftLoading, isError: workshiftError } = useWorkShifts(centerFilter)
   const [workshifts, setWorkshifts] = useState<WorkshiftRecord[]>([])
@@ -101,7 +101,7 @@ export function CalendarShiftView() {
     return members.filter(m => m.role === roleFilter)
   }, [members, roleFilter])
   
-  // New Shift Modal state
+  
   const [newShiftModalOpen, setNewShiftModalOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
   const [selectedShiftType, setSelectedShiftType] = useState<ShiftType>("morning")
@@ -113,31 +113,31 @@ export function CalendarShiftView() {
   const [technicians, setTechnicians] = useState<SystemUserRecord[]>([])
   const [saving, setSaving] = useState(false)
 
-  // Edit Modal state
+  
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [editingAssignment, setEditingAssignment] = useState<ShiftAssignment | null>(null)
   const [editDate, setEditDate] = useState<Date | undefined>(new Date())
   const [editShiftType, setEditShiftType] = useState<ShiftType>("morning")
   
-  // Delete confirmation state
+  
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletingAssignment, setDeletingAssignment] = useState<ShiftAssignment | null>(null)
 
-  // Stable loader for centers & members (workshifts are fetched via React Query)
+  
   const loadData = useCallback(async () => {
     try {
       setLoading(true)
       const api = getApiClient()
-      // Load centers first
+      
       const centersRes = await api.getCenters({ limit: 100 })
       setCenters(centersRes.data.centers)
       
-      // Set first center as default if not set
+      
       if (!selectedCenterId && centersRes.data.centers[0]) {
         setSelectedCenterId(centersRes.data.centers[0]._id)
       }
       
-      // Load system users (staff profiles) and user accounts for role mapping
+      
       const [sysUsersResp, allUsers] = await Promise.all([
         api.getSystemUsers({ 
           limit: 500,
@@ -170,11 +170,11 @@ export function CalendarShiftView() {
           role,
         }
       })
-      // Keep only Staff or Technician
+      
       const onlyRelevant = mappedMembers.filter(m => m.role === "TECHNICIAN" || m.role === "STAFF")
       setMembers(onlyRelevant)
       
-      // Assignments are fetched and cached via React Query in a separate hook.
+      
       
     } catch (err: any) {
       console.error('Load data error', err)
@@ -183,7 +183,7 @@ export function CalendarShiftView() {
     }
   }, [centerFilter])
 
-  // Load available staff when center is selected (for assign dialog)
+  
   const loadAvailableStaff = useCallback(async (centerId: string) => {
     try {
       const api = getApiClient()
@@ -192,7 +192,7 @@ export function CalendarShiftView() {
         api.getUsers({ page: 1, limit: 1000 })
       ])
 
-      // getUsers returns UserAccount[] directly
+      
       const userRoleMap = new Map<string, string>()
       allUsers.forEach(u => {
         userRoleMap.set(u._id, u.role)
@@ -218,12 +218,12 @@ export function CalendarShiftView() {
     }
   }, [toast])
 
-  // Refetch mapping data when month/year/center changes or workshifts updated
-  // Initial & dependency-based data load (debounced against rapid state changes)
-  // Run loadData only when filters change; guard against infinite loop by checking loading flag.
+  
+  
+  
   useEffect(() => { loadData() }, [loadData])
 
-  // Update filtered workshifts when underlying cache changes
+  
   useEffect(() => {
     const relevant = (centerFilter
       ? allWorkshifts.filter(w => w.center_id === centerFilter)
@@ -232,7 +232,7 @@ export function CalendarShiftView() {
       const date = new Date(w.shift_date)
       return date.getMonth() === selectedMonth && date.getFullYear() === selectedYear
     })
-    // Only update if changed (shallow compare by id + length)
+    
     const sameLength = filtered.length === workshifts.length
     const sameIds = sameLength && filtered.every((w, i) => w._id === workshifts[i]?._id)
     if (!sameLength || !sameIds) {
@@ -240,11 +240,11 @@ export function CalendarShiftView() {
     }
   }, [allWorkshifts, centerFilter, selectedMonth, selectedYear, workshifts])
 
-  // Cache and aggregate assignments for current month+center workshifts
+  
   const workshiftIds = useMemo(() => workshifts.map(w => w._id), [workshifts])
   const { data: cachedAssignments = [] } = useShiftAssignments(workshiftIds)
 
-  // Derive shiftAssignments (component local shape) from cachedAssignments + members
+  
   useEffect(() => {
     const mapped: ShiftAssignment[] = []
     for (const ws of workshifts) {
@@ -266,28 +266,28 @@ export function CalendarShiftView() {
         }
       })
     }
-    // Shallow equality check to avoid loops
+    
     if (mapped.length !== shiftAssignments.length || mapped.some((m,i)=> m._id !== shiftAssignments[i]?._id)) {
       setShiftAssignments(mapped)
     }
   }, [cachedAssignments, workshifts, members])
 
-  // Visible members based on role filter
+  
   const visibleUserIds = useMemo(() => new Set(filteredMembers.map(m => m.systemUserId)), [filteredMembers])
 
-  // Get assignments for a specific date (respect role filter)
+  
   const getAssignmentsForDate = useCallback((dateStr: string) => {
     return shiftAssignments.filter(a => a.date.startsWith(dateStr) && visibleUserIds.has(a.system_user_id))
   }, [shiftAssignments, visibleUserIds])
 
-  // Generate calendar days
+  
   const calendarDays = useMemo(() => {
     const firstDay = new Date(selectedYear, selectedMonth, 1)
     const lastDay = new Date(selectedYear, selectedMonth + 1, 0)
     const daysInMonth = lastDay.getDate()
-    // Align to Monday as first day
-    const startDaySundayFirst = firstDay.getDay() // 0 = Sunday
-    const offset = (startDaySundayFirst + 6) % 7 // Monday = 0, Sunday = 6
+    
+    const startDaySundayFirst = firstDay.getDay() 
+    const offset = (startDaySundayFirst + 6) % 7 
 
     const days: Array<{
       date: number | null
@@ -296,7 +296,7 @@ export function CalendarShiftView() {
       assignments: ShiftAssignment[]
     }> = []
 
-    // Previous month days
+    
     const prevMonthDays = new Date(selectedYear, selectedMonth, 0).getDate()
     const prevMonth = selectedMonth === 0 ? 11 : selectedMonth - 1
     const prevYear = selectedMonth === 0 ? selectedYear - 1 : selectedYear
@@ -307,14 +307,14 @@ export function CalendarShiftView() {
       days.push({ date: day, isCurrentMonth: false, dateStr, assignments: [] })
     }
 
-    // Current month days
+    
     for (let i = 1; i <= daysInMonth; i++) {
       const dateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`
       const dayAssignments = getAssignmentsForDate(dateStr)
       days.push({ date: i, isCurrentMonth: true, dateStr, assignments: dayAssignments })
     }
 
-    // Next month days to fill grid to full weeks (multiple of 7)
+    
     const nextMonth = selectedMonth === 11 ? 0 : selectedMonth + 1
     const nextYear = selectedMonth === 11 ? selectedYear + 1 : selectedYear
     let i = 1
@@ -327,7 +327,7 @@ export function CalendarShiftView() {
     return days
   }, [selectedYear, selectedMonth, getAssignmentsForDate])
 
-  // Recent assignments (last 5)
+  
   const recentAssignments = useMemo(() => {
     return [...shiftAssignments]
       .filter(a => visibleUserIds.has(a.system_user_id))
@@ -335,7 +335,7 @@ export function CalendarShiftView() {
       .slice(0, 5)
   }, [shiftAssignments, visibleUserIds])
 
-  // Calculate attendance stats by day of week
+  
   const attendanceStats = useMemo(() => {
     const stats = {
       Mon: { morning: 0, evening: 0, night: 0 },
@@ -371,7 +371,7 @@ export function CalendarShiftView() {
     1
   )
 
-  // Handle create new shift
+  
   const handleCreateShift = async () => {
     if (!selectedDate || selectedStaff.length === 0) {
       toast.error("Please select date and at least one staff member")
@@ -392,7 +392,7 @@ export function CalendarShiftView() {
       setSaving(true)
       const api = getApiClient()
       
-      // Assign all selected staff to selected workshifts
+      
       for (const staffId of selectedStaff) {
         await api.assignShifts({
           system_user_id: staffId,
@@ -402,7 +402,7 @@ export function CalendarShiftView() {
       
       toast.success("Shift assignments created successfully")
       
-      // Reset and reload
+      
       setNewShiftModalOpen(false)
       setSelectedStaff([])
       setSelectedWorkshiftIds([])
@@ -428,12 +428,12 @@ export function CalendarShiftView() {
     setNewShiftModalOpen(true)
   }
 
-  // Load workshifts when center or date changes in dialog
+  
   const loadAvailableWorkshifts = async (centerId: string, date: Date) => {
     if (!centerId) return
     try {
       const dateStr = format(date, 'yyyy-MM-dd')
-      // Explicitly call API for the selected center to ensure latest data
+      
       const api = getApiClient()
       const list = await api.getWorkshifts({ center_id: centerId, limit: 500 })
       const shiftsForDate = list.data.filter(ws => ws.shift_date.startsWith(dateStr))
@@ -444,7 +444,7 @@ export function CalendarShiftView() {
     }
   }
 
-  // Handle edit assignment
+  
   const handleEditClick = (assignment: ShiftAssignment) => {
     setEditingAssignment(assignment)
     setEditDate(new Date(assignment.date))
@@ -462,7 +462,7 @@ export function CalendarShiftView() {
       const dateStr = format(editDate, 'yyyy-MM-dd')
       const timeRange = shiftTimeRanges[editShiftType]
       
-      // Find existing workshift matching new details from cached list instead of creating
+      
       const candidate = allWorkshifts.find(s => 
         s.shift_date.startsWith(dateStr) &&
         s.start_time === timeRange.start &&
@@ -476,11 +476,11 @@ export function CalendarShiftView() {
       }
       const newWorkshiftId = candidate._id
       
-      // Get all assignments for this user to find assignments to delete
-      // Fetch assignments for user (cache could be introduced later)
+      
+      
       const userAssignments = await api.getShiftAssignmentsByUser(editingAssignment.system_user_id)
       
-      // Create new assignment
+      
       await api.assignShifts({
         system_user_id: editingAssignment.system_user_id,
         workshift_ids: [newWorkshiftId]
@@ -499,7 +499,7 @@ export function CalendarShiftView() {
     }
   }
 
-  // Handle delete assignment
+  
   const handleDeleteClick = (assignment: ShiftAssignment) => {
     setDeletingAssignment(assignment)
     setDeleteDialogOpen(true)
@@ -512,9 +512,9 @@ export function CalendarShiftView() {
       setSaving(true)
       const api = getApiClient()
       
-      // Get all assignments for this user to find the real _id
+      
       const userAssignments = await api.getShiftAssignmentsByUser(deletingAssignment.system_user_id)
-      // Match by workshift _id (deletingAssignment.shift_id is actually workshift _id)
+      
       const assignmentToDelete = userAssignments.find(a => 
         a._id === deletingAssignment.shift_id
       )
@@ -549,11 +549,9 @@ export function CalendarShiftView() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-800">Calendar</h1>
         <div className="flex items-center gap-3">
-          {/* Center filter */}
           <Select value={selectedCenterId} onValueChange={setSelectedCenterId}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Tất cả trung tâm" />
@@ -567,7 +565,6 @@ export function CalendarShiftView() {
             </SelectContent>
           </Select>
           
-          {/* Role filter */}
           <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as RoleFilter)}>
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="Role" />
@@ -607,7 +604,6 @@ export function CalendarShiftView() {
         </div>
       </div>
 
-      {/* Legend */}
       <div className="flex items-center gap-6 text-sm bg-white border rounded-lg p-3 shadow-sm">
         <span className="font-semibold text-gray-700">Workshifts:</span>
         <div className="flex items-center gap-2">
@@ -637,10 +633,8 @@ export function CalendarShiftView() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Calendar */}
         <Card className="lg:col-span-2">
           <CardContent className="p-6">
-            {/* Week day headers */}
             <div className="grid grid-cols-7 gap-2 mb-4">
               {weekDays.map(day => (
                 <div key={day} className="text-center text-sm font-semibold text-gray-600 py-2">
@@ -649,7 +643,6 @@ export function CalendarShiftView() {
               ))}
             </div>
 
-            {/* Calendar grid */}
             <div className="grid grid-cols-7 gap-2">
               {calendarDays.map((day, idx) => {
                 const uniqueShiftTypes = Array.from(new Set(day.assignments.map(a => a.shiftType)))
@@ -658,20 +651,20 @@ export function CalendarShiftView() {
                               selectedMonth === currentDate.getMonth() && 
                               selectedYear === currentDate.getFullYear()
                 
-                // Determine background color based on shift types
+                
                 let bgColorClass = "bg-white"
                 if (day.isCurrentMonth && uniqueShiftTypes.length > 0) {
                   if (uniqueShiftTypes.length > 1) {
-                    // Multiple shifts
+                    
                     bgColorClass = "bg-purple-50 border-purple-200"
                   } else if (uniqueShiftTypes[0] === "morning") {
-                    // Only morning shift
+                    
                     bgColorClass = "bg-yellow-50 border-yellow-200"
                   } else if (uniqueShiftTypes[0] === "evening") {
-                    // Only afternoon shift
+                    
                     bgColorClass = "bg-orange-50 border-orange-200"
                   } else {
-                    // Night shift
+                    
                     bgColorClass = "bg-purple-50 border-purple-200"
                   }
                 }
@@ -708,7 +701,6 @@ export function CalendarShiftView() {
                           </button>
                         </div>
 
-                        {/* Shift rows with staff list */}
                         <div className="flex-1 space-y-1 overflow-hidden">
                           {uniqueShiftTypes.map(type => {
                             const staffForShift = day.assignments.filter(a => a.shiftType === type)
@@ -734,7 +726,6 @@ export function CalendarShiftView() {
                       </div>
                     </PopoverTrigger>
                     
-                    {/* Popover showing staff assignments */}
                     {day.assignments.length > 0 && (
                       <PopoverContent className="w-64 p-3" align="start">
                         <div className="space-y-2">
@@ -799,9 +790,7 @@ export function CalendarShiftView() {
           </CardContent>
         </Card>
 
-        {/* Sidebar */}
         <div className="space-y-6">
-          {/* Recently Added */}
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
@@ -857,7 +846,6 @@ export function CalendarShiftView() {
             </CardContent>
           </Card>
 
-          {/* Shift Attendance */}
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
@@ -874,7 +862,6 @@ export function CalendarShiftView() {
                 </div>
               </div>
 
-              {/* Stats summary */}
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-gray-800">
@@ -890,7 +877,6 @@ export function CalendarShiftView() {
                 </div>
               </div>
 
-              {/* Bar chart */}
               <div className="space-y-1">
                 <div className="flex items-end justify-between h-40 gap-2">
                   {Object.entries(attendanceStats).map(([day, counts]) => (
@@ -925,7 +911,6 @@ export function CalendarShiftView() {
         </div>
       </div>
 
-      {/* New Shift Modal */}
       <Dialog open={newShiftModalOpen} onOpenChange={setNewShiftModalOpen}>
         <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -936,7 +921,6 @@ export function CalendarShiftView() {
           </DialogHeader>
           
           <div className="space-y-6 py-4">
-            {/* Step 1: Center Selection */}
             <div className="space-y-2 border-b pb-4">
               <Label className="text-base font-semibold flex items-center gap-2">
                 <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm">1</span>
@@ -946,7 +930,7 @@ export function CalendarShiftView() {
                 value={assignCenterId || undefined} 
                 onValueChange={(val) => {
                   setAssignCenterId(val)
-                  // Load both workshifts and staff when center changes
+                  
                   if (val) {
                     loadAvailableStaff(val)
                     if (selectedDate) {
@@ -968,14 +952,12 @@ export function CalendarShiftView() {
               </Select>
             </div>
 
-            {/* Step 2: Date & Workshifts Selection */}
             <div className="space-y-4 border-b pb-4">
               <Label className="text-base font-semibold flex items-center gap-2">
                 <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm">2</span>
                 Select Date & Workshifts
               </Label>
               
-              {/* Date Picker */}
               <div className="space-y-2">
                 <Label className="text-sm">Work Date</Label>
                 <Popover>
@@ -998,7 +980,7 @@ export function CalendarShiftView() {
                       selected={selectedDate}
                       onSelect={(date) => {
                         setSelectedDate(date)
-                        // Always refresh available workshifts when user changes date
+                        
                         if (date && assignCenterId) {
                           loadAvailableWorkshifts(assignCenterId, date)
                         }
@@ -1009,7 +991,6 @@ export function CalendarShiftView() {
                 </Popover>
               </div>
 
-              {/* Workshifts Selection */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm">Workshifts ({selectedWorkshiftIds.length} selected)</Label>
@@ -1079,7 +1060,6 @@ export function CalendarShiftView() {
               </div>
             </div>
 
-            {/* Step 3: Staff & Technician Selection */}
             <div className="space-y-4">
               <Label className="text-base font-semibold flex items-center gap-2">
                 <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm">3</span>
@@ -1098,7 +1078,6 @@ export function CalendarShiftView() {
               )}
               
               <div className="grid grid-cols-2 gap-4">
-                {/* Staff Section */}
                 <div className="border rounded-lg p-4 space-y-3">
                   <div className="flex items-center gap-2 pb-2 border-b">
                     <User className="w-4 h-4 text-blue-600" />
@@ -1148,7 +1127,6 @@ export function CalendarShiftView() {
                   </div>
                 </div>
 
-                {/* Technician Section */}
                 <div className="border rounded-lg p-4 space-y-3">
                   <div className="flex items-center gap-2 pb-2 border-b">
                     <User className="w-4 h-4 text-orange-600" />
@@ -1224,7 +1202,6 @@ export function CalendarShiftView() {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            {/* Date Picker */}
             <div className="space-y-2">
               <Label>Date</Label>
               <Popover>
@@ -1251,7 +1228,6 @@ export function CalendarShiftView() {
               </Popover>
             </div>
 
-            {/* Shift Type */}
             <div className="space-y-2">
               <Label>Shift Type</Label>
               <Select value={editShiftType} onValueChange={(v) => setEditShiftType(v as ShiftType)}>
@@ -1286,7 +1262,6 @@ export function CalendarShiftView() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

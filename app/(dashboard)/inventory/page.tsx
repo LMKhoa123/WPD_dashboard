@@ -39,7 +39,7 @@ const { user } = useAuth()
       setLoading(true)
       const centerAutoPartsParams: any = { page: 1, limit: 200 }
       
-      // Filter by user's center for non-admin
+      
       if (!isAdmin && user?.centerId) {
         centerAutoPartsParams.center_id = user.centerId
       }

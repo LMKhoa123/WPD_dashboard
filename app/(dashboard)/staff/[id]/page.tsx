@@ -189,7 +189,6 @@ export default function StaffDetailPage() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
-          {/* Profile Card */}
           <Card className="md:col-span-1">
             <CardHeader>
               <CardTitle>Profile Information</CardTitle>
@@ -248,7 +247,6 @@ export default function StaffDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Certificates Card */}
           <Card className="md:col-span-2">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -323,7 +321,6 @@ export default function StaffDetailPage() {
           </Card>
         </div>
 
-        {/* System Info */}
         <Card>
           <CardHeader>
             <CardTitle>System Information</CardTitle>
@@ -350,7 +347,6 @@ export default function StaffDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Delete Confirmation Dialog */}
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
