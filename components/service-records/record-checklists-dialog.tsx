@@ -20,7 +20,7 @@ interface RecordChecklistsDialogProps {
   trigger: React.ReactNode
 }
 
-const statusOptions: RecordChecklistStatus[] = ["pending", "checked", "ok", "needs-replacement"]
+const statusOptions: RecordChecklistStatus[] = ["pending","completed","skipped"]
 
 export function RecordChecklistsDialog({ recordId, trigger }: RecordChecklistsDialogProps) {
   const [open, setOpen] = useState(false)
@@ -166,11 +166,11 @@ export function RecordChecklistsDialog({ recordId, trigger }: RecordChecklistsDi
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="sm:col-span-2">
+                    {/* <div className="sm:col-span-2">
                       <div className="text-sm text-muted-foreground">Note</div>
                       <Input value={it.note || ""} onChange={(e) => setLocal(it._id, { note: e.target.value })} placeholder="Note..." disabled={!isTechnician} />
-                    </div>
-                    <div className="flex gap-2 justify-end">
+                    </div> */}
+                    <div className="flex gap-2 justify-end sm:col-span-2 ">
                       {isTechnician && (
                         <Button size="sm" variant="outline" onClick={() => handleSave(it._id)} disabled={savingId === it._id}>Save</Button>
                       )}
