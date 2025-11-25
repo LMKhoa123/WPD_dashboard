@@ -2241,6 +2241,60 @@ export class ApiClient {
     return res.data
   }
 
+  // Import Requests: list
+  async getImportRequests(params?: {
+    page?: number
+    limit?: number
+    center_id?: string
+    staff_id?: string
+    status?: ImportRequestStatus
+  }): Promise<ImportRequestsListResponse> {
+    const url = new URL(this.buildUrl("/import-requests"))
+    if (params?.page) url.searchParams.set("page", String(params.page))
+    if (params?.limit) url.searchParams.set("limit", String(params.limit))
+    if (params?.center_id) url.searchParams.set("center_id", params.center_id)
+    if (params?.staff_id) url.searchParams.set("staff_id", params.staff_id)
+    if (params?.status) url.searchParams.set("status", params.status)
+    const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
+    if (!res.ok) throw new Error(await safeErrorMessage(res))
+    return (await res.json()) as ImportRequestsListResponse
+  }
+
+  // Import Requests: get by id
+  async getImportRequestById(id: string): Promise<ImportRequestRecord> {
+    const res = await this.fetchJson<ImportRequestResponse>(`/import-requests/${id}`, { method: "GET" })
+    return res.data
+  }
+
+  // Import Requests: get items for a request
+  async getImportRequestItems(requestId: string): Promise<ImportRequestItem[]> {
+    const res = await this.fetchJson<ImportRequestItemsResponse>(`/import-requests/${requestId}/items`, { method: "GET" })
+    return res.data
+  }
+
+  // Import Requests: create
+  async createImportRequest(payload: CreateImportRequestRequest): Promise<ImportRequestRecord> {
+    const res = await this.fetchJson<ImportRequestResponse>(`/import-requests`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+    return res.data
+  }
+
+  // Import Requests: update
+  async updateImportRequest(id: string, payload: UpdateImportRequestRequest): Promise<ImportRequestRecord> {
+    const res = await this.fetchJson<ImportRequestResponse>(`/import-requests/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    })
+    return res.data
+  }
+
+  // Import Requests: delete
+  async deleteImportRequest(id: string): Promise<void> {
+    await this.fetchJson(`/import-requests/${id}`, { method: "DELETE" })
+  }
+
   // getNotifications removed: notifications now delivered only via websocket events
 }
 
@@ -2351,6 +2405,74 @@ export interface SubscriptionPackageInfo {
 export interface SubscriptionPackageByRecordResponse {
   success: boolean
   data: SubscriptionPackageInfo | SubscriptionPackageInfo[]
+}
+
+// Import Requests
+export type ImportRequestStatus = "DRAFT" | "PENDING" | "APPROVED" | "COMPLETED" | "CANCELLED" | string
+
+export interface ImportRequestItem {
+  _id: string
+  request_id: string
+  part_id: string | AutoPartRecord
+  quantity_needed: number
+  createdAt?: string
+  updatedAt?: string
+  __v?: number
+}
+
+export interface ImportRequestRecord {
+  _id: string
+  center_id: string | CenterRecord
+  staff_id: string | { _id: string; name: string }
+  source_type: string | null
+  source_center_id: string | CenterRecord | null
+  status: ImportRequestStatus
+  description: string
+  createdAt: string
+  updatedAt: string
+  __v?: number
+  items?: ImportRequestItem[]
+}
+
+export interface ImportRequestsListResponse {
+  success: boolean
+  data: {
+    requests: ImportRequestRecord[]
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
+
+export interface ImportRequestResponse {
+  success: boolean
+  message?: string
+  data: ImportRequestRecord
+}
+
+export interface ImportRequestItemsResponse {
+  success: boolean
+  data: ImportRequestItem[]
+}
+
+export interface CreateImportRequestRequest {
+  center_id: string
+  staff_id: string
+  notes?: string
+  items: Array<{
+    part_id: string
+    quantity_needed: number
+  }>
+}
+
+export interface UpdateImportRequestRequest {
+  center_id?: string
+  staff_id?: string
+  source_type?: string | null
+  source_center_id?: string | null
+  status?: ImportRequestStatus
+  description?: string
 }
 
 
