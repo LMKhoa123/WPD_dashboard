@@ -20,7 +20,7 @@ type SuggestedLine = {
     name: string
     selling_price: number
     center_stock: number
-    total_suggested_quantity: number
+    total_order_quantity: number
     warranty_time: number
     image?: string
 }
@@ -68,7 +68,7 @@ export default function SuggestedPartsPage() {
                     name: partName,
                     selling_price: Number(d.unit_price ?? 0),
                     center_stock: 0,
-                    total_suggested_quantity: 0,
+                    total_order_quantity: 0,
                     warranty_time: 0,
                     image: undefined,
                     quantity: Number(d.quantity ?? 0),
@@ -77,20 +77,50 @@ export default function SuggestedPartsPage() {
                 }
             })
 
-            const res: any = await api.getAllSuggestedParts(recordId)
-            const raw: SuggestedLine[] = (res?.data || []).map((x: any) => ({
-                center_auto_part_id: x.center_auto_part_id || x.centerpart_id || x.center_id || "",
-                auto_part_id: x.auto_part_id || (x.part_id?._id ?? x.part_id) || "",
-                name: x.name || x.part_id?.name || "—",
-                selling_price: Number(x.selling_price ?? x.part_id?.selling_price ?? 0),
-                center_stock: Number(x.center_stock ?? x.quantity ?? 0),
-                total_suggested_quantity: Number(x.total_suggested_quantity ?? x.quantity ?? 0),
-                warranty_time: Number(x.warranty_time ?? 0),
-                image: x.image || x.part_id?.image || "",
-            }))
+            const res: any = await api.getServiceOrdersByRecord(recordId)
+
+            // Lấy center_id từ service record
+            const recordData = await api.getServiceRecordById(recordId)
+            const appointmentId = recordData?.appointment_id
+            const appointment = typeof appointmentId === "string" ? await api.getAppointmentById(appointmentId) : appointmentId
+            const center_id = typeof appointment?.center_id === "string" ? appointment.center_id : appointment?.center_id?._id
+
+            // Map orders và lấy center_auto_part_id từ part_id
+            const raw: SuggestedLine[] = await Promise.all(
+                (res?.data || []).map(async (x: any) => {
+                    const part_id = x.part_id?._id || x.part_id
+                    let centerPartId = ""
+                    let maxStock = 0
+
+                    if (center_id && part_id) {
+                        try {
+                            const centerPartsRes: any = await api.getCenterAutoParts({ center_id, part_id })
+                            const centerPart = (centerPartsRes?.data?.items || [])[0]
+                            if (centerPart) {
+                                centerPartId = centerPart._id || ""
+                                maxStock = centerPart.quantity || 0
+                            }
+                        } catch {
+                            // Fallback if query fails
+                        }
+                    }
+
+                    return {
+                        center_auto_part_id: centerPartId || "",
+                        auto_part_id: part_id || "",
+                        name: x.part_id?.name || "—",
+                        selling_price: Number(x.part_id?.selling_price ?? 0),
+                        center_stock: maxStock,
+                        total_order_quantity: Number(x.quantity ?? 0),
+                        warranty_time: Number(x.part_id?.warranty_time ?? 0),
+                        image: x.part_id?.image || "",
+                    }
+                })
+            )
+
             const initSuggested: LineState[] = raw.map((r) => ({
                 ...r,
-                quantity: Math.max(0, Math.min(r.total_suggested_quantity || 0, r.center_stock || 0)),
+                quantity: 0,  // Không pre-fill, để trống
                 confirmed: false,
             }))
 
@@ -112,16 +142,14 @@ export default function SuggestedPartsPage() {
 
             setLines(merged)
 
+            // Set customerId from appointment
             try {
-                const record = await api.getServiceRecordById(recordId)
-                const appt = record?.appointment_id
-                    ? (typeof record.appointment_id === "string" ? await api.getAppointmentById(record.appointment_id) : record.appointment_id)
-                    : null
-                const cid = appt?.customer_id
-                    ? (typeof appt.customer_id === "string" ? appt.customer_id : appt.customer_id?._id)
+                const cid = appointment?.customer_id
+                    ? (typeof appointment.customer_id === "string" ? appointment.customer_id : appointment.customer_id?._id)
                     : null
                 setCustomerId(cid || null)
             } catch {
+                setCustomerId(null)
             }
 
             try {
@@ -398,7 +426,7 @@ export default function SuggestedPartsPage() {
                                                 <Button type="button" variant="outline" size="icon" disabled={l.confirmed || l.quantity >= l.center_stock} onClick={() => setQty(l.center_auto_part_id, l.quantity + 1)}>
                                                     <Plus className="h-4 w-4" />
                                                 </Button>
-                                                <div className="text-sm text-muted-foreground">Default: {l.total_suggested_quantity}</div>
+                                                <div className="text-sm text-muted-foreground">Order Quantity: {l.total_order_quantity}</div>
                                             </div>
 
                                             <div className="flex items-center gap-3">
