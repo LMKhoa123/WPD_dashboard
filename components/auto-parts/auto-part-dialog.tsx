@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { getApiClient } from "@/lib/api"
 import type { AutoPartRecord } from "@/lib/api"
@@ -27,6 +28,7 @@ export function AutoPartDialog({
   const [name, setName] = useState("")
   const [costPrice, setCostPrice] = useState("")
   const [sellingPrice, setSellingPrice] = useState("")
+  const [category, setCategory] = useState<'TIRE' | 'BATTERY' | 'BRAKE' | 'FLUID' | 'SUSPENSION' | 'ACCESSORY' | 'ELECTRICAL' | ''>("")
   const [warrantyTime, setWarrantyTime] = useState("")
 
   const isEditMode = !!autoPart
@@ -36,6 +38,7 @@ export function AutoPartDialog({
       setName(autoPart.name || "")
       setCostPrice(String(autoPart.cost_price || 0))
       setSellingPrice(String(autoPart.selling_price || 0))
+      setCategory(autoPart.category || "")
       setWarrantyTime(String(autoPart.warranty_time || 0))
     } else if (!open) {
       resetForm()
@@ -46,6 +49,7 @@ export function AutoPartDialog({
     setName("")
     setCostPrice("")
     setSellingPrice("")
+    setCategory("")
     setWarrantyTime("")
   }
 
@@ -59,6 +63,7 @@ export function AutoPartDialog({
         name,
         cost_price: Number(costPrice),
         selling_price: Number(sellingPrice),
+        category: category as 'TIRE' | 'BATTERY' | 'BRAKE' | 'FLUID' | 'SUSPENSION' | 'ACCESSORY' | 'ELECTRICAL',
         warranty_time: Number(warrantyTime),
       }
 
@@ -125,6 +130,24 @@ export function AutoPartDialog({
                 required
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="category">Category *</Label>
+            <Select value={category} onValueChange={(val) => setCategory(val as any)} required>
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="TIRE">Tire</SelectItem>
+                <SelectItem value="BATTERY">Battery</SelectItem>
+                <SelectItem value="BRAKE">Brake</SelectItem>
+                <SelectItem value="FLUID">Fluid</SelectItem>
+                <SelectItem value="SUSPENSION">Suspension</SelectItem>
+                <SelectItem value="ACCESSORY">Accessory</SelectItem>
+                <SelectItem value="ELECTRICAL">Electrical</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

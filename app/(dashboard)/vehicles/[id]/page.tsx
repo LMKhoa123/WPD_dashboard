@@ -6,13 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { ArrowLeft, Calendar, DollarSign, Gauge, Hash, MapPin, User, Car as CarIcon, AlertCircle, Pencil, Trash2 } from "lucide-react"
+import { ArrowLeft, Calendar, DollarSign, Gauge, Hash, MapPin, User, Car as CarIcon, AlertCircle, Pencil, Trash2, Shield } from "lucide-react"
 import { getApiClient, type VehicleRecord } from "@/lib/api"
 import { toast } from "sonner"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useIsAdmin, useIsStaff } from "@/components/auth-provider"
 import { AdminOrStaffOnly } from "@/components/role-guards"
 import { VehicleDialog } from "@/components/vehicles/vehicle-dialog"
+import { getVehicleWarrantyStatus } from "@/lib/utils"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -63,7 +64,7 @@ export default function VehicleDetailPage() {
     return `${mileage.toLocaleString("vi-VN")} km`
   }
 
-  const formatDate = (dateStr?: string) => {
+  const formatDate = (dateStr?: string | null) => {
     if (!dateStr) return "—"
     return new Date(dateStr).toLocaleDateString("vi-VN", { year: "numeric", month: "long", day: "numeric" })
   }
@@ -238,6 +239,43 @@ export default function VehicleDetailPage() {
                   <div className="space-y-1">
                     <p className="text-sm font-medium text-muted-foreground">Model</p>
                     <p className="text-sm">{vehicle.model}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Shield className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">Warranty Status</p>
+                    {(() => {
+                      const warranty = getVehicleWarrantyStatus(
+                        vehicle.vehicle_warranty_start_time,
+                        vehicle.vehicle_warranty_end_time
+                      )
+                      if (!warranty.startDate) {
+                        return <Badge variant="outline">No Warranty</Badge>
+                      }
+                      if (warranty.isUnderWarranty) {
+                        return (
+                          <div className="space-y-1">
+                            <Badge variant="default" className="bg-green-600">Active</Badge>
+                            <p className="text-xs text-muted-foreground">
+                              {warranty.daysRemaining} days remaining
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Until {formatDate(vehicle.vehicle_warranty_end_time)}
+                            </p>
+                          </div>
+                        )
+                      }
+                      return (
+                        <div className="space-y-1">
+                          <Badge variant="destructive">Expired</Badge>
+                          <p className="text-xs text-muted-foreground">
+                            Ended {formatDate(vehicle.vehicle_warranty_end_time)}
+                          </p>
+                        </div>
+                      )
+                    })()}
                   </div>
                 </div>
               </div>

@@ -214,6 +214,8 @@ export function SuggestPartsDialog({ checklistItemId, currentSuggested, trigger,
                     const partId = part._id
                     const partName = typeof part.part_id === 'string' ? part.part_id : part.part_id.name
                     const sellingPrice = typeof part.part_id === 'string' ? 0 : part.part_id.selling_price
+                    const category = typeof part.part_id === 'string' ? '' : part.part_id.category
+                    const warrantyTime = typeof part.part_id === 'string' ? 0 : part.part_id.warranty_time
                     const maxQty = part.quantity
                     const currentQty = quantities[partId] || 1
                     const isSelected = !!selected[partId]
@@ -231,8 +233,10 @@ export function SuggestPartsDialog({ checklistItemId, currentSuggested, trigger,
                             <div className="text-sm text-muted-foreground">
                               Selling Price: {sellingPrice.toLocaleString("vi-VN")} VND
                             </div>
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-sm text-muted-foreground flex items-center gap-2">
                               Stock: <Badge variant="outline">{maxQty}</Badge>
+                              {category && <Badge variant="secondary">{category}</Badge>}
+                              {warrantyTime > 0 && <span>• Warranty: {warrantyTime} months</span>}
                             </div>
                           </div>
                         </div>

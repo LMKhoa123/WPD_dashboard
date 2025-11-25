@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner"
 import { getApiClient, type VehicleRecord } from "@/lib/api"
 import type { CustomersListResponse } from "@/lib/api"
+import { calculateWarrantyEndDate } from "@/lib/utils"
 import { Plus } from "lucide-react"
 
 export interface VehicleDialogProps {
@@ -40,6 +41,7 @@ export function VehicleDialog({ vehicle, trigger, onCreated, onUpdated }: Vehicl
   const [VIN, setVIN] = useState("")
   const [price, setPrice] = useState<string>("")
   const [customerId, setCustomerId] = useState<string>("")
+  const [warrantyDays, setWarrantyDays] = useState<string>("180")
   const [imageFile, setImageFile] = useState<File | null>(null)
 
   
@@ -90,6 +92,7 @@ export function VehicleDialog({ vehicle, trigger, onCreated, onUpdated }: Vehicl
     setVIN("")
     setPrice("")
     setCustomerId("")
+    setWarrantyDays("180")
     setImageFile(null)
   }
 
@@ -107,6 +110,16 @@ export function VehicleDialog({ vehicle, trigger, onCreated, onUpdated }: Vehicl
       form.append("VIN", VIN)
       if (price) form.append("price", String(Number(price)))
       if (customerId) form.append("customerId", customerId)
+      
+      // Calculate and set warranty dates for new vehicles
+      if (!isEditMode) {
+        const warrantyStartTime = new Date()
+        const days = parseInt(warrantyDays) || 180
+        const warrantyEndTime = calculateWarrantyEndDate(warrantyStartTime, days)
+        form.append("vehicle_warranty_start_time", warrantyStartTime.toISOString())
+        form.append("vehicle_warranty_end_time", warrantyEndTime.toISOString())
+      }
+      
       if (imageFile) form.append("image", imageFile)
 
       const api = getApiClient()
@@ -207,6 +220,23 @@ export function VehicleDialog({ vehicle, trigger, onCreated, onUpdated }: Vehicl
                 </Select>
               </div>
             </div>
+
+            {!isEditMode && (
+              <div className="grid gap-2">
+                <Label htmlFor="warrantyDays">Warranty Period (days)</Label>
+                <Input 
+                  id="warrantyDays" 
+                  type="number" 
+                  min={1} 
+                  value={warrantyDays} 
+                  onChange={(e) => setWarrantyDays(e.target.value)}
+                  placeholder="Default: 180 days"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Warranty will start from creation date and end after {warrantyDays || "180"} days
+                </p>
+              </div>
+            )}
 
             <div className="grid gap-2">
               <Label htmlFor="image">Image {isEditMode && "(optional - leave empty to keep current)"}</Label>
