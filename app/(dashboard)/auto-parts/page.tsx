@@ -158,6 +158,7 @@ export default function AutoPartsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Part Name</TableHead>
+                  <TableHead>Category</TableHead>
                   <TableHead className="text-right">Cost Price</TableHead>
                   <TableHead className="text-right">Selling Price</TableHead>
                   <TableHead className="text-right">Warranty (days)</TableHead>
@@ -169,6 +170,9 @@ export default function AutoPartsPage() {
                 {filteredParts.map((part) => (
                   <TableRow key={part._id}>
                     <TableCell className="font-medium">{part.name}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{part.category}</Badge>
+                    </TableCell>
                     <TableCell className="text-right">{formatVND(part.cost_price)}</TableCell>
                     <TableCell className="text-right">{formatVND(part.selling_price)}</TableCell>
                     <TableCell className="text-right">

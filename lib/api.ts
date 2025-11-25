@@ -193,6 +193,8 @@ export interface VehicleRecord {
   plateNumber?: string
   last_service_date?: string
   last_alert_mileage?: number
+  vehicle_warranty_start_time?: string | null
+  vehicle_warranty_end_time?: string | null
   image?: string
   customerId?: { _id: string; customerName: string; address: string } | string
   createdAt: string
@@ -736,7 +738,8 @@ export interface AutoPartRecord {
   name: string
   cost_price: number
   selling_price: number
-  warranty_time: number // Thời gian bảo hành (đơn vị: ngày)
+  category: 'TIRE' | 'BATTERY' | 'BRAKE' | 'FLUID' | 'SUSPENSION' | 'ACCESSORY' | 'ELECTRICAL'
+  warranty_time: number // Thời gian bảo hành (đơn vị: tháng)
   // Legacy fields from previous backend versions (may be absent in new API)
   quantity?: number
   min_stock?: number
@@ -767,14 +770,16 @@ export interface CreateAutoPartRequest {
   name: string
   cost_price: number
   selling_price: number
-  warranty_time: number // Thời gian bảo hành (đơn vị: ngày)
+  category: 'TIRE' | 'BATTERY' | 'BRAKE' | 'FLUID' | 'SUSPENSION' | 'ACCESSORY' | 'ELECTRICAL'
+  warranty_time: number // Thời gian bảo hành (đơn vị: tháng)
 }
 
 export interface UpdateAutoPartRequest {
   name?: string
   cost_price?: number
   selling_price?: number
-  warranty_time?: number // Thời gian bảo hành (đơn vị: ngày)
+  category?: 'TIRE' | 'BATTERY' | 'BRAKE' | 'FLUID' | 'SUSPENSION' | 'ACCESSORY' | 'ELECTRICAL'
+  warranty_time?: number // Thời gian bảo hành (đơn vị: tháng)
 }
 
 // Forecast types

@@ -15,7 +15,7 @@ import { getApiClient, type VehicleRecord } from "@/lib/api"
 import { toast } from "sonner"
 import { VehicleDialog } from "@/components/vehicles/vehicle-dialog"
 import { AssignVehicleDialog } from "@/components/vehicles/assign-vehicle-dialog"
-import { formatVND, formatNumber } from "@/lib/utils"
+import { formatVND, formatNumber, getVehicleWarrantyStatus } from "@/lib/utils"
 import { DataPagination } from "@/components/ui/data-pagination"
 import {
   AlertDialog,
@@ -208,6 +208,8 @@ export default function VehiclesPage() {
                     <TableRow>
                       <TableHead>Vehicle</TableHead>
                       <TableHead>Model & Year</TableHead>
+                      {/* <TableHead>Type</TableHead> */}
+                      <TableHead>Warranty</TableHead>
                       <TableHead>Owner</TableHead>
                       <TableHead>Plate Number</TableHead>
                       <TableHead>VIN</TableHead>
@@ -233,6 +235,29 @@ export default function VehiclesPage() {
                             <Badge variant="secondary">{v.model}</Badge>
                             {v.year && <span className="text-xs text-muted-foreground">{v.year}</span>}
                           </div>
+                        </TableCell>
+                       
+                        <TableCell>
+                          {(() => {
+                            const warranty = getVehicleWarrantyStatus(
+                              v.vehicle_warranty_start_time,
+                              v.vehicle_warranty_end_time
+                            )
+                            if (!warranty.startDate) {
+                              return <Badge variant="outline">No Warranty</Badge>
+                            }
+                            if (warranty.isUnderWarranty) {
+                              return (
+                                <div className="flex flex-col gap-1">
+                                  <Badge variant="default" className="bg-green-600">Active</Badge>
+                                  <span className="text-xs text-muted-foreground">
+                                    {warranty.daysRemaining} days left
+                                  </span>
+                                </div>
+                              )
+                            }
+                            return <Badge variant="destructive">Expired</Badge>
+                          })()}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {typeof v.customerId === "object" && v.customerId
