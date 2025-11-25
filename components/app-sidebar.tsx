@@ -1,7 +1,7 @@
 "use client"
 
 import type * as React from "react"
-import { LayoutDashboard, Calendar, Users, Car, Package, UserCog, FileText, Zap, MessageSquare, MapPin, ClipboardCheck, Wrench, CreditCard, Clock, Receipt } from "lucide-react"
+import { LayoutDashboard, Calendar, Users, Car, Package, UserCog, FileText, Zap, MessageSquare, MapPin, ClipboardCheck, Wrench, CreditCard, Clock, Receipt, PackageOpen } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -95,6 +95,11 @@ const staffNav = [
     icon: Package,
   },
   {
+    title: "Import Requests",
+    url: "/import-requests",
+    icon: PackageOpen,
+  },
+  {
     title: "Payments",
     url: "/payments",
     icon: CreditCard,
@@ -169,6 +174,11 @@ const adminNav = [
     title: "Inventory",
     url: "/inventory",
     icon: Package,
+  },
+  {
+    title: "Import Requests",
+    url: "/import-requests",
+    icon: PackageOpen,
   },
   {
     title: "Service Packages",
