@@ -8,10 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getApiClient, type ImportRequestRecord, type CenterRecord, type ImportRequestStatus } from "@/lib/api"
-import { Search, Plus, Eye, Pencil, Trash2, FileText, CalendarClock } from "lucide-react"
+import { Search, Plus, Eye, Pencil, Trash2, FileText, CalendarClock, ArrowUpFromLine } from "lucide-react"
 import { ImportRequestDialog } from "@/components/import-requests/import-request-dialog"
 import { ImportRequestDetailDialog } from "@/components/import-requests/import-request-detail-dialog"
 import { CreateFromShiftDialog } from "@/components/import-requests/create-from-shift-dialog"
+import { InventoryTicketDialog } from "@/components/inventory-tickets/inventory-ticket-dialog"
 import { useAuth, useIsAdmin } from "@/components/auth-provider"
 import { toast } from "sonner"
 import { format } from "date-fns"
@@ -53,12 +54,19 @@ export default function ImportRequestsPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [detailDialogOpen, setDetailDialogOpen] = useState(false)
   const [shiftDialogOpen, setShiftDialogOpen] = useState(false)
+  const [outTicketDialogOpen, setOutTicketDialogOpen] = useState(false)
   const [selected, setSelected] = useState<ImportRequestRecord | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [loadingOutTicket, setLoadingOutTicket] = useState(false)
   
   // State for prefilled items from shift
   const [prefilledItems, setPrefilledItems] = useState<Array<{ part_id: string; quantity_needed: number }>>([])
   const [prefilledNotes, setPrefilledNotes] = useState<string>("")
+  
+  // State for OUT ticket prefilled data
+  const [outTicketItems, setOutTicketItems] = useState<Array<{ part_id: string; quantity: number }>>([])
+  const [outTicketDestination, setOutTicketDestination] = useState<string>("")
+  const [outTicketNotes, setOutTicketNotes] = useState<string>("")
 
   const loadCenters = useCallback(async () => {
     try {
@@ -74,9 +82,7 @@ export default function ImportRequestsPage() {
       setLoading(true)
       const params: any = { page, limit }
 
-      if (!isAdmin && user?.centerId) {
-        params.center_id = user.centerId
-      } else if (centerFilter !== "all") {
+      if (centerFilter !== "all") {
         params.center_id = centerFilter
       }
 
@@ -94,7 +100,7 @@ export default function ImportRequestsPage() {
     } finally {
       setLoading(false)
     }
-  }, [api, page, limit, centerFilter, statusFilter, isAdmin, user])
+  }, [api, page, limit, centerFilter, statusFilter])
 
   useEffect(() => {
     loadCenters()
@@ -180,6 +186,49 @@ export default function ImportRequestsPage() {
     return request.status === "DRAFT"
   }
 
+  const canCreateOutTicket = (request: ImportRequestRecord) => {
+    // Only show for APPROVED status and staff from source center
+    if (request.status !== "APPROVED" || !user?.centerId || !request.source_center_id) return false
+    
+    const sourceCenterId = typeof request.source_center_id === "object" 
+      ? request.source_center_id._id 
+      : request.source_center_id
+    
+    return sourceCenterId === user.centerId
+  }
+
+  const handleCreateOutTicket = async (request: ImportRequestRecord) => {
+    try {
+      setLoadingOutTicket(true)
+      // Load items from import request
+      const items = await api.getImportRequestItems(request._id)
+      
+      // Map items to ticket format
+      const ticketItems = items.map(item => ({
+        part_id: typeof item.part_id === "object" ? item.part_id._id : item.part_id,
+        quantity: item.quantity_needed
+      }))
+      
+      // Get destination center (the requesting center)
+      const destinationCenterId = typeof request.center_id === "object" 
+        ? request.center_id._id 
+        : request.center_id
+      
+      // Set prefilled data
+      setOutTicketItems(ticketItems)
+      setOutTicketDestination(destinationCenterId)
+      setOutTicketNotes(request.description || `OUT ticket for Import Request #${request._id.slice(-8).toUpperCase()}`)
+      
+      setSelected(request)
+      setOutTicketDialogOpen(true)
+    } catch (error: any) {
+      console.error("Failed to load import request items:", error)
+      toast.error("Failed to load request items")
+    } finally {
+      setLoadingOutTicket(false)
+    }
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -215,21 +264,19 @@ export default function ImportRequestsPage() {
                 className="pl-9"
               />
             </div>
-            {isAdmin && (
-              <Select value={centerFilter} onValueChange={setCenterFilter}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Center" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Centers</SelectItem>
-                  {centers.map((center) => (
-                    <SelectItem key={center._id} value={center._id}>
-                      {center.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+            <Select value={centerFilter} onValueChange={setCenterFilter}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Center" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Centers</SelectItem>
+                {centers.map((center) => (
+                  <SelectItem key={center._id} value={center._id}>
+                    {center.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Status" />
@@ -316,6 +363,17 @@ export default function ImportRequestsPage() {
                               <Pencil className="h-4 w-4" />
                             </Button>
                           )}
+                          {canCreateOutTicket(request) && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleCreateOutTicket(request)}
+                              disabled={loadingOutTicket}
+                              title="Create OUT Inventory Ticket"
+                            >
+                              <ArrowUpFromLine className="h-4 w-4" />
+                            </Button>
+                          )}
                           {canDelete(request) && (
                             <Button
                               size="sm"
@@ -385,6 +443,23 @@ export default function ImportRequestsPage() {
         onOpenChange={setShiftDialogOpen}
         onItemsSelected={handleShiftItemsSelected}
         centerId={user?.centerId}
+      />
+
+      <InventoryTicketDialog
+        open={outTicketDialogOpen}
+        onOpenChange={setOutTicketDialogOpen}
+        ticketType="OUT"
+        initialItems={outTicketItems.length > 0 ? outTicketItems : undefined}
+        initialDestinationCenter={outTicketDestination || undefined}
+        initialNotes={outTicketNotes || undefined}
+        onSaved={() => {
+          setOutTicketDialogOpen(false)
+          setSelected(null)
+          setOutTicketItems([])
+          setOutTicketDestination("")
+          setOutTicketNotes("")
+          loadRequests()
+        }}
       />
     </div>
   )
