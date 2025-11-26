@@ -27,6 +27,7 @@ const statusColors: Record<AppointmentStatus, string> = {
   "in-progress": "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20",
   completed: "bg-green-500/10 text-green-500 hover:bg-green-500/20",
   cancelled: "bg-gray-500/10 text-gray-500 hover:bg-gray-500/20",
+  "waiting-for-parts": "bg-orange-500/10 text-orange-500 hover:bg-orange-500/20",
 }
 
 export default function AppointmentsPage() {
@@ -38,6 +39,10 @@ export default function AppointmentsPage() {
   const [confirmingStatus, setConfirmingStatus] = useState<{
     id: string
     newStatus: AppointmentStatus
+    currentStatus: AppointmentStatus
+  } | null>(null)
+  const [resumingWork, setResumingWork] = useState<{
+    id: string
     currentStatus: AppointmentStatus
   } | null>(null)
   const [assigningAppointment, setAssigningAppointment] = useState<string | null>(null)
@@ -57,6 +62,7 @@ export default function AppointmentsPage() {
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({
     pending: 0,
     "in-progress": 0,
+    "waiting-for-parts": 0,
     completed: 0,
     cancelled: 0,
   })
@@ -142,7 +148,7 @@ export default function AppointmentsPage() {
       }
 
       try {
-        const statuses: AppointmentStatus[] = ["pending", "in-progress", "completed", "cancelled"]
+        const statuses: AppointmentStatus[] = ["pending", "in-progress", "waiting-for-parts", "completed", "cancelled"]
         const countPromises = statuses.map(async (status) => {
           const params = { ...baseParams, page: 1, limit: 1, status }
           try {
@@ -235,22 +241,43 @@ export default function AppointmentsPage() {
   }
 
   const handleStatusChange = async (id: string, newStatus: AppointmentStatus, currentStatus: AppointmentStatus) => {
-    setConfirmingStatus({ id, newStatus, currentStatus })
+    // Use separate modal for resuming work from waiting-for-parts
+    if (currentStatus === "waiting-for-parts" && newStatus === "in-progress") {
+      setResumingWork({ id, currentStatus })
+    } else {
+      setConfirmingStatus({ id, newStatus, currentStatus })
+    }
+  }
+
+  const confirmResumeWork = async () => {
+    if (!resumingWork) return
+
+    try {
+      await api.updateAppointment(resumingWork.id, { status: "in-progress" })
+      toast.success("Work resumed successfully")
+      setAppointments(prev => prev.map(a => a._id === resumingWork.id ? { ...a, status: "in-progress" } : a))
+      handleReload()
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to resume work")
+    } finally {
+      setResumingWork(null)
+    }
   }
 
   const confirmStatusChange = async () => {
     if (!confirmingStatus) return
 
-    const { id, newStatus } = confirmingStatus
+    const { id, newStatus, currentStatus } = confirmingStatus
     const statusLabels: Record<AppointmentStatus, string> = {
       pending: "Pending",
       "in-progress": "In Progress",
+      "waiting-for-parts": "Waiting for Parts",
       completed: "Completed",
       cancelled: "Cancelled",
     }
 
-    
-    if (newStatus === "in-progress" && !selectedTechnicianId) {
+    // Only require technician for pending -> in-progress (initial assignment)
+    if (newStatus === "in-progress" && currentStatus === "pending" && !selectedTechnicianId) {
       toast.error("Please select a technician")
       return
     }
@@ -258,7 +285,8 @@ export default function AppointmentsPage() {
     try {
       await api.updateAppointment(id, { status: newStatus })
       
-      if (newStatus === "in-progress" && selectedTechnicianId) {
+      // Only assign technician for pending -> in-progress (initial assignment)
+      if (newStatus === "in-progress" && currentStatus === "pending" && selectedTechnicianId) {
         await api.assignAppointmentTechnician(id, selectedTechnicianId)
         toast.success("Status changed, technician assigned, and service record created automatically")
       } else {
@@ -279,7 +307,13 @@ export default function AppointmentsPage() {
 
   const getStatusMessage = (currentStatus: AppointmentStatus, newStatus: AppointmentStatus) => {
     if (newStatus === "in-progress") {
+      if (currentStatus === "waiting-for-parts") {
+        return "Parts have arrived. This will resume work on the appointment."
+      }
       return "This will mark the appointment as active and notify the team to begin work."
+    }
+    if (newStatus === "waiting-for-parts") {
+      return "This will pause the work until required parts arrive."
     }
     if (newStatus === "completed") {
       return "This will mark the service as completed and close the appointment."
@@ -295,7 +329,9 @@ export default function AppointmentsPage() {
       case "pending":
         return ["in-progress", "cancelled"]
       case "in-progress":
-        return ["completed", "cancelled"]
+        return ["waiting-for-parts", "completed", "cancelled"]
+      case "waiting-for-parts":
+        return ["in-progress", "cancelled"]
       case "completed":
       case "cancelled":
         return [] 
@@ -344,6 +380,10 @@ export default function AppointmentsPage() {
                   <TabsTrigger value="in-progress" className="gap-2 data-[state=active]:shadow-sm">
                     <span className="font-medium">In Progress</span>
                     <Badge className="ml-1 h-5 min-w-[1.25rem] px-1.5 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-amber-200/50">{getStatusCount("in-progress")}</Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="waiting-for-parts" className="gap-2 data-[state=active]:shadow-sm">
+                    <span className="font-medium">Waiting for Parts</span>
+                    <Badge className="ml-1 h-5 min-w-[1.25rem] px-1.5 bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 border-orange-200/50">{getStatusCount("waiting-for-parts")}</Badge>
                   </TabsTrigger>
                   <TabsTrigger value="completed" className="gap-2 data-[state=active]:shadow-sm">
                     <span className="font-medium">Completed</span>
@@ -444,7 +484,11 @@ export default function AppointmentsPage() {
                                     {availableStatuses.map((status) => {
                                       const statusInfo: Record<AppointmentStatus, { label: string; color: string }> = {
                                         pending: { label: "Pending", color: "bg-blue-500" },
-                                        "in-progress": { label: "Start Work", color: "bg-amber-500" },
+                                        "in-progress": { 
+                                          label: apt.status === "waiting-for-parts" ? "Resume Work" : "Start Work", 
+                                          color: "bg-amber-500" 
+                                        },
+                                        "waiting-for-parts": { label: "Waiting for Parts", color: "bg-orange-500" },
                                         completed: { label: "Complete", color: "bg-green-500" },
                                         cancelled: { label: "Cancel", color: "bg-gray-500" },
                                       }
@@ -554,7 +598,39 @@ export default function AppointmentsPage() {
           </CardContent>
         </Card>
 
-        
+        {/* Resume Work Modal */}
+        <AlertDialog open={!!resumingWork} onOpenChange={(open) => {
+          if (!open) setResumingWork(null)
+        }}>
+          <AlertDialogContent className="max-w-[450px]">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Resume Work</AlertDialogTitle>
+              <AlertDialogDescription className="space-y-3">
+                <div className="text-foreground">
+                  Parts have arrived. This will resume work on the appointment.
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Status will change from{" "}
+                  <span className="font-semibold text-foreground capitalize">
+                    Waiting For Parts
+                  </span>{" "}
+                  to{" "}
+                  <span className="font-semibold text-foreground capitalize">
+                    In Progress
+                  </span>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmResumeWork}>
+                Resume Work
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Status Change Modal */}
         <AlertDialog open={!!confirmingStatus} onOpenChange={(open) => {
           if (!open) {
             setConfirmingStatus(null)
@@ -569,10 +645,10 @@ export default function AppointmentsPage() {
               <AlertDialogDescription className="space-y-3">
                 {confirmingStatus && (
                   <>
-                    <p className="text-foreground">
+                    <div className="text-foreground">
                       {getStatusMessage(confirmingStatus.currentStatus, confirmingStatus.newStatus)}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
+                    </div>
+                    <div className="text-sm text-muted-foreground">
                       Status will change from{" "}
                       <span className="font-semibold text-foreground capitalize">
                         {confirmingStatus.currentStatus.replace("-", " ")}
@@ -581,13 +657,13 @@ export default function AppointmentsPage() {
                       <span className="font-semibold text-foreground capitalize">
                         {confirmingStatus.newStatus.replace("-", " ")}
                       </span>
-                    </p>
+                    </div>
                   </>
                 )}
               </AlertDialogDescription>
             </AlertDialogHeader>
             
-            {confirmingStatus?.newStatus === "in-progress" && (
+            {confirmingStatus?.newStatus === "in-progress" && confirmingStatus?.currentStatus === "pending" && (
               <div className="space-y-3 py-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Assign Technician <span className="text-red-500">*</span></label>
@@ -645,7 +721,7 @@ export default function AppointmentsPage() {
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction 
                 onClick={confirmStatusChange}
-                disabled={confirmingStatus?.newStatus === "in-progress" && !selectedTechnicianId}
+                disabled={confirmingStatus?.newStatus === "in-progress" && confirmingStatus?.currentStatus === "pending" && !selectedTechnicianId}
               >
                 Confirm Change
               </AlertDialogAction>

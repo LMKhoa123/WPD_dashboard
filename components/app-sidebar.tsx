@@ -100,6 +100,11 @@ const staffNav = [
     icon: PackageOpen,
   },
   {
+    title: "Inventory Tickets",
+    url: "/inventory-tickets",
+    icon: FileText,
+  },
+  {
     title: "Payments",
     url: "/payments",
     icon: CreditCard,
@@ -179,6 +184,11 @@ const adminNav = [
     title: "Import Requests",
     url: "/import-requests",
     icon: PackageOpen,
+  },
+  {
+    title: "Inventory Tickets",
+    url: "/inventory-tickets",
+    icon: FileText,
   },
   {
     title: "Service Packages",

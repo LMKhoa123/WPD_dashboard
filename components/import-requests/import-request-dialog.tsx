@@ -42,6 +42,9 @@ export function ImportRequestDialog({ open, onOpenChange, request, onSaved }: Im
   const [items, setItems] = useState<RequestItem[]>([])
   const [description, setDescription] = useState("")
 
+  // Check if request can be edited (only DRAFT status)
+  const isEditable = request?.status === "DRAFT"
+
   // Load parts list
   useEffect(() => {
     if (open) {
@@ -121,9 +124,12 @@ export function ImportRequestDialog({ open, onOpenChange, request, onSaved }: Im
       if (request) {
         // Update existing request (only DRAFT can be edited)
         await api.updateImportRequest(request._id, {
-          description,
+          notes: description || undefined,
+          items: items.map((item) => ({
+            part_id: item.part_id,
+            quantity_needed: item.quantity_needed,
+          })),
         })
-        // Note: Backend might not support updating items directly
         toast.success("Import request updated successfully")
       } else {
         // Create new request
@@ -138,7 +144,7 @@ export function ImportRequestDialog({ open, onOpenChange, request, onSaved }: Im
         await api.createImportRequest({
           center_id: user.centerId,
           staff_id: profile.data._id,
-          notes: description,
+          notes: description || undefined,
           items: items.map((item) => ({
             part_id: item.part_id,
             quantity_needed: item.quantity_needed,
@@ -190,7 +196,7 @@ export function ImportRequestDialog({ open, onOpenChange, request, onSaved }: Im
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <Label>Parts List</Label>
-              {!request && (
+              {(!request || isEditable) && (
                 <Button type="button" variant="outline" size="sm" onClick={handleAddItem}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Part
@@ -209,14 +215,14 @@ export function ImportRequestDialog({ open, onOpenChange, request, onSaved }: Im
                     <TableRow>
                       <TableHead>Part</TableHead>
                       <TableHead className="w-[150px]">Quantity</TableHead>
-                      {!request && <TableHead className="w-[80px]"></TableHead>}
+                      {(!request || isEditable) && <TableHead className="w-[80px]"></TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {items.map((item, index) => (
                       <TableRow key={index}>
                         <TableCell>
-                          {request ? (
+                          {request && !isEditable ? (
                             <span>{getPartName(item.part_id)}</span>
                           ) : (
                             <Select
@@ -244,10 +250,10 @@ export function ImportRequestDialog({ open, onOpenChange, request, onSaved }: Im
                             onChange={(e) =>
                               handleItemChange(index, "quantity_needed", parseInt(e.target.value) || 1)
                             }
-                            disabled={!!request}
+                            disabled={request ? !isEditable : false}
                           />
                         </TableCell>
-                        {!request && (
+                        {(!request || isEditable) && (
                           <TableCell>
                             <Button
                               type="button"
