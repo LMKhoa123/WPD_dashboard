@@ -636,6 +636,24 @@ export interface CreateServiceOrderResponse {
   data: IServiceOrder
 }
 
+// Lacking Parts by Shift/Slot
+export interface LackingPartItem {
+  part_id: string | AutoPartRecord
+  orderQuantity: number
+  currentStock: number
+  lackingQuantity: number
+}
+
+export interface LackingPartsResponse {
+  success: boolean
+  data: LackingPartItem[]
+}
+
+export interface GetLackingPartsRequest {
+  shift_id: string
+  slot_id?: string
+}
+
 // Suggested Parts aggregated from all checklists in a service record
 export interface SuggestedPartItem {
   _id: string
@@ -1939,6 +1957,11 @@ export class ApiClient {
   // Service Orders: get all service orders for a record
   async getServiceOrdersByRecord(recordId: string): Promise<ServiceOrdersResponse> {
     return this.fetchJson(`/service-orders/record/${recordId}`, { method: "GET" })
+  }
+
+  // Service Orders: get lacking parts by shift/slot
+  async getLackingPartsByShift(payload: GetLackingPartsRequest): Promise<LackingPartsResponse> {
+    return this.fetchJson(`/service-orders/lacking-parts`, { method: "POST", body: JSON.stringify(payload) })
   }
 
   // Service Checklists: get all
