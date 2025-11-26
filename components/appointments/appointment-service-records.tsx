@@ -167,10 +167,10 @@ export function AppointmentServiceRecords({ appointmentId }: AppointmentServiceR
                             <CardHeader className="pb-2">
                                 <div className="flex items-center justify-between gap-2">
                                     <CardTitle className="text-base flex items-center gap-2">
-                                        <ClipboardList className="h-4 w-4" />#{r._id.slice(-6)} Đề xuất sửa chữa
+                                        <ClipboardList className="h-4 w-4" />#{r._id.slice(-6)} Suggestion of Technician
                                     </CardTitle>
                                     <Link href={`/service-records/${r._id}/suggested-parts`}>
-                                        <Button size="sm" variant="outline">Tạo hóa đơn</Button>
+                                        <Button size="sm" variant="outline">Create Invoice</Button>
                                     </Link>
                                 </div>
                             </CardHeader>
