@@ -21,6 +21,7 @@ const statusColors: Record<AppointmentStatus, string> = {
   "in-progress": "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20",
   completed: "bg-green-500/10 text-green-500 hover:bg-green-500/20",
   cancelled: "bg-gray-500/10 text-gray-500 hover:bg-gray-500/20",
+  "waiting-for-parts": "bg-orange-500/10 text-orange-500 hover:bg-orange-500/20",
   // scheduled: "bg-purple-500/10 text-purple-500 hover:bg-purple-500/20",
 }
 

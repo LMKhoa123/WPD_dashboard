@@ -316,6 +316,7 @@ export function AppointmentDialog({ appointment, trigger, onCreated, onUpdated }
                 <SelectContent>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="in-progress">In Progress</SelectItem>
+                  <SelectItem value="waiting-for-parts">Waiting for Parts</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>

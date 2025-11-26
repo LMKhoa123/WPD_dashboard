@@ -309,7 +309,7 @@ export interface UpdateCenterRequest {
 }
 
 // Appointments
-export type AppointmentStatus = "pending" | "in-progress" | "completed" | "cancelled"
+export type AppointmentStatus = "pending" | "in-progress" | "completed" | "cancelled" | "waiting-for-parts"
 
 export interface AppointmentRecord {
   _id: string
@@ -2380,6 +2380,71 @@ export class ApiClient {
     await this.fetchJson(`/import-requests/${id}`, { method: "DELETE" })
   }
 
+  // Inventory Tickets: list
+  async getInventoryTickets(params?: {
+    page?: number
+    limit?: number
+    center_id?: string
+    ticket_type?: InventoryTicketType
+    status?: InventoryTicketStatus
+  }): Promise<InventoryTicketsListResponse> {
+    const url = new URL(this.buildUrl("/inventory-tickets"))
+    if (params?.page) url.searchParams.set("page", String(params.page))
+    if (params?.limit) url.searchParams.set("limit", String(params.limit))
+    if (params?.center_id) url.searchParams.set("center_id", params.center_id)
+    if (params?.ticket_type) url.searchParams.set("ticket_type", params.ticket_type)
+    if (params?.status) url.searchParams.set("status", params.status)
+    const res = await rawFetch(url.toString(), { headers: { accept: "application/json", ...this.authHeader() } })
+    if (!res.ok) throw new Error(await safeErrorMessage(res))
+    return (await res.json()) as InventoryTicketsListResponse
+  }
+
+  // Inventory Tickets: get by id
+  async getInventoryTicketById(id: string): Promise<InventoryTicketRecord> {
+    const res = await this.fetchJson<InventoryTicketResponse>(`/inventory-tickets/${id}`, { method: "GET" })
+    return res.data
+  }
+
+  // Inventory Tickets: create
+  async createInventoryTicket(payload: CreateInventoryTicketRequest): Promise<InventoryTicketRecord> {
+    const res = await this.fetchJson<InventoryTicketResponse>(`/inventory-tickets`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+    return res.data
+  }
+
+  // Inventory Tickets: update
+  async updateInventoryTicket(id: string, payload: UpdateInventoryTicketRequest): Promise<InventoryTicketRecord> {
+    const res = await this.fetchJson<InventoryTicketResponse>(`/inventory-tickets/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    })
+    return res.data
+  }
+
+  // Inventory Tickets: delete
+  async deleteInventoryTicket(id: string): Promise<void> {
+    await this.fetchJson(`/inventory-tickets/${id}`, { method: "DELETE" })
+  }
+
+  // Inventory Tickets: add items
+  async addInventoryTicketItems(
+    ticketId: string,
+    items: Array<{ part_id: string; quantity: number; notes?: string }>
+  ): Promise<InventoryTicketRecord> {
+    const res = await this.fetchJson<InventoryTicketResponse>(`/inventory-tickets/${ticketId}/items`, {
+      method: "POST",
+      body: JSON.stringify({ items }),
+    })
+    return res.data
+  }
+
+  // Inventory Tickets: delete item
+  async deleteInventoryTicketItem(ticketId: string, itemId: string): Promise<void> {
+    await this.fetchJson(`/inventory-tickets/${ticketId}/items/${itemId}`, { method: "DELETE" })
+  }
+
   // getNotifications removed: notifications now delivered only via websocket events
 }
 
@@ -2557,7 +2622,84 @@ export interface UpdateImportRequestRequest {
   source_type?: string | null
   source_center_id?: string | null
   status?: ImportRequestStatus
-  description?: string
+  notes?: string
+  items?: Array<{
+    part_id: string
+    quantity_needed: number
+  }>
+}
+
+// Inventory Tickets
+export type InventoryTicketType = "IN" | "OUT"
+export type InventoryTicketStatus =  "PENDING" | "IN-PROGRESS" | "COMPLETED"
+export type TicketSourceType = "SUPPLIER" | "CENTER"
+export type TicketDestinationType = "CENTER" | "CUSTOMER"
+
+export interface InventoryTicketItem {
+  part_id: string | AutoPartRecord
+  quantity: number
+  notes?: string
+}
+
+export interface InventoryTicketRecord {
+  _id: string
+  center_id: string | CenterRecord
+  ticket_number: string
+  ticket_type: InventoryTicketType
+  status: InventoryTicketStatus
+  items: InventoryTicketItem[]
+  created_by: string | { _id: string; name: string }
+  completed_date: string | null
+  notes: string
+  source_type: TicketSourceType | null
+  source_id: string | CenterRecord | null
+  destination_type: TicketDestinationType | null
+  destination_id: string | CenterRecord | null
+  createdAt: string
+  updatedAt: string
+  __v?: number
+}
+
+export interface InventoryTicketsListResponse {
+  success: boolean
+  data: {
+    tickets: InventoryTicketRecord[]
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
+
+export interface InventoryTicketResponse {
+  success: boolean
+  message?: string
+  data: InventoryTicketRecord
+}
+
+export interface CreateInventoryTicketRequest {
+  center_id: string
+  ticket_type: InventoryTicketType
+  created_by: string
+  notes?: string
+  source_type?: TicketSourceType | null
+  source_id?: string | null
+  destination_type?: TicketDestinationType | null
+  destination_id?: string | null
+  items: Array<{
+    part_id: string
+    quantity: number
+    notes?: string
+  }>
+}
+
+export interface UpdateInventoryTicketRequest {
+  status?: InventoryTicketStatus
+  notes?: string
+  source_type?: TicketSourceType | null
+  source_id?: string | null
+  destination_type?: TicketDestinationType | null
+  destination_id?: string | null
 }
 
 
