@@ -8,9 +8,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getApiClient, type ImportRequestRecord, type CenterRecord, type ImportRequestStatus } from "@/lib/api"
-import { Search, Plus, Eye, Pencil, Trash2, FileText } from "lucide-react"
+import { Search, Plus, Eye, Pencil, Trash2, FileText, CalendarClock } from "lucide-react"
 import { ImportRequestDialog } from "@/components/import-requests/import-request-dialog"
 import { ImportRequestDetailDialog } from "@/components/import-requests/import-request-detail-dialog"
+import { CreateFromShiftDialog } from "@/components/import-requests/create-from-shift-dialog"
 import { useAuth, useIsAdmin } from "@/components/auth-provider"
 import { toast } from "sonner"
 import { format } from "date-fns"
@@ -51,8 +52,13 @@ export default function ImportRequestsPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [detailDialogOpen, setDetailDialogOpen] = useState(false)
+  const [shiftDialogOpen, setShiftDialogOpen] = useState(false)
   const [selected, setSelected] = useState<ImportRequestRecord | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  
+  // State for prefilled items from shift
+  const [prefilledItems, setPrefilledItems] = useState<Array<{ part_id: string; quantity_needed: number }>>([])
+  const [prefilledNotes, setPrefilledNotes] = useState<string>("")
 
   const loadCenters = useCallback(async () => {
     try {
@@ -114,6 +120,20 @@ export default function ImportRequestsPage() {
 
   const handleCreate = () => {
     setSelected(null)
+    setPrefilledItems([])
+    setPrefilledNotes("")
+    setDialogOpen(true)
+  }
+
+  const handleCreateFromShift = () => {
+    setShiftDialogOpen(true)
+  }
+
+  const handleShiftItemsSelected = (items: Array<{ part_id: string; quantity_needed: number }>, notes: string) => {
+    setPrefilledItems(items)
+    setPrefilledNotes(notes)
+    setSelected(null)
+    setShiftDialogOpen(false)
     setDialogOpen(true)
   }
 
@@ -145,6 +165,8 @@ export default function ImportRequestsPage() {
   const handleSaved = () => {
     setDialogOpen(false)
     setSelected(null)
+    setPrefilledItems([])
+    setPrefilledNotes("")
     loadRequests()
   }
 
@@ -165,10 +187,16 @@ export default function ImportRequestsPage() {
           <h1 className="text-3xl font-bold">Import Requests</h1>
           <p className="text-muted-foreground mt-1">Manage inventory restock requests</p>
         </div>
-        <Button onClick={handleCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Request
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleCreateFromShift}>
+            <CalendarClock className="mr-2 h-4 w-4" />
+            Create from Shift
+          </Button>
+          <Button onClick={handleCreate}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create Request
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -341,6 +369,8 @@ export default function ImportRequestsPage() {
         onOpenChange={setDialogOpen}
         request={selected}
         onSaved={handleSaved}
+        initialItems={prefilledItems.length > 0 ? prefilledItems : undefined}
+        initialNotes={prefilledNotes || undefined}
       />
 
       <ImportRequestDetailDialog
@@ -348,6 +378,13 @@ export default function ImportRequestsPage() {
         onOpenChange={setDetailDialogOpen}
         request={selected}
         onRequestUpdated={loadRequests}
+      />
+
+      <CreateFromShiftDialog
+        open={shiftDialogOpen}
+        onOpenChange={setShiftDialogOpen}
+        onItemsSelected={handleShiftItemsSelected}
+        centerId={user?.centerId}
       />
     </div>
   )

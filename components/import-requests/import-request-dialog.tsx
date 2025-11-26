@@ -26,6 +26,12 @@ interface ImportRequestDialogProps {
   onOpenChange: (open: boolean) => void
   request: ImportRequestRecord | null
   onSaved: () => void
+  // Prefill support for creating from checklists/lacking orders
+  initialItems?: Array<{ part_id: string; quantity_needed: number }>
+  initialNotes?: string
+  // Optional: appointment context to set status to waiting-for-parts upon creation
+  appointmentId?: string
+  onAppointmentStatusUpdated?: (status: string) => void
 }
 
 interface RequestItem {
@@ -33,7 +39,7 @@ interface RequestItem {
   quantity_needed: number
 }
 
-export function ImportRequestDialog({ open, onOpenChange, request, onSaved }: ImportRequestDialogProps) {
+export function ImportRequestDialog({ open, onOpenChange, request, onSaved, initialItems, initialNotes, appointmentId, onAppointmentStatusUpdated }: ImportRequestDialogProps) {
   const api = useMemo(() => getApiClient(), [])
   const { user } = useAuth()
 
@@ -58,10 +64,11 @@ export function ImportRequestDialog({ open, onOpenChange, request, onSaved }: Im
       setDescription(request.description || "")
       loadRequestItems(request._id)
     } else if (open && !request) {
-      setItems([])
-      setDescription("")
+      // Prefill from provided initial props when creating
+      setItems(initialItems && initialItems.length ? initialItems : [])
+      setDescription(initialNotes || "")
     }
-  }, [open, request])
+  }, [open, request, initialItems, initialNotes])
 
   const loadParts = async () => {
     try {
@@ -141,7 +148,7 @@ export function ImportRequestDialog({ open, onOpenChange, request, onSaved }: Im
         // Get profile to get staff_id
         const profile = await api.getProfile()
         
-        await api.createImportRequest({
+        const created = await api.createImportRequest({
           center_id: user.centerId,
           staff_id: profile.data._id,
           notes: description || undefined,
@@ -151,6 +158,16 @@ export function ImportRequestDialog({ open, onOpenChange, request, onSaved }: Im
           })),
         })
         toast.success("Import request created successfully")
+
+        // Optionally update appointment status to waiting-for-parts
+        if (appointmentId) {
+          try {
+            await api.updateAppointment(appointmentId, { status: "waiting-for-parts" as any })
+            onAppointmentStatusUpdated?.("waiting-for-parts")
+          } catch (e) {
+            // silently ignore
+          }
+        }
       }
 
       onSaved()

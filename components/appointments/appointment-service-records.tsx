@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { getApiClient, type ServiceRecordRecord, type SystemUserRecord } from "@/lib/api"
+import { getApiClient, type ServiceRecordRecord, type SystemUserRecord, type AppointmentStatus } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Spinner } from "@/components/ui/spinner"
@@ -10,9 +10,12 @@ import RecordChecklists from "./record-checklists"
 import { User, Clock, ClipboardList } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { ImportRequestDialog } from "@/components/import-requests/import-request-dialog"
 
 export interface AppointmentServiceRecordsProps {
     appointmentId: string
+    appointmentStatus?: AppointmentStatus
+    onAppointmentStatusChange?: (status: AppointmentStatus) => void
 }
 
 const recordStatusColor: Record<string, string> = {
@@ -22,7 +25,7 @@ const recordStatusColor: Record<string, string> = {
     cancelled: "bg-gray-500/10 text-gray-600 border-gray-500/20",
 }
 
-export function AppointmentServiceRecords({ appointmentId }: AppointmentServiceRecordsProps) {
+export function AppointmentServiceRecords({ appointmentId, appointmentStatus, onAppointmentStatusChange }: AppointmentServiceRecordsProps) {
     const api = useMemo(() => getApiClient(), [])
     const [records, setRecords] = useState<ServiceRecordRecord[]>([])
     const [loading, setLoading] = useState(true)
@@ -30,6 +33,10 @@ export function AppointmentServiceRecords({ appointmentId }: AppointmentServiceR
 
     const [technicians, setTechnicians] = useState<SystemUserRecord[]>([])
     const [loadingTech, setLoadingTech] = useState(false)
+    const [lackingItemsByRecord, setLackingItemsByRecord] = useState<Record<string, Array<{ part_id: string; quantity_needed: number }>>>({})
+    const [requestOpen, setRequestOpen] = useState(false)
+    const [requestItems, setRequestItems] = useState<Array<{ part_id: string; quantity_needed: number }>>([])
+    const [requestNotes, setRequestNotes] = useState<string>("")
 
     useEffect(() => {
         let mounted = true
@@ -40,6 +47,26 @@ export function AppointmentServiceRecords({ appointmentId }: AppointmentServiceR
                 const rs = await api.getServiceRecordsByAppointmentId(appointmentId)
                 if (!mounted) return
                 setRecords(rs)
+                // For each record, load service orders and collect LACKING items
+                const map: Record<string, Array<{ part_id: string; quantity_needed: number }>> = {}
+                const results = await Promise.allSettled(
+                    rs.map(async (rec) => {
+                        try {
+                            const ordersRes = await api.getServiceOrdersByRecord(rec._id)
+                            const lacking = ordersRes.data
+                                .filter(o => (o as any).stock_status === 'LACKING')
+                                .map(o => {
+                                    const partId = (o as any).part_id
+                                    const partIdStr = typeof partId === 'object' ? partId._id : partId
+                                    return { part_id: partIdStr, quantity_needed: (o as any).quantity }
+                                })
+                            map[rec._id] = lacking
+                        } catch {
+                            map[rec._id] = []
+                        }
+                    })
+                )
+                setLackingItemsByRecord(map)
 
                 try {
                     setLoadingTech(true)
@@ -169,9 +196,25 @@ export function AppointmentServiceRecords({ appointmentId }: AppointmentServiceR
                                     <CardTitle className="text-base flex items-center gap-2">
                                         <ClipboardList className="h-4 w-4" />#{r._id.slice(-6)} Suggestion of Technician
                                     </CardTitle>
-                                    <Link href={`/service-records/${r._id}/suggested-parts`}>
-                                        <Button size="sm" variant="outline">Create Invoice</Button>
-                                    </Link>
+                                    { (appointmentStatus === 'waiting-for-parts') ? (
+                                        <div className="text-sm text-muted-foreground">đã gửi yêu cầu, vui lòng chờ</div>
+                                    ) : (lackingItemsByRecord[r._id] && lackingItemsByRecord[r._id].length > 0) ? (
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => {
+                                                setRequestItems(lackingItemsByRecord[r._id])
+                                                setRequestNotes(`Auto-generated from service record #${r._id}`)
+                                                setRequestOpen(true)
+                                            }}
+                                        >
+                                            Create Request
+                                        </Button>
+                                    ) : (
+                                        <Link href={`/service-records/${r._id}/suggested-parts`}>
+                                            <Button size="sm" variant="outline">Create Invoice</Button>
+                                        </Link>
+                                    )}
                                 </div>
                             </CardHeader>
                             <CardContent className="space-y-4">
@@ -198,6 +241,23 @@ export function AppointmentServiceRecords({ appointmentId }: AppointmentServiceR
                     )
                 })}
             </div>
+            {/* Import Request Dialog */}
+            <ImportRequestDialog
+                open={requestOpen}
+                onOpenChange={setRequestOpen}
+                request={null}
+                initialItems={requestItems}
+                initialNotes={requestNotes}
+                appointmentId={appointmentId}
+                onAppointmentStatusUpdated={(st) => {
+                    if (st === 'waiting-for-parts') {
+                        onAppointmentStatusChange?.('waiting-for-parts')
+                    }
+                }}
+                onSaved={() => {
+                    setRequestOpen(false)
+                }}
+            />
         </div>
     )
 }

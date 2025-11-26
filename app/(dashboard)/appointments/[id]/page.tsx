@@ -446,7 +446,15 @@ export default function AppointmentDetailPage() {
 
      
         <div className="md:col-span-2">
-          <AppointmentServiceRecords appointmentId={appointmentId} />
+          <AppointmentServiceRecords
+            appointmentId={appointmentId}
+            appointmentStatus={appointment.status as AppointmentStatus}
+            onAppointmentStatusChange={(status) => {
+              if (appointment) {
+                setAppointment({ ...appointment, status })
+              }
+            }}
+          />
         </div>
       </div>
     </div>
