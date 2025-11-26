@@ -483,6 +483,7 @@ export interface ServiceRecordRecord {
   end_time: string
   description: string
   status: ServiceRecordStatus
+  defects_finished?: boolean
   createdAt: string
   updatedAt: string
   __v?: number
@@ -520,6 +521,7 @@ export interface UpdateServiceRecordRequest {
   end_time?: string
   description?: string
   status?: ServiceRecordStatus
+  defects_finished?: boolean
 }
 
 // Record Checklists (items attached to a service record based on templates)
@@ -569,6 +571,69 @@ export interface UpdateRecordChecklistRequest {
   note?: string
   suggest_add?: string[] // Part IDs to add to suggest list
   suggest_remove?: string[] // Part IDs to remove from suggest list
+}
+
+// Checklist Defects (defects found during checklist, stored in separate table)
+export enum FailureType {
+  DAMAGED = 'DAMAGED',
+  WORN_OUT = 'WORN_OUT',
+  MANUFACTURER_DEFECT = 'MANUFACTURER_DEFECT'
+}
+
+export interface ChecklistDefectItem {
+  _id: string
+  record_checklist_id: string | RecordChecklistItem
+  vehicle_part_id: string | any // VehicleAutoPart
+  suggested_part_id?: string | AutoPartRecord
+  quantity: number
+  failure_type: FailureType | string
+  description?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ChecklistDefectsListResponse {
+  success: boolean
+  data: ChecklistDefectItem[]
+}
+
+export interface CreateChecklistDefectRequest {
+  record_checklist_id: string
+  vehicle_part_id: string
+  suggested_part_id?: string
+  quantity: number
+  failure_type: FailureType | string
+  description?: string
+}
+
+// Service Orders
+export interface IServiceOrder {
+  _id: string
+  service_record_id: string
+  checklist_defect_id: string
+  part_id: string
+  quantity: number
+  stock_status: 'SUFFICIENT' | 'LACKING'
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateServiceOrderRequest {
+  service_record_id: string
+  checklist_defect_id: string
+  part_id: string
+  quantity: number
+}
+
+export interface ServiceOrdersResponse {
+  success: boolean
+  data: IServiceOrder[]
+}
+
+export interface CreateServiceOrderResponse {
+  success: boolean
+  message?: string
+  data: IServiceOrder
 }
 
 // Suggested Parts aggregated from all checklists in a service record
@@ -1851,9 +1916,29 @@ export class ApiClient {
     await this.fetchJson(`/record-checklists/${id}`, { method: "DELETE" })
   }
 
+  // Checklist Defects: get defects by record checklist id
+  async getChecklistDefectsByRecordChecklist(recordChecklistId: string): Promise<ChecklistDefectsListResponse> {
+    return this.fetchJson(`/record-checklists/${recordChecklistId}/defects`, { method: "GET" })
+  }
+
+  // Checklist Defects: create a defect for a checklist
+  async createChecklistDefect(recordChecklistId: string, payload: CreateChecklistDefectRequest): Promise<{ success: boolean; message?: string; data: ChecklistDefectItem }> {
+    return this.fetchJson(`/record-checklists/${recordChecklistId}/defects`, { method: "POST", body: JSON.stringify(payload) })
+  }
+
   // Record Checklists: get all suggested parts from all checklists in a service record
   async getAllSuggestedParts(recordId: string): Promise<AllSuggestedPartsResponse> {
     return this.fetchJson(`/service-records/${recordId}/all-suggested-parts`, { method: "GET" })
+  }
+
+  // Service Orders: create a single service order from defect
+  async createServiceOrder(payload: CreateServiceOrderRequest): Promise<CreateServiceOrderResponse> {
+    return this.fetchJson(`/service-orders`, { method: "POST", body: JSON.stringify(payload) })
+  }
+
+  // Service Orders: get all service orders for a record
+  async getServiceOrdersByRecord(recordId: string): Promise<ServiceOrdersResponse> {
+    return this.fetchJson(`/service-orders/record/${recordId}`, { method: "GET" })
   }
 
   // Service Checklists: get all
