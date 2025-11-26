@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { getApiClient, type ImportRequestRecord, type ImportRequestItem, type CenterRecord } from "@/lib/api"
+import { getApiClient, type ImportRequestRecord, type ImportRequestItem, type CenterRecord, type CenterStockInfo } from "@/lib/api"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { formatVND } from "@/lib/utils"
@@ -54,10 +54,13 @@ export function ImportRequestDetailDialog({
 
   const [items, setItems] = useState<ImportRequestItem[]>([])
   const [centers, setCenters] = useState<CenterRecord[]>([])
+  const [centerStocks, setCenterStocks] = useState<Record<string, CenterStockInfo[]>>({})
   const [loading, setLoading] = useState(false)
+  const [loadingStocks, setLoadingStocks] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
 
   // For admin to assign source center
+  const [selectedSourceType, setSelectedSourceType] = useState<"INTERNAL_CENTER" | "SUPPLIER">("INTERNAL_CENTER")
   const [selectedSourceCenter, setSelectedSourceCenter] = useState<string>("")
 
   useEffect(() => {
@@ -67,12 +70,17 @@ export function ImportRequestDetailDialog({
         loadCenters()
       }
       if (request.source_center_id) {
+        setSelectedSourceType("INTERNAL_CENTER")
         setSelectedSourceCenter(
           typeof request.source_center_id === "object"
             ? request.source_center_id._id
             : request.source_center_id
         )
+      } else if (request.source_type === "SUPPLIER") {
+        setSelectedSourceType("SUPPLIER")
+        setSelectedSourceCenter("")
       } else {
+        setSelectedSourceType("INTERNAL_CENTER")
         setSelectedSourceCenter("")
       }
     }
@@ -84,11 +92,40 @@ export function ImportRequestDetailDialog({
       setLoading(true)
       const data = await api.getImportRequestItems(request._id)
       setItems(data)
+      
+      // Load stock info for each part if admin is approving
+      if (isAdmin && request.status === "PENDING") {
+        loadStockInfo(data)
+      }
     } catch (error: any) {
       console.error("Failed to load items:", error)
       toast.error("Failed to load parts list")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadStockInfo = async (itemsList: ImportRequestItem[]) => {
+    try {
+      setLoadingStocks(true)
+      const stockMap: Record<string, CenterStockInfo[]> = {}
+      
+      for (const item of itemsList) {
+        const partId = typeof item.part_id === "object" ? item.part_id._id : item.part_id
+        try {
+          const stockRes = await api.getAvailableStockByCenters(partId)
+          stockMap[partId] = stockRes.data
+        } catch (error) {
+          console.error(`Failed to load stock for part ${partId}:`, error)
+          stockMap[partId] = []
+        }
+      }
+      
+      setCenterStocks(stockMap)
+    } catch (error: any) {
+      console.error("Failed to load stock info:", error)
+    } finally {
+      setLoadingStocks(false)
     }
   }
 
@@ -119,7 +156,8 @@ export function ImportRequestDetailDialog({
 
   const handleApprove = async () => {
     if (!request) return
-    if (!selectedSourceCenter) {
+    
+    if (selectedSourceType === "INTERNAL_CENTER" && !selectedSourceCenter) {
       toast.error("Please select a source center")
       return
     }
@@ -128,7 +166,8 @@ export function ImportRequestDetailDialog({
       setActionLoading(true)
       await api.updateImportRequest(request._id, {
         status: "APPROVED",
-        source_center_id: selectedSourceCenter,
+        source_type: selectedSourceType,
+        source_center_id: selectedSourceType === "INTERNAL_CENTER" ? selectedSourceCenter : null,
       })
       toast.success("Request approved successfully")
       onRequestUpdated()
@@ -209,40 +248,126 @@ export function ImportRequestDetailDialog({
 
           {/* Source Center */}
           {canApprove ? (
-            <div>
-              <Label>Source Center *</Label>
-              <Select value={selectedSourceCenter} onValueChange={setSelectedSourceCenter}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select source center" />
-                </SelectTrigger>
-                <SelectContent>
-                  {centers
-                    .filter((c) => {
-                      const requestCenterId =
-                        typeof request.center_id === "object"
-                          ? request.center_id._id
-                          : request.center_id
-                      return c._id !== requestCenterId
-                    })
-                    .map((center) => (
-                      <SelectItem key={center._id} value={center._id}>
-                        {center.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-4">
+              <div>
+                <Label>Source Type *</Label>
+                <Select value={selectedSourceType} onValueChange={(v) => setSelectedSourceType(v as "INTERNAL_CENTER" | "SUPPLIER")}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="INTERNAL_CENTER">Center</SelectItem>
+                    <SelectItem value="SUPPLIER">Supplier</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedSourceType === "INTERNAL_CENTER" && (
+                <div>
+                  <Label>Source Center * {loadingStocks && <span className="text-xs text-muted-foreground">(Loading stock info...)</span>}</Label>
+                  <Select value={selectedSourceCenter} onValueChange={setSelectedSourceCenter}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select source center" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[400px]">
+                      {centers
+                        .filter((c) => {
+                          const requestCenterId =
+                            typeof request.center_id === "object"
+                              ? request.center_id._id
+                              : request.center_id
+                          return c._id !== requestCenterId
+                        })
+                        .map((center) => {
+                          // Calculate total stock info for this center across all parts
+                          const centerStockInfo = items.map(item => {
+                            const partId = typeof item.part_id === "object" ? item.part_id._id : item.part_id
+                            const stocks = centerStocks[partId] || []
+                            return stocks.find(s => s.center_id === center._id)
+                          }).filter(Boolean)
+                          
+                          const hasStock = centerStockInfo.some(s => s && s.available > 0)
+                          const totalAvailable = centerStockInfo.reduce((sum, s) => sum + (s?.available || 0), 0)
+                          
+                          return (
+                            <SelectItem key={center._id} value={center._id}>
+                              <div className="flex items-center justify-between gap-4 min-w-[300px]">
+                                <span className="font-medium">{center.name}</span>
+                                {centerStockInfo.length > 0 && (
+                                  <div className="flex gap-2 text-xs">
+                                    <Badge variant={hasStock ? "default" : "secondary"} className="text-xs">
+                                      Available: {totalAvailable}
+                                    </Badge>
+                                  </div>
+                                )}
+                              </div>
+                            </SelectItem>
+                          )
+                        })}
+                    </SelectContent>
+                  </Select>
+                  
+                  {/* Show detailed stock info for selected center */}
+                  {selectedSourceCenter && items.length > 0 && (
+                    <div className="mt-3 p-3 border rounded-md bg-muted/30">
+                      <div className="text-sm font-medium mb-2">Stock Details:</div>
+                      <div className="space-y-2">
+                        {items.map(item => {
+                          const partId = typeof item.part_id === "object" ? item.part_id._id : item.part_id
+                          const partName = typeof item.part_id === "object" ? item.part_id.name : "N/A"
+                          const stocks = centerStocks[partId] || []
+                          const centerStock = stocks.find(s => s.center_id === selectedSourceCenter)
+                          
+                          return (
+                            <div key={partId} className="flex items-center justify-between text-xs">
+                              <span className="font-medium">{partName}</span>
+                              {centerStock ? (
+                                <div className="flex gap-2">
+                                  <span>Stock: {centerStock.stock}</span>
+                                  <span>Held: {centerStock.held}</span>
+                                  <span className="font-semibold">Available: {centerStock.available}</span>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">No data</span>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {selectedSourceType === "SUPPLIER" && (
+                <div className="p-3 border rounded-md bg-muted/30 text-sm text-muted-foreground">
+                  Parts will be ordered from external supplier
+                </div>
+              )}
             </div>
           ) : (
-            request.source_center_id && (
-              <div>
-                <Label className="text-muted-foreground">Source Center</Label>
-                <div className="mt-1">
-                  {typeof request.source_center_id === "object"
-                    ? request.source_center_id.name
-                    : "N/A"}
+            <div className="grid grid-cols-2 gap-4">
+              {request.source_type && (
+                <div>
+                  <Label className="text-muted-foreground">Source Type</Label>
+                  <div className="mt-1">
+                    <Badge variant="outline">
+                      {request.source_type === "INTERNAL_CENTER" ? "Center" : request.source_type}
+                    </Badge>
+                  </div>
                 </div>
-              </div>
-            )
+              )}
+              {request.source_center_id && (
+                <div>
+                  <Label className="text-muted-foreground">Source Center</Label>
+                  <div className="mt-1">
+                    {typeof request.source_center_id === "object"
+                      ? request.source_center_id.name
+                      : "N/A"}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {/* Description */}

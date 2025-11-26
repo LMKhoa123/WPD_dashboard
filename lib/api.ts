@@ -865,6 +865,20 @@ export interface UpdateAutoPartRequest {
   warranty_time?: number // Thời gian bảo hành (đơn vị: tháng)
 }
 
+export interface CenterStockInfo {
+  center_id: string
+  center_name: string
+  stock: number
+  held: number
+  available: number
+}
+
+export interface AvailableStockByCentersResponse {
+  success: boolean
+  message: string
+  data: CenterStockInfo[]
+}
+
 // Forecast types
 export interface ForecastResultItem {
   _id: string
@@ -2102,6 +2116,11 @@ export class ApiClient {
   // Auto Parts: delete
   async deleteAutoPart(id: string): Promise<void> {
     await this.fetchJson(`/auto-parts/${id}`, { method: "DELETE" })
+  }
+
+  // Auto Parts: get available stock by centers
+  async getAvailableStockByCenters(partId: string): Promise<AvailableStockByCentersResponse> {
+    return this.fetchJson(`/auto-parts/available-stock/by-centers?part_id=${partId}`)
   }
 
   // Forecast: get forecast results by center

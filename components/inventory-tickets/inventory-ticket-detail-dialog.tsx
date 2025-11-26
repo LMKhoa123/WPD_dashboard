@@ -17,7 +17,7 @@ import { getApiClient, type InventoryTicketRecord } from "@/lib/api"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { formatVND } from "@/lib/utils"
-import { useIsAdmin } from "@/components/auth-provider"
+import { useAuth } from "@/components/auth-provider"
 
 interface InventoryTicketDetailDialogProps {
   open: boolean
@@ -49,10 +49,33 @@ export function InventoryTicketDetailDialog({
   onTicketUpdated,
 }: InventoryTicketDetailDialogProps) {
   const api = useMemo(() => getApiClient(), [])
-  const isAdmin = useIsAdmin()
+  const { user } = useAuth()
   const [actionLoading, setActionLoading] = useState(false)
 
   if (!ticket) return null
+
+  // Determine if current user can change status
+  const canChangeStatus = () => {
+    if (!user?.centerId) return false
+
+    const ticketCenterId = typeof ticket.center_id === "object" ? ticket.center_id._id : ticket.center_id
+
+    // For IN tickets
+    if (ticket.ticket_type === "IN") {
+      // Staff of the receiving center (center_id) can change status
+      return ticketCenterId === user.centerId
+    }
+
+    // For OUT tickets
+    if (ticket.ticket_type === "OUT") {
+      // Staff of the sending center (center_id) can change status
+      return ticketCenterId === user.centerId
+    }
+
+    return false
+  }
+
+  const userCanChangeStatus = canChangeStatus()
 
   const handleApprove = async () => {
     try {
@@ -85,25 +108,8 @@ export function InventoryTicketDetailDialog({
     }
   }
 
-  const handleCancel = async () => {
-    if (!confirm("Are you sure you want to cancel this ticket?")) return
-    try {
-      setActionLoading(true)
-      await api.updateInventoryTicket(ticket._id, { status: "CANCELLED" })
-      toast.success("Ticket cancelled")
-      onTicketUpdated()
-      onOpenChange(false)
-    } catch (error: any) {
-      console.error("Failed to cancel:", error)
-      toast.error(error.message || "Failed to cancel ticket")
-    } finally {
-      setActionLoading(false)
-    }
-  }
-
-  const canApprove = isAdmin && ticket.status === "PENDING"
-  const canComplete = ticket.status === "IN-PROGRESS"
-//   const canCancel = ticket.status === "PENDING" || ticket.status === "IN-PROGRESS"
+  const canApprove = userCanChangeStatus && ticket.status === "PENDING"
+  const canComplete = userCanChangeStatus && ticket.status === "IN-PROGRESS"
 
   const getSourceDisplay = () => {
     if (!ticket.source_type) return null
@@ -256,12 +262,6 @@ export function InventoryTicketDetailDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>
-{/* 
-          {canCancel && (
-            <Button variant="destructive" onClick={handleCancel} disabled={actionLoading}>
-              Cancel Ticket
-            </Button>
-          )} */}
 
           {canApprove && (
             <Button onClick={handleApprove} disabled={actionLoading}>

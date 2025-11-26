@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { getApiClient, type CenterAutoPartRecord, type CenterRecord } from "@/lib/api"
+import { getApiClient, type CenterAutoPartRecord, type CenterRecord, type AutoPartRecord } from "@/lib/api"
 import { toast } from "sonner"
 import { Plus, Trash2 } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
@@ -26,6 +26,9 @@ interface InventoryTicketDialogProps {
   onOpenChange: (open: boolean) => void
   ticketType: "IN" | "OUT"
   onSaved: () => void
+  initialItems?: Array<{ part_id: string; quantity: number }>
+  initialDestinationCenter?: string
+  initialNotes?: string
 }
 
 interface TicketItem {
@@ -34,12 +37,21 @@ interface TicketItem {
   notes?: string
 }
 
-export function InventoryTicketDialog({ open, onOpenChange, ticketType, onSaved }: InventoryTicketDialogProps) {
+export function InventoryTicketDialog({ 
+  open, 
+  onOpenChange, 
+  ticketType, 
+  onSaved,
+  initialItems,
+  initialDestinationCenter,
+  initialNotes
+}: InventoryTicketDialogProps) {
   const api = useMemo(() => getApiClient(), [])
   const { user } = useAuth()
 
   const [loading, setLoading] = useState(false)
-  const [centerParts, setCenterParts] = useState<CenterAutoPartRecord[]>([])
+  const [centerParts, setCenterParts] = useState<CenterAutoPartRecord[]>([]) // For OUT tickets
+  const [autoParts, setAutoParts] = useState<AutoPartRecord[]>([]) // For IN tickets
   const [centers, setCenters] = useState<CenterRecord[]>([])
   const [items, setItems] = useState<TicketItem[]>([])
   const [notes, setNotes] = useState("")
@@ -54,22 +66,55 @@ export function InventoryTicketDialog({ open, onOpenChange, ticketType, onSaved 
 
   useEffect(() => {
     if (open && user?.centerId) {
-      loadCenterParts()
+      if (ticketType === "IN") {
+        loadAutoParts() // Load all auto parts for IN tickets
+      } else {
+        loadCenterParts() // Load center inventory for OUT tickets
+      }
       loadCenters()
     }
-  }, [open, user])
+  }, [open, user, ticketType])
 
   useEffect(() => {
     if (open) {
-      // Reset form
-      setItems([])
-      setNotes("")
+      // Reset form or populate with initial data
+      if (initialItems && initialItems.length > 0) {
+        setItems(initialItems.map(item => ({
+          part_id: item.part_id,
+          quantity: item.quantity,
+          notes: ""
+        })))
+      } else {
+        setItems([])
+      }
+      
+      if (initialNotes) {
+        setNotes(initialNotes)
+      } else {
+        setNotes("")
+      }
+      
+      if (initialDestinationCenter) {
+        setDestinationCenter(initialDestinationCenter)
+      } else {
+        setDestinationCenter("")
+      }
+      
       setSourceType("SUPPLIER")
       setSourceCenter("")
       setDestinationType("CENTER")
-      setDestinationCenter("")
     }
-  }, [open])
+  }, [open, initialItems, initialDestinationCenter, initialNotes])
+
+  const loadAutoParts = async () => {
+    try {
+      const res = await api.getAutoParts(1, 500)
+      setAutoParts(res.data.parts)
+    } catch (error: any) {
+      console.error("Failed to load auto parts:", error)
+      toast.error("Failed to load parts list")
+    }
+  }
 
   const loadCenterParts = async () => {
     if (!user?.centerId) return
@@ -191,16 +236,30 @@ export function InventoryTicketDialog({ open, onOpenChange, ticketType, onSaved 
   }
 
   const getPartInfo = (partId: string) => {
-    const centerPart = centerParts.find((cp) => {
-      const cpPartId = typeof cp.part_id === "object" ? cp.part_id._id : cp.part_id
-      return cpPartId === partId
-    })
+    if (ticketType === "OUT") {
+      // For OUT tickets: get info from center inventory
+      const centerPart = centerParts.find((cp) => {
+        const cpPartId = typeof cp.part_id === "object" ? cp.part_id._id : cp.part_id
+        return cpPartId === partId
+      })
 
-    if (centerPart && typeof centerPart.part_id === "object") {
-      return {
-        name: centerPart.part_id.name,
-        price: centerPart.part_id.selling_price,
-        stock: centerPart.quantity,
+      if (centerPart && typeof centerPart.part_id === "object") {
+        return {
+          name: centerPart.part_id.name,
+          price: centerPart.part_id.selling_price,
+          stock: centerPart.quantity,
+        }
+      }
+    } else {
+      // For IN tickets: get info from auto parts (no stock info)
+      const autoPart = autoParts.find((ap) => ap._id === partId)
+      
+      if (autoPart) {
+        return {
+          name: autoPart.name,
+          price: autoPart.selling_price,
+          stock: "-", // No stock info for IN tickets
+        }
       }
     }
     return null
@@ -347,24 +406,34 @@ export function InventoryTicketDialog({ open, onOpenChange, ticketType, onSaved 
                                 <SelectValue placeholder="Select part" />
                               </SelectTrigger>
                               <SelectContent>
-                                {centerParts.map((centerPart) => {
-                                  const partId =
-                                    typeof centerPart.part_id === "object"
-                                      ? centerPart.part_id._id
-                                      : centerPart.part_id
-                                  const partName =
-                                    typeof centerPart.part_id === "object" ? centerPart.part_id.name : "N/A"
-                                  const partPrice =
-                                    typeof centerPart.part_id === "object"
-                                      ? centerPart.part_id.selling_price
-                                      : 0
-
-                                  return (
-                                    <SelectItem key={centerPart._id} value={partId}>
-                                      {partName} - {formatVND(partPrice)}
+                                {ticketType === "IN" ? (
+                                  // For IN tickets: show all auto parts
+                                  autoParts.map((part) => (
+                                    <SelectItem key={part._id} value={part._id}>
+                                      {part.name} - {formatVND(part.selling_price)} - {part.category}
                                     </SelectItem>
-                                  )
-                                })}
+                                  ))
+                                ) : (
+                                  // For OUT tickets: show center inventory
+                                  centerParts.map((centerPart) => {
+                                    const partId =
+                                      typeof centerPart.part_id === "object"
+                                        ? centerPart.part_id._id
+                                        : centerPart.part_id
+                                    const partName =
+                                      typeof centerPart.part_id === "object" ? centerPart.part_id.name : "N/A"
+                                    const partPrice =
+                                      typeof centerPart.part_id === "object"
+                                        ? centerPart.part_id.selling_price
+                                        : 0
+
+                                    return (
+                                      <SelectItem key={centerPart._id} value={partId}>
+                                        {partName} - {formatVND(partPrice)}
+                                      </SelectItem>
+                                    )
+                                  })
+                                )}
                               </SelectContent>
                             </Select>
                           </TableCell>

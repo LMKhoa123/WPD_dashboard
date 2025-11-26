@@ -34,6 +34,7 @@ export function AppointmentServiceRecords({ appointmentId, appointmentStatus, on
     const [technicians, setTechnicians] = useState<SystemUserRecord[]>([])
     const [loadingTech, setLoadingTech] = useState(false)
     const [lackingItemsByRecord, setLackingItemsByRecord] = useState<Record<string, Array<{ part_id: string; quantity_needed: number }>>>({})
+    const [allSufficientByRecord, setAllSufficientByRecord] = useState<Record<string, boolean>>({})
     const [requestOpen, setRequestOpen] = useState(false)
     const [requestItems, setRequestItems] = useState<Array<{ part_id: string; quantity_needed: number }>>([])
     const [requestNotes, setRequestNotes] = useState<string>("")
@@ -49,11 +50,19 @@ export function AppointmentServiceRecords({ appointmentId, appointmentStatus, on
                 setRecords(rs)
                 // For each record, load service orders and collect LACKING items
                 const map: Record<string, Array<{ part_id: string; quantity_needed: number }>> = {}
+                const sufficientMap: Record<string, boolean> = {}
                 const results = await Promise.allSettled(
                     rs.map(async (rec) => {
                         try {
                             const ordersRes = await api.getServiceOrdersByRecord(rec._id)
-                            const lacking = ordersRes.data
+                            const orders = ordersRes.data
+                            
+                            // Check if all items are SUFFICIENT
+                            const allSufficient = orders.length > 0 && orders.every(o => (o as any).stock_status === 'SUFFICIENT')
+                            sufficientMap[rec._id] = allSufficient
+                            
+                            // Collect LACKING items
+                            const lacking = orders
                                 .filter(o => (o as any).stock_status === 'LACKING')
                                 .map(o => {
                                     const partId = (o as any).part_id
@@ -63,10 +72,12 @@ export function AppointmentServiceRecords({ appointmentId, appointmentStatus, on
                             map[rec._id] = lacking
                         } catch {
                             map[rec._id] = []
+                            sufficientMap[rec._id] = false
                         }
                     })
                 )
                 setLackingItemsByRecord(map)
+                setAllSufficientByRecord(sufficientMap)
 
                 try {
                     setLoadingTech(true)
@@ -196,9 +207,13 @@ export function AppointmentServiceRecords({ appointmentId, appointmentStatus, on
                                     <CardTitle className="text-base flex items-center gap-2">
                                         <ClipboardList className="h-4 w-4" />#{r._id.slice(-6)} Suggestion of Technician
                                     </CardTitle>
-                                    { (appointmentStatus === 'waiting-for-parts') ? (
-                                        <div className="text-sm text-muted-foreground">đã gửi yêu cầu, vui lòng chờ</div>
+                                    {allSufficientByRecord[r._id] ? (
+                                        // All items are SUFFICIENT, show Create Invoice button
+                                        <Link href={`/service-records/${r._id}/suggested-parts`}>
+                                            <Button size="sm" variant="outline">Create Invoice</Button>
+                                        </Link>
                                     ) : (lackingItemsByRecord[r._id] && lackingItemsByRecord[r._id].length > 0) ? (
+                                        // Has LACKING items, always show Create Request button
                                         <Button
                                             size="sm"
                                             variant="outline"
@@ -210,11 +225,10 @@ export function AppointmentServiceRecords({ appointmentId, appointmentStatus, on
                                         >
                                             Create Request
                                         </Button>
-                                    ) : (
-                                        <Link href={`/service-records/${r._id}/suggested-parts`}>
-                                            <Button size="sm" variant="outline">Create Invoice</Button>
-                                        </Link>
-                                    )}
+                                    ) : (appointmentStatus === 'waiting-for-parts') ? (
+                                        // Waiting for parts and no lacking items shown in current record
+                                        <div className="text-sm text-muted-foreground">đã gửi yêu cầu, vui lòng chờ</div>
+                                    ) : null}
                                 </div>
                             </CardHeader>
                             <CardContent className="space-y-4">
