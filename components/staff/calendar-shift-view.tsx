@@ -89,7 +89,7 @@ export function CalendarShiftView() {
   const [selectedCenterId, setSelectedCenterId] = useState<string>("")
   
   const centerFilter = selectedCenterId || undefined
-  const { data: allWorkshifts, isLoading: workshiftLoading, isError: workshiftError } = useWorkShifts(centerFilter)
+  const { data: allWorkshifts, isLoading: workshiftLoading, isError: workshiftError } = useWorkShifts(centerFilter, selectedMonth, selectedYear)
   const [workshifts, setWorkshifts] = useState<WorkshiftRecord[]>([])
   const [shiftAssignments, setShiftAssignments] = useState<ShiftAssignment[]>([])
   const [members, setMembers] = useState<Member[]>([])

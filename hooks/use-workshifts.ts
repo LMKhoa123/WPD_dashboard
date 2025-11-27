@@ -3,12 +3,17 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getApiClient, type WorkshiftRecord, type CreateWorkshiftRequest } from "@/lib/api";
 
 // Fetch all workshifts and cache for 5 minutes
-export function useWorkShifts(centerId?: string | undefined) {
+export function useWorkShifts(centerId?: string | undefined, month?: number, year?: number) {
   const api = getApiClient();
   const query = useQuery<WorkshiftRecord[], Error>({
-    queryKey: ["workshifts", centerId ?? "all"],
+    queryKey: ["workshifts", centerId ?? "all", month, year],
     queryFn: async () => {
-      const response = await api.getWorkshifts({ center_id: centerId || undefined });
+      const response = await api.getWorkshifts({ 
+        center_id: centerId || undefined,
+        month,
+        year,
+        limit: 1000
+      });
       return response.data;
     },
     staleTime: 5 * 60 * 1000,

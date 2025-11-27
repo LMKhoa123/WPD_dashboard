@@ -8,6 +8,7 @@ import { Calendar, Clock, MapPin, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { format, parseISO, startOfWeek, addDays, isSameDay } from "date-fns"
 import { vi } from "date-fns/locale"
+import { DataPagination } from "@/components/ui/data-pagination"
 
 interface MyShiftsCalendarProps {
   systemUserId: string
@@ -59,18 +60,29 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
   const [selectedWeekStart, setSelectedWeekStart] = useState<Date>(
     startOfWeek(new Date(), { weekStartsOn: 1 })
   )
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const limit = 100
 
   const api = getApiClient()
 
   useEffect(() => {
     loadShifts()
-  }, [systemUserId])
+  }, [systemUserId, currentPage])
 
   async function loadShifts() {
     try {
       setLoading(true)
-      const data = await api.getShiftAssignmentsByUser(systemUserId)
-      setShifts(data)
+      const response = await api.getShiftAssignmentsByUser(systemUserId, {
+        page: currentPage,
+        limit,
+      })
+      setShifts(response.data)
+      if (response.pagination) {
+        setTotalPages(response.pagination.total_pages)
+        setTotalCount(response.pagination.total_count)
+      }
     } catch (error: any) {
       toast.error("Unable to load shifts: " + error.message)
     } finally {
@@ -240,7 +252,7 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
 
               <div className="border-t pt-4">
                 <h3 className="font-semibold mb-3">
-                  All Shifts ({shifts.length})
+                  All Shifts ({totalCount})
                 </h3>
                 <div className="space-y-2 max-h-[300px] overflow-y-auto">
                   {shifts
@@ -276,6 +288,15 @@ export function MyShiftsCalendar({ systemUserId }: MyShiftsCalendarProps) {
                       )
                     })}
                 </div>
+                {totalPages > 1 && (
+                  <div className="mt-4">
+                    <DataPagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           )}
