@@ -21,6 +21,7 @@ type SuggestedLine = {
     selling_price: number
     center_stock: number
     total_order_quantity: number
+    original_order_quantity: number
     warranty_time: number
     image?: string
 }
@@ -69,6 +70,7 @@ export default function SuggestedPartsPage() {
                     selling_price: Number(d.unit_price ?? 0),
                     center_stock: 0,
                     total_order_quantity: 0,
+                    original_order_quantity: 0,
                     warranty_time: 0,
                     image: undefined,
                     quantity: Number(d.quantity ?? 0),
@@ -112,6 +114,7 @@ export default function SuggestedPartsPage() {
                         selling_price: Number(x.part_id?.selling_price ?? 0),
                         center_stock: maxStock,
                         total_order_quantity: Number(x.quantity ?? 0),
+                        original_order_quantity: Number(x.quantity ?? 0),
                         warranty_time: Number(x.part_id?.warranty_time ?? 0),
                         image: x.part_id?.image || "",
                     }
@@ -134,6 +137,8 @@ export default function SuggestedPartsPage() {
                         image: existing.image || s.image,
                         warranty_time: existing.warranty_time || s.warranty_time,
                         center_stock: s.center_stock || existing.center_stock,
+                        total_order_quantity: s.total_order_quantity || existing.total_order_quantity,
+                        original_order_quantity: s.original_order_quantity || existing.original_order_quantity,
                     })
                 } else {
                     merged.push(s)
@@ -395,6 +400,9 @@ export default function SuggestedPartsPage() {
                                             <div className="truncate font-medium">{l.name}</div>
                                             <Badge variant="outline">Giá: {VND(l.selling_price)}</Badge>
                                         </div>
+                                        {l.detail?.description && (
+                                            <div className="mt-1 text-xs text-muted-foreground">{l.detail.description}</div>
+                                        )}
                                         <div className="mt-1 text-xs text-muted-foreground flex flex-wrap items-center gap-2">
                                             <ShieldCheck className="h-3.5 w-3.5" /> Warranty: {l.warranty_time} days
                                             <span className="mx-2">•</span>
@@ -426,7 +434,7 @@ export default function SuggestedPartsPage() {
                                                 <Button type="button" variant="outline" size="icon" disabled={l.confirmed || l.quantity >= l.center_stock} onClick={() => setQty(l.center_auto_part_id, l.quantity + 1)}>
                                                     <Plus className="h-4 w-4" />
                                                 </Button>
-                                                <div className="text-sm text-muted-foreground">Order Quantity: {l.total_order_quantity}</div>
+                                                <div className="text-sm text-muted-foreground">Order Quantity: {l.original_order_quantity}</div>
                                             </div>
 
                                             <div className="flex items-center gap-3">
