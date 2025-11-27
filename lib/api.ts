@@ -808,6 +808,12 @@ export interface AssignedShiftInfo {
 export interface AssignedShiftsByUserResponse {
   success: boolean
   data: AssignedShiftInfo[]
+  pagination?: {
+    current_page: number
+    total_pages: number
+    total_count: number
+    per_page: number
+  }
 }
 
 export interface ShiftAssignmentResponse {
@@ -2010,12 +2016,14 @@ export class ApiClient {
   }
 
   // Workshifts: list
-  async getWorkshifts(params?: { center_id?: string; page?: number; limit?: number }): Promise<WorkshiftsListResponse> {
+  async getWorkshifts(params?: { center_id?: string; page?: number; limit?: number; month?: number; year?: number }): Promise<WorkshiftsListResponse> {
     let path = "/workshifts"
     const queryParams = new URLSearchParams()
     if (params?.center_id) queryParams.set("center_id", params.center_id)
     if (params?.page) queryParams.set("page", String(params.page))
     if (params?.limit) queryParams.set("limit", String(params.limit))
+    if (params?.month !== undefined) queryParams.set("month", String(params.month + 1))
+    if (params?.year !== undefined) queryParams.set("year", String(params.year))
     const qs = queryParams.toString()
     if (qs) path += `?${qs}`
     const res = await this.fetchJson<WorkshiftsListResponse>(path, { method: "GET" })
@@ -2071,9 +2079,17 @@ export class ApiClient {
   }
 
   // Shift Assignments: list by user
-  async getShiftAssignmentsByUser(systemUserId: string): Promise<AssignedShiftInfo[]> {
-    const res = await this.fetchJson<AssignedShiftsByUserResponse>(`/shift-assignments/user/${systemUserId}`, { method: "GET" })
-    return res.data
+  async getShiftAssignmentsByUser(
+    systemUserId: string,
+    options?: { page?: number; limit?: number }
+  ): Promise<AssignedShiftsByUserResponse> {
+    const params = new URLSearchParams()
+    if (options?.page) params.append("page", options.page.toString())
+    if (options?.limit) params.append("limit", options.limit.toString())
+    const query = params.toString()
+    const url = `/shift-assignments/user/${systemUserId}${query ? `?${query}` : ''}`
+    const res = await this.fetchJson<AssignedShiftsByUserResponse>(url, { method: "GET" })
+    return res
   }
 
   // Shift Assignments: list by shift

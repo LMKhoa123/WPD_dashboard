@@ -223,16 +223,19 @@ export function ServiceDetailsDialog({ recordId, trigger }: ServiceDetailsDialog
               <TableRow>
                 <TableHead>Center</TableHead>
                 <TableHead>Part</TableHead>
-                <TableHead>Description</TableHead>
+                <TableHead className="min-w-[200px]">Description</TableHead>
                 <TableHead className="text-right">Qty</TableHead>
+                <TableHead className="text-right">Warranty</TableHead>
+                <TableHead className="text-right">Paid</TableHead>
                 <TableHead className="text-right">Unit Price</TableHead>
+                <TableHead className="text-right">Total</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {details.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">No details yet</TableCell>
+                  <TableCell colSpan={9} className="text-center text-muted-foreground">No details yet</TableCell>
                 </TableRow>
               ) : details.map(item => {
                 const cp = centerParts.find(x => x._id === (typeof item.centerpart_id === 'string' ? item.centerpart_id : item.centerpart_id._id))
@@ -242,9 +245,22 @@ export function ServiceDetailsDialog({ recordId, trigger }: ServiceDetailsDialog
                   <TableRow key={item._id}>
                     <TableCell className="font-medium">{center || '-'}</TableCell>
                     <TableCell>{part || '-'}</TableCell>
-                    <TableCell>{item.description || '-'}</TableCell>
+                    <TableCell className="max-w-[250px]">
+                      <div className="text-sm font-medium text-foreground">
+                        {item.description || '-'}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right">{item.quantity}</TableCell>
-                    <TableCell className="text-right">{item.unit_price}</TableCell>
+                    <TableCell className="text-right text-green-600">
+                      {item.warranty_qty !== undefined ? item.warranty_qty : '-'}
+                    </TableCell>
+                    <TableCell className="text-right text-blue-600">
+                      {item.paid_qty !== undefined ? item.paid_qty : '-'}
+                    </TableCell>
+                    <TableCell className="text-right">{item.unit_price.toLocaleString('vi-VN')}</TableCell>
+                    <TableCell className="text-right font-semibold">
+                      {item.totalPrice ? item.totalPrice.toLocaleString('vi-VN') : (item.unit_price * item.quantity).toLocaleString('vi-VN')}
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button variant="ghost" size="icon" onClick={() => onEdit(item)}><Pencil className="h-4 w-4" /></Button>
